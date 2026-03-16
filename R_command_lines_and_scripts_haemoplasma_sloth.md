@@ -134,25 +134,12 @@ anova(model_1a, model_1, test = "Chisq")
 
 Results are:
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
 Analysis of Deviance Table
-Model 1: anaplasma ~ sex + age + season + tick + bloodparasite
-Model 2: anaplasma ~ sex * age * season * tick * bloodparasite
+Model 1: haemoplasma ~ sex + age + season + tick + bloodparasite
+Model 2: haemoplasma ~ sex * age * season * tick * bloodparasite
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        86     116.73                     
-2        74     100.33 12   16.409   0.1732
+1        86     25.402                     
+2        74     19.733 12   5.6681   0.9319
 ```
 
 Compute AIC for both models to evaluate model fit:
@@ -163,8 +150,8 @@ AIC(model_1, model_1a)
 Results are:
 ```
          df      AIC
-model_1  18 136.3264
-model_1a  6 128.7350
+model_1  18 55.73344
+model_1a  6 37.40157
 ```
 
 Perform drop-one-term analysis on the additive model:
@@ -175,14 +162,14 @@ res <- drop1(model_1a, test = "Chisq")
 Results are:
 ```
 Single term deletions
-Model: anaplasma ~ sex + age + season + tick + bloodparasite
-              Df Deviance    AIC     LRT Pr(>Chi)
-<none>             116.73 128.74                 
-sex            1   119.39 129.40 2.65956   0.1029
-age            1   118.01 128.01 1.27259   0.2593
-season         1   116.93 126.93 0.19048   0.6625
-tick           1   117.56 127.56 0.82359   0.3641
-bloodparasite  1   116.74 126.74 0.00537   0.9416
+Model: haemoplasma ~ sex + age + season + tick + bloodparasite
+              Df Deviance    AIC    LRT Pr(>Chi)  
+<none>             25.402 37.402                  
+sex            1   25.416 35.416 0.0144  0.90461  
+age            1   25.509 35.508 0.1069  0.74370  
+season         1   29.313 39.313 3.9112  0.04797 *
+tick           1   27.412 37.412 2.0103  0.15623  
+bloodparasite  1   27.707 37.707 2.3050  0.12896  
 ```
 
 Calculate delta AIC for each term to assess its contribution to model fit:
@@ -195,22 +182,22 @@ print(res[, c("AIC", "delta_AIC")])
 Results are:
 ```
                  AIC delta_AIC
-<none>        128.74   0.00000
-sex           129.40   0.65956
-age           128.01   0.72741
-season        126.93   1.80952
-tick          127.56   1.17641
-bloodparasite 126.74   1.99463
+<none>        37.402   0.00000
+sex           35.416  -1.98564
+age           35.508  -1.89310
+season        39.313   1.91118
+tick          37.412   0.01031
+bloodparasite 37.707   0.30503
 ```
 
 Compare the null model (model_null) to univariate models using likelihood ratio tests and AIC:
 ```
-model_null <- glm(anaplasma ~ 1, data = data_Bt, family = binomial)
-model_sex <- glm(anaplasma ~ sex, data = data_Bt, family = binomial)
-model_age <- glm(anaplasma ~ age, data = data_Bt, family = binomial)
-model_season <- glm(anaplasma ~ season, data = data_Bt, family = binomial)
-model_tick <- glm(anaplasma ~ tick, data = data_Bt, family = binomial)
-model_bloodparasite <- glm(anaplasma ~ bloodparasite, data = data_Bt, family = binomial)
+model_null <- glm(haemoplasma ~ 1, data = data_Bt, family = binomial)
+model_sex <- glm(haemoplasma ~ sex, data = data_Bt, family = binomial)
+model_age <- glm(haemoplasma ~ age, data = data_Bt, family = binomial)
+model_season <- glm(haemoplasma ~ season, data = data_Bt, family = binomial)
+model_tick <- glm(haemoplasma ~ tick, data = data_Bt, family = binomial)
+model_bloodparasite <- glm(haemoplasma ~ bloodparasite, data = data_Bt, family = binomial)
 anova(model_null, model_sex, test="Chisq")
 anova(model_null, model_age, test="Chisq")
 anova(model_null, model_season, test="Chisq")
@@ -225,102 +212,110 @@ print(aics[, c("AIC", "delta_AIC_vs_null")])
 Results are:
 ```
 Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ sex
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ sex
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        91     121.20                     
-2        90     119.39  1   1.8129   0.1782
+1        91     32.907                     
+2        90     32.890  1 0.017826   0.8938
+> anova(model_null, model_age, test="Chisq")
 ---
-Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ age
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ age
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        91     121.20                     
-2        90     120.05  1   1.1537   0.2828
+1        91     32.907                     
+2        90     32.450  1  0.45735   0.4989
+> anova(model_null, model_season, test="Chisq")
 ---
-Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ season
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        91      121.2                     
-2        90      120.8  1  0.41002    0.522
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ season
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)  
+1        91     32.907                       
+2        90     29.111  1   3.7967  0.05135 .
 ---
-Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ tick
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ tick
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        91     121.20                     
-2        90     120.67  1  0.53727   0.4636
+1        91     32.907                     
+2        90     31.659  1   1.2483   0.2639
 ---
-Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ bloodparasite
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ bloodparasite
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        91     121.20                     
-2        90     121.17  1 0.037782   0.8459
+1        91     32.907                     
+2        90     31.430  1   1.4775   0.2242
 ---
                          AIC delta_AIC_vs_null
-model_null          123.2052         0.0000000
-model_sex           123.3923         0.1871191
-model_age           124.0515         0.8463400
-model_season        124.7952         1.5899764
-model_tick          124.6679         1.4627279
-model_bloodparasite 125.1674         1.9622180
+model_null          34.90746         0.0000000
+model_sex           36.88964         1.9821737
+model_age           36.45012         1.5426530
+model_season        33.11076        -1.7967066
+model_tick          35.65919         0.7517249
+model_bloodparasite 35.42993         0.5224647
 ```
 
-Tests for associations between `anaplasma` and the presence of blood parasites (`microfilaria`, `trypanosome`, `babesia`) considered separately in Bt:
+Tests for associations between `haemoplasma` and the presence of blood parasites (`anaplasma`, `microfilaria`, `trypanosome`, `babesia`) considered separately in Bt:
 ```
-fisher.test(table(data_Bt$anaplasma, data_Bt$microfilaria))  
-fisher.test(table(data_Bt$anaplasma, data_Bt$trypanosome))  
-fisher.test(table(data_Bt$anaplasma, data_Bt$babesia))
+fisher.test(table(data_Bt$haemoplasma, data_Bt$anaplasma))
+fisher.test(table(data_Bt$haemoplasma, data_Bt$microfilaria))  
+fisher.test(table(data_Bt$haemoplasma, data_Bt$trypanosome))  
+fisher.test(table(data_Bt$haemoplasma, data_Bt$babesia))
 ```
 
 Results are:
 ```
 Fisher's Exact Test for Count Data
-data:  table(data_Bt$anaplasma, data_Bt$microfilaria)
-p-value = 0.8227
+data:  table(data_Bt$haemoplasma, data_Bt$anaplasma)
+p-value = 0.6245
 alternative hypothesis: true odds ratio is not equal to 1
 95 percent confidence interval:
-0.3362994 2.4250879
+ 0.03989675 8.28720044
 sample estimates:
 odds ratio 
-0.894268 
-
-data:  table(data_Bt$anaplasma, data_Bt$trypanosome)
-p-value = 0.9999
+  0.575116 
+---
+data:  table(data_Bt$haemoplasma, data_Bt$microfilaria)
+p-value = 0.2962
 alternative hypothesis: true odds ratio is not equal to 1
 95 percent confidence interval:
-0.0591107 71.5824945
+ 0.000000 2.964093
 sample estimates:
 odds ratio 
-1.176551 
-
-data:  table(data_Bt$anaplasma, data_Bt$babesia)
-p-value = 0.9999
+         0 
+---
+data:  table(data_Bt$haemoplasma, data_Bt$trypanosome)
+p-value = 1
 alternative hypothesis: true odds ratio is not equal to 1
 95 percent confidence interval:
-0 Inf
+  0.00000 64.56697
 sample estimates:
 odds ratio 
-0
+         0 
+---
+data:  table(data_Bt$haemoplasma, data_Bt$babesia)
+p-value = 1
+alternative hypothesis: true odds ratio is not equal to 1
+95 percent confidence interval:
+   0 Inf
+sample estimates:
+odds ratio 
+         0 
 ```
 
-## Step 5. Test whether _Anaplasma_ infection prevalence in _Choloepus didactylus_ (Cd) is influenced by sex, age, season, ticks and blood parasites (GLM model 2)
+## Step 5. Test whetherhaemoplasma infection prevalence in _Choloepus didactylus_ (Cd) is influenced by sex, age, season, ticks and other blood parasites (GLM model 2)
 
 Create a subset `data_Cd` containing only records for _Choloepus didactylus_ (Cd):
 ```
-data_Cd <- subset(data_sloth, species == "Cd")
+data_Cd <- subset(data_haemoplasma, species == "Cd")
 ```
 
-Fit a GLM to test whether `anaplasma` is influenced by interactions among `sex`, `age`, `season`, `tick`, and `bloodparasite` in Cd:
+Fit a GLM to test whether `haemoplasma` is influenced by interactions among `sex`, `age`, `season`, `tick`, and `bloodparasite` in Cd:
 ```
-model_2 <- glm(anaplasma ~ sex * age * season * tick * bloodparasite, data = data_Cd, family = binomial)
+model_2 <- glm(haemoplasma ~ sex * age * season * tick * bloodparasite, data = data_Cd, family = binomial)
 ```
 
-Fit a GLM to test whether `anaplasma` infection prevalence is influenced by additive effects of `sex`, `age`, `season`, `tick`, and `bloodparasite` in Cd:
+Fit a GLM to test whether `haemoplasma` infection prevalence is influenced by additive effects of `sex`, `age`, `season`, `tick`, and `bloodparasite` in Cd:
 ```
-model_2a <- glm(anaplasma ~ sex + age + season + tick + bloodparasite, data = data_Cd, family = binomial)
+model_2a <- glm(haemoplasma ~ sex + age + season + tick + bloodparasite, data = data_Cd, family = binomial)
 ```
 
 Compare the additive model (model_2a) to the interaction model (model_2) using a likelihood ratio test:
@@ -331,11 +326,11 @@ anova(model_2a, model_2, test = "Chisq")
 Results are:
 ```
 Analysis of Deviance Table
-Model 1: anaplasma ~ sex + age + season + tick + bloodparasite
-Model 2: anaplasma ~ sex * age * season * tick * bloodparasite
+Model 1: haemoplasma ~ sex + age + season + tick + bloodparasite
+Model 2: haemoplasma ~ sex * age * season * tick * bloodparasite
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        77    106.525                     
-2        61     85.459 16   21.066    0.176
+1        77     67.088                     
+2        57     46.644 20   20.445   0.4304
 ```
 
 Compute AIC for both models to evaluate model fit:
@@ -346,8 +341,8 @@ AIC(model_2, model_2a)
 Results are:
 ```
          df      AIC
-model_2  22 129.4592
-model_2a  6 118.5250
+model_2  26 98.64370
+model_2a  6 79.08835
 ```
 
 Perform drop-one-term analysis on the additive model:
@@ -358,15 +353,14 @@ res <- drop1(model_2a, test = "Chisq")
 Results are:
 ```
 Single term deletions
-Model:
-anaplasma ~ sex + age + season + tick + bloodparasite
-              Df Deviance    AIC     LRT Pr(>Chi)  
-<none>             106.53 118.53                   
-sex            1   107.12 117.12 0.59812  0.43930  
-age            1   108.07 118.07 1.54781  0.21346  
-season         1   107.82 117.82 1.29158  0.25576  
-tick           1   109.35 119.35 2.82844  0.09261
-bloodparasite  1   107.03 117.03 0.50223  0.47852  
+Model: haemoplasma ~ sex + age + season + tick + bloodparasite
+              Df Deviance    AIC    LRT Pr(>Chi)  
+<none>             67.088 79.088                  
+sex            1   67.094 77.094 0.0058  0.93954  
+age            1   67.806 77.806 0.7181  0.39677  
+season         1   70.172 80.172 3.0832  0.07910 .
+tick           1   68.851 78.851 1.7625  0.18431  
+bloodparasite  1   71.140 81.140 4.0514  0.04413 *
 ```
 
 Calculate delta AIC for each term to assess its contribution to model fit:
@@ -379,22 +373,22 @@ print(res[, c("AIC", "delta_AIC")])
 Results are:
 ```
                  AIC delta_AIC
-<none>        118.53   0.00000
-sex           117.12   1.40188
-age           118.07   0.45219
-season        117.82   0.70842
-tick          119.35   0.82844
-bloodparasite 117.03   1.49777
+<none>        79.088   0.00000
+sex           77.094  -1.99425
+age           77.806  -1.28192
+season        80.172   1.08325
+tick          78.851  -0.23745
+bloodparasite 81.140   2.05144
 ```
 
 Compare the null model (model2_null) to univariate models using likelihood ratio tests and AIC:
 ```
-model2_null <- glm(anaplasma ~ 1, data = data_Cd, family = binomial)
-model2_sex <- glm(anaplasma ~ sex, data = data_Cd, family = binomial)
-model2_age <- glm(anaplasma ~ age, data = data_Cd, family = binomial)
-model2_season <- glm(anaplasma ~ season, data = data_Cd, family = binomial)
-model2_tick <- glm(anaplasma ~ tick, data = data_Cd, family = binomial)
-model2_bloodparasite <- glm(anaplasma ~ bloodparasite, data = data_Cd, family = binomial)
+model2_null <- glm(haemoplasma ~ 1, data = data_Cd, family = binomial)
+model2_sex <- glm(haemoplasma ~ sex, data = data_Cd, family = binomial)
+model2_age <- glm(haemoplasma ~ age, data = data_Cd, family = binomial)
+model2_season <- glm(haemoplasma ~ season, data = data_Cd, family = binomial)
+model2_tick <- glm(haemoplasma ~ tick, data = data_Cd, family = binomial)
+model2_bloodparasite <- glm(haemoplasma ~ bloodparasite, data = data_Cd, family = binomial)
 anova(model2_null, model2_sex, test="Chisq")
 anova(model2_null, model2_age, test="Chisq")
 anova(model2_null, model2_season, test="Chisq")
@@ -409,48 +403,56 @@ print(aics[, c("AIC", "delta_AIC_vs_null")])
 Results are:
 ```
 Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ sex
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ sex
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        82     114.95                     
-2        81     113.59  1   1.3666   0.2424
+1        82     78.433                     
+2        81     77.984  1  0.44913   0.5027
 ---
 Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ age
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ age
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        82     114.95                     
-2        81     114.05  1  0.90314   0.3419
+1        82     78.433                     
+2        81     78.149  1   0.2835   0.5944
 ---
 Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ season
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ season
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)  
-1        82     114.95                       
-2        81     112.07  1   2.8815   0.0896
+1        82     78.433                       
+2        81     73.855  1   4.5779  0.03239 *
 ---
 Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ tick
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ tick
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)  
-1        82     114.95                       
-2        81     110.85  1   4.1012  0.04285 *
+1        82     78.433                       
+2        81     75.076  1   3.3566  0.06694 .
 ---
 Analysis of Deviance Table
-Model 1: anaplasma ~ 1
-Model 2: anaplasma ~ bloodparasite
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        82     114.95                     
-2        81     114.05  1  0.90314   0.3419
+Model 1: haemoplasma ~ 1
+Model 2: haemoplasma ~ bloodparasite
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)  
+1        82     78.433                       
+2        81     73.490  1   4.9434  0.02619 *
 ---
                           AIC delta_AIC_vs_null
-model2_null          116.9540         0.0000000
-model2_sex           117.5873         0.6333481
-model2_age           118.0508         1.0968613
-model2_season        116.0724         0.8815494
-model2_tick          114.8528         2.1011720
-model2_bloodparasite 118.0508         1.0968613
+model2_null          80.43299          0.000000
+model2_sex           81.98386          1.550870
+model2_age           82.14949          1.716502
+model2_season        77.85506         -2.577930
+model2_tick          79.07643         -1.356560
+model2_bloodparasite 77.48955         -2.943435
 ```
+
+
+
+
+
+
+
+
 
 Display the proportion of Cd sloths infected by Anaplasma with and without ticks:
 ```
