@@ -582,7 +582,8 @@ odds ratio
   6.158366  
 ```
 
-ATTENTION ESSAI A GARDER OU PAS: 
+ATTENTION ESSAI A GARDER OU PAS
+
 Fit a GLM to test whether `haemoplasma` infection prevalence is influenced by additive effects of `anaplasma` and `season` in Cd:
 ```
 model_2b <- glm(haemoplasma ~ anaplasma + season, data = data_Cd, family = binomial)
@@ -889,7 +890,7 @@ model_3b           139.3626                -10.77931
 model3_haemoplasma 150.1419                  0.00000
 ```
 
-Compare the the model3_sex univariate model (SMI ~ sex) to the the 'haemoplasma' + 'sex' additive model (model_3b) using likelihood ratio tests and AIC:
+Compare the the model3_sex univariate model (SMI ~ sex) to the 'haemoplasma' + 'sex' additive model (model_3b) using likelihood ratio tests and AIC:
 ```
 anova(model_3b, model3_sex, test="Chisq")
 aics <- AIC(model_3b, model3_sex)
@@ -912,113 +913,44 @@ model_3b   139.3626        -8.605512
 model3_sex 147.9681         0.000000
 ```
 
-
-
-stat smi vs haemoplasma
-
-
-
-Fit a linear model to test the effect of `sex` on SMI in adult Bt and assess model fit, residual normality, and heteroscedasticity:
+Assess residual normality and heteroscedasticity of the 'haemoplasma' + 'sex' additive model (model_3b):
 ```
-model_3b <- glm(SMI ~ sex, data = data_adult_Bt, family = gaussian(link = "identity"))
-anova(model_3b, model_3, test = "Chisq")
-AIC(model_3b, model_3)
 shapiro.test(model_3b$residuals)
 bptest(model_3b)
 ```
 
 Results are:
 ```
-> anova(model_3b, model_3, test = "Chisq")
-Analysis of Deviance Table
-Model 1: SMI ~ sex
-Model 2: SMI ~ anaplasma * season * sex
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        81     26.881                     
-2        75     24.043  6   2.8382    0.182
-
-> AIC(model_3b, model_3)
-         df      AIC
-model_3b  3 147.9681
-model_3   9 150.7068
-
-> shapiro.test(model_3b$residuals)
 Shapiro-Wilk normality test
 data:  model_3b$residuals
-W = 0.99063, p-value = 0.8169
-
-> bptest(model_3b)
+W = 0.9883, p-value = 0.6612
+---
 studentized Breusch-Pagan test
 data:  model_3b
-BP = 2.7945, df = 1, p-value = 0.09459
+BP = 4.0982, df = 2, p-value = 0.1288
 ```
 
-Calculation of mean and standard error of SMI by `sex` for Bt:
+Calculation of mean and standard error of SMI by `haemoplasma` infection status and `sex` for Bt:
 ```
-data_adult_Bt %>%
-  group_by(sex) %>%
+data_adult_Bt %>% 
+  group_by(sex, haemoplasma) %>% 
   summarise(
-    mean_SMI = mean(SMI, na.rm = TRUE),
-    se_SMI = sd(SMI, na.rm = TRUE) / sqrt(sum(!is.na(SMI))))
+    n = sum(!is.na(SMI)),
+    mean = mean(SMI, na.rm = TRUE),
+    se = sd(SMI, na.rm = TRUE) / sqrt(n),
+    .groups = "drop"
+  ) %>% 
+  mutate(SMI = sprintf("%.2f ± %.2f", mean, se))
 ```
 
 Results are:
 ```
-A tibble: 2 × 3
-  sex   mean_SMI se_SMI
-  <fct>    <dbl>  <dbl>
-1 F         4.39 0.0772
-2 M         4.83 0.0997
-```
-
-Post hoc power analyses for SMI tests in Bt (full model):
-```
-n <- nrow(na.omit(data_adult_Bt[, c("SMI", "anaplasma", "season", "sex")]))
-k <- 7
-pwr.f2.test(u = k, v = n - k - 1, f2 = 0.30, sig.level = 0.05)
-pwr.f2.test(u = k, v = n - k - 1, f2 = 0.20, sig.level = 0.05)
-```
-
-Results are:
-```
-Multiple regression power calculation (f2 = 0.30)
-u = 7
-v = 75
-f2 = 0.3
-sig.level = 0.05
-power = 0.9580486
-and
-Multiple regression power calculation (f2 = 0.20)
-u = 7
-v = 75
-f2 = 0.2
-sig.level = 0.05
-power = 0.824756
-```
-
-Post hoc power analyses for SMI tests in Bt (reduced model, `SMI` ~ `sex` and adding `anaplasma`):
-```
-n <- nrow(na.omit(data_adult_Bt[, c("SMI", "anaplasma", "sex")]))
-k <- 2
-pwr.f2.test(u = k, v = n - k - 1, f2 = 0.30, sig.level = 0.05)
-pwr.f2.test(u = k, v = n - k - 1, f2 = 0.20, sig.level = 0.05)
-```
-
-Results are:
-```
-Multiple regression power calculation 
-u = 2
-v = 80
-f2 = 0.3
-sig.level = 0.05
-power = 0.9952295
-and
-Multiple regression power calculation 
-u = 2
-v = 80
-f2 = 0.2
-sig.level = 0.05
-power = 0.9564976
+  sex   haemoplasma     n  mean     se SMI        
+  <fct> <fct>       <int> <dbl>  <dbl> <chr>      
+1 F     0              39  4.43 0.0749 4.43 ± 0.07
+2 F     1               2  3.56 0.0284 3.56 ± 0.03
+3 M     0              40  4.88 0.0985 4.88 ± 0.10
+4 M     1               2  3.90 0.298  3.90 ± 0.30
 ```
 
 Generate SMI chart for Bt:
@@ -1030,10 +962,10 @@ clean_data <- data_adult_Bt %>%
   ) %>%
   mutate(
     sex_infect = case_when(
-      sex == "M" & anaplasma == 0 ~ "Male, uninfected",
-      sex == "M" & anaplasma == 1 ~ "Male, infected",
-      sex == "F" & anaplasma == 0 ~ "Female, uninfected",
-      sex == "F" & anaplasma == 1 ~ "Female, infected",
+      sex == "M" & haemoplasma == 0 ~ "Male, uninfected",
+      sex == "M" & haemoplasma == 1 ~ "Male, infected",
+      sex == "F" & haemoplasma == 0 ~ "Female, uninfected",
+      sex == "F" & haemoplasma == 1 ~ "Female, infected",
       TRUE ~ NA_character_
     )
   )
@@ -1074,7 +1006,7 @@ ggplot() +
   ) +
   scale_fill_brewer(palette = "Green", name = "SMI level") +
   scale_shape_manual(
-    name = expression(paste(italic("Anaplasma"), " infection status")),
+    name = expression(paste(italic("Haemoplasma"), " infection status")),
     values = c(
       "Male, uninfected" = 0,
       "Male, infected" = 12,
@@ -1100,6 +1032,21 @@ ggplot() +
     axis.text = element_text(size = 14)
   )
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Function to calculate SMI for adult Cd:
 ```
