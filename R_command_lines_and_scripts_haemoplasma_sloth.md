@@ -582,6 +582,118 @@ odds ratio
   6.158366  
 ```
 
+ATTENTION ESSAI A GARDER OU PAS: Fit a GLM to test whether `haemoplasma` infection prevalence is influenced by additive effects of `anaplasma` and `season` in Cd:
+```
+model_2b <- glm(haemoplasma ~ anaplasma + season, data = data_Cd, family = binomial)
+```
+
+Compare model_2b to the complete additive model (model_2a) using a likelihood ratio test:
+```
+anova(model_2b, model_2a, test = "Chisq")
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: haemoplasma ~ anaplasma + season
+Model 2: haemoplasma ~ sex + age + season + tick + bloodparasite
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
+1        80     69.017                     
+2        77     67.088  3    1.929   0.5873
+```
+
+Compute AIC for both models to evaluate model fit:
+```
+AIC(model_2a, model_2b)
+```
+
+Results are:
+```
+         df      AIC
+model_2a  6 79.08835
+model_2b  3 75.01733
+```
+
+Perform drop-one-term analysis on the model_2b additive model:
+```
+res <- drop1(model_2b, test = "Chisq")
+```
+
+Results are:
+```
+Single term deletions
+Model:
+haemoplasma ~ anaplasma + season
+          Df Deviance    AIC    LRT Pr(>Chi)  
+<none>         69.017 75.017                  
+anaplasma  1   73.855 77.855 4.8377  0.02784 *
+season     1   72.229 76.229 3.2117  0.07311 .
+```
+
+Calculate delta AIC for each term to assess its contribution to model fit:
+```
+aic_full <- AIC(model_2b)
+res$delta_AIC <- res$AIC - aic_full
+print(res[, c("AIC", "delta_AIC")])
+```
+
+Results are:
+```
+             AIC delta_AIC
+<none>    75.017    0.0000
+anaplasma 77.855    2.8377
+season    76.229    1.2117
+```
+
+Compare the the model_2b additive model (haemoplasma ~ anaplasma + season) to the model2_anaplasma univariate model (haemoplasma ~ anaplasma) using likelihood ratio tests and AIC:
+```
+model2_anaplasma <- glm(haemoplasma ~ anaplasma, data = data_Cd, family = binomial)
+anova(model_2b, model2_anaplasma, test="Chisq")
+aics <- AIC(model_2b, model2_anaplasma)
+aic_null <- aics["model_2b", "AIC"]
+aics$delta_AIC_vs_null <- aics$AIC - aic_null
+print(aics[, c("AIC", "delta_AIC_vs_null")])
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: haemoplasma ~ anaplasma + season
+Model 2: haemoplasma ~ anaplasma
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)  
+1        80     69.017                       
+2        81     72.229 -1  -3.2117  0.07311 .
+---
+                      AIC delta_AIC_vs_null
+model_2b         75.01733          0.000000
+model2_anaplasma 76.22900          1.211667
+```
+
+Compare the the model2_anaplasma univariate model (haemoplasma ~ anaplasma) to the null model using likelihood ratio tests and AIC:
+```
+anova(model2_anaplasma, model2_null, test="Chisq")
+aics <- AIC(model2_anaplasma, model2_null)
+aic_null <- aics["model2_null", "AIC"]
+aics$delta_AIC_vs_null <- aics$AIC - aic_null
+print(aics[, c("AIC", "delta_AIC_vs_null")])
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: haemoplasma ~ anaplasma
+Model 2: haemoplasma ~ 1
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)  
+1        81     72.229                       
+2        82     78.433 -1   -6.204  0.01275 *
+---
+                      AIC delta_AIC_vs_null
+model2_anaplasma 76.22900         -4.203986
+model2_null      80.43299          0.000000
+```
+
+FIN DE L ESSAI A RETIRER OU PAS
+
 ## Step 6. Impact of haemaplasma infections on Scale Mass Index (SMI) (GLM models 3 and 4)
 The Scaled Mass Index (SMI) was used as a body condition indicator that standardizes individual `weight` to `body_length`, using an allometric scaling relationship. SMI was calculated following Peig & Green (2009) (https://doi.org/10.1111/j.1600-0706.2009.17643.x).
 
