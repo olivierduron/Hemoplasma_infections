@@ -582,7 +582,8 @@ odds ratio
   6.158366  
 ```
 
-ATTENTION ESSAI A GARDER OU PAS: Fit a GLM to test whether `haemoplasma` infection prevalence is influenced by additive effects of `anaplasma` and `season` in Cd:
+ATTENTION ESSAI A GARDER OU PAS: 
+Fit a GLM to test whether `haemoplasma` infection prevalence is influenced by additive effects of `anaplasma` and `season` in Cd:
 ```
 model_2b <- glm(haemoplasma ~ anaplasma + season, data = data_Cd, family = binomial)
 ```
@@ -706,11 +707,12 @@ L0 <- mean(data_adult_Bt$total_length, na.rm = TRUE)
 data_adult_Bt$SMI <- data_adult_Bt$weight * (L0 / data_adult_Bt$total_length)^b
 ```
 
-Fit a GLM to test whether SMI is influenced by interactions among `haemoplasma`, `bloodparasite`, `sex` and `season`:
+Fit a GLM to test whether SMI is influenced by interactions among `haemoplasma`, `bloodparasite`, `sex` and `season` in Bt:
+```
 model_3 <- glm(SMI ~ haemoplasma * bloodparasite * season * sex, data = data_adult_Bt, family = gaussian(link = "identity"))
 ```
 
-Fit a GLM to test whether SMI is influenced by additive effects of `anaplasma`, `sex`, and `season` in Bt:
+Fit a GLM to test whether SMI is influenced by additive effects of `haemoplasma`, `bloodparasite`, `sex` and `season` in Bt:
 ```
 model_3a <- glm(SMI ~ haemoplasma + bloodparasite + season + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
 ```
@@ -769,23 +771,26 @@ print(res[, c("AIC", "delta_AIC")])
 
 Results are:
 ```
-             AIC delta_AIC
-<none>    150.56    0.0000
-anaplasma 149.89    0.6729
-season    148.64    1.9230
-sex       161.06   10.4943
+                 AIC delta_AIC
+<none>        143.31    0.0000
+haemoplasma   151.73    8.4232
+bloodparasite 141.31   -1.9955
+season        141.36   -1.9485
+sex           153.82   10.5176
 ```
 
 Compare the null model (model_null) to univariate models using likelihood ratio tests and AIC:
 ```
 model3_null <- glm(SMI ~ 1, data = data_adult_Bt, family = gaussian(link = "identity"))
-model3_anaplasma <- glm(SMI ~ anaplasma, data = data_adult_Bt, family = gaussian(link = "identity"))
+model3_haemoplasma <- glm(SMI ~ haemoplasma, data = data_adult_Bt, family = gaussian(link = "identity"))
+model3_bloodparasite <- glm(SMI ~ bloodparasite, data = data_adult_Bt, family = gaussian(link = "identity"))
 model3_season <- glm(SMI ~ season, data = data_adult_Bt, family = gaussian(link = "identity"))
 model3_sex <- glm(SMI ~ sex, data = data_adult_Bt, family = gaussian(link = "identity"))
-anova(model3_null, model3_anaplasma, test="Chisq")
+anova(model3_null, model3_haemoplasma, test="Chisq")
+anova(model3_null, model3_bloodparasite, test="Chisq")
 anova(model3_null, model3_season, test="Chisq")
 anova(model3_null, model3_sex, test="Chisq")
-aics <- AIC(model3_null, model3_anaplasma, model3_season, model3_sex)
+aics <- AIC(model3_null, model3_haemoplasma, model3_bloodparasite, model3_season, model3_sex)
 aic_null <- aics["model3_null", "AIC"]
 aics$delta_AIC_vs_null <- aics$AIC - aic_null
 print(aics[, c("AIC", "delta_AIC_vs_null")])
@@ -795,10 +800,17 @@ Results are:
 ```
 Analysis of Deviance Table
 Model 1: SMI ~ 1
-Model 2: SMI ~ anaplasma
+Model 2: SMI ~ haemoplasma
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)   
+1        82     30.838                        
+2        81     27.594  1   3.2438 0.002031 **
+---
+Analysis of Deviance Table
+Model 1: SMI ~ 1
+Model 2: SMI ~ bloodparasite
   Resid. Df Resid. Dev Df Deviance Pr(>Chi)
 1        82     30.838                     
-2        81     30.730  1  0.10766   0.5942
+2        81     30.564  1  0.27455   0.3937
 ---
 Analysis of Deviance Table
 Model 1: SMI ~ 1
@@ -814,12 +826,97 @@ Model 2: SMI ~ sex
 1        82     30.838                          
 2        81     26.881  1   3.9571 0.0005542 ***
 ---
-                      AIC delta_AIC_vs_null
-model3_null      157.3666          0.000000
-model3_anaplasma 159.0763          1.709727
-model3_season    159.3430          1.976398
-model3_sex       147.9681          9.398467
+                          AIC delta_AIC_vs_null
+model3_null          157.3666          0.000000
+model3_haemoplasma   150.1419         -7.224666
+model3_bloodparasite 158.6243          1.257743
+model3_season        159.3430          1.976398
+model3_sex           147.9681         -9.398467
 ```
+
+Fit a GLM to test whether SMI is influenced by additive effects of `haemoplasma` and `sex` in Bt:
+```
+model_3b <- glm(SMI ~ haemoplasma + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+```
+
+Compare the additive model (model_3b) to the full additive model (model_3a) using a likelihood ratio test:
+```
+anova(model_3b, model_3a, test = "Chisq")
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: SMI ~ haemoplasma + sex
+Model 2: SMI ~ haemoplasma + bloodparasite + season + sex
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
+1        80     23.657                     
+2        78     23.641  2 0.015892   0.9741
+```
+
+Compute AIC for both models to evaluate model fit:
+```
+AIC(model_3a, model_3b)
+```
+
+Results are:
+```
+         df      AIC
+model_3a  6 143.3069
+model_3b  4 139.3626
+```
+
+Compare the the model3_haemoplasma univariate model (SMI ~ haemoplasma) to the the 'haemoplasma' + 'sex' additive model (model_3b) using likelihood ratio tests and AIC:
+```
+anova(model_3b, model3_haemoplasma, test="Chisq")
+aics <- AIC(model_3b, model3_haemoplasma)
+aic_haemoplasma <- aics["model3_haemoplasma", "AIC"]
+aics$delta_AIC_vs_haemoplasma <- aics$AIC - aic_haemoplasma
+print(aics[, c("AIC", "delta_AIC_vs_haemoplasma")])
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: SMI ~ haemoplasma + sex
+Model 2: SMI ~ haemoplasma
+  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
+1        80     23.657                          
+2        81     27.594 -1  -3.9377 0.0002631 ***
+---
+                        AIC delta_AIC_vs_haemoplasma
+model_3b           139.3626                -10.77931
+model3_haemoplasma 150.1419                  0.00000
+```
+
+Compare the the model3_sex univariate model (SMI ~ sex) to the the 'haemoplasma' + 'sex' additive model (model_3b) using likelihood ratio tests and AIC:
+```
+anova(model_3b, model3_sex, test="Chisq")
+aics <- AIC(model_3b, model3_sex)
+aic_sex <- aics["model3_sex", "AIC"]
+aics$delta_AIC_vs_sex <- aics$AIC - aic_sex
+print(aics[, c("AIC", "delta_AIC_vs_sex")])
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: SMI ~ haemoplasma + sex
+Model 2: SMI ~ sex
+  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
+1        80     23.657                          
+2        81     26.881 -1  -3.2244 0.0009596 ***
+---
+                AIC delta_AIC_vs_sex
+model_3b   139.3626        -8.605512
+model3_sex 147.9681         0.000000
+```
+
+
+
+stat smi vs haemoplasma
+
+
 
 Fit a linear model to test the effect of `sex` on SMI in adult Bt and assess model fit, residual normality, and heteroscedasticity:
 ```
