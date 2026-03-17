@@ -696,7 +696,7 @@ model2_null      80.43299          0.000000
 
 FIN DE L ESSAI A RETIRER OU PAS
 
-## Step 6. Impact of haemaplasma infections on Scale Mass Index (SMI) (GLM models 3 and 4)
+## Step 6. Impact of haemaplasma infections on Scale Mass Index (SMI) (GLM models 3) in Bt
 The Scaled Mass Index (SMI) was used as a body condition indicator that standardizes individual `weight` to `body_length`, using an allometric scaling relationship. SMI was calculated following Peig & Green (2009) (https://doi.org/10.1111/j.1600-0706.2009.17643.x).
 
 Function to calculate SMI for adult Bt:
@@ -913,6 +913,38 @@ model_3b   139.3626        -8.605512
 model3_sex 147.9681         0.000000
 ```
 
+Fit a GLM to test whether SMI is influenced by interaction effect of `haemoplasma` and `sex` in Bt:
+```
+model_3c <- glm(SMI ~ haemoplasma * sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+```
+
+Compare the additive model (model_3b) to the interactive model (model_3c) using a likelihood ratio test:
+```
+anova(model_3c, model_3b, test = "Chisq")
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: SMI ~ haemoplasma * sex
+Model 2: SMI ~ haemoplasma + sex
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
+1        79     23.647                     
+2        80     23.657 -1 -0.00961   0.8578
+```
+
+Compute AIC for both models to evaluate model fit:
+```
+AIC(model_3b, model_3c)
+```
+
+Results are:
+```
+         df      AIC
+model_3b  4 139.3626
+model_3c  5 141.3289
+```
+
 Assess residual normality and heteroscedasticity of the 'haemoplasma' + 'sex' additive model (model_3b):
 ```
 shapiro.test(model_3b$residuals)
@@ -1047,7 +1079,7 @@ ggplot() +
 
 
 
-
+## Step 7. Impact of haemaplasma infections on Scale Mass Index (SMI) (GLM models 4) in Cd
 Function to calculate SMI for adult Cd:
 ```
 data_adult_Cd <- subset(data_Cd, age == "A")
