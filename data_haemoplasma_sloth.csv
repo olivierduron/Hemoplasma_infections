@@ -1,4 +1,4 @@
-species	sex	age	season	weight	total_length	wither_height	neck_size	temperature	hematocrit	health_condition	haemoplasma	tick	anaplasma	microfilaria	trypanosome	babesia	bloodparasite	female_reproductive_status
+species	sex	age	season	weight	total_length	wither_height	neck_size	temperature	hematocrit	health_condition	hemoplasma	tick	anaplasma	microfilaria	trypanosome	babesia	bloodparasite	female_reproductive_status
 Bt	F	A	W	3.98	52	43.5	13	NA	33	G	0	0	1	0	0	0	1	Female non pregnant non lactating
 Bt	M	A	W	4.46	55	51	17	32.6	39	G	0	1	1	0	0	0	1	NA
 Bt	F	A	W	4.3	54.5	NA	15.8	34.5	40	G	0	1	0	0	0	0	0	Female non pregnant non lactating
