@@ -12,7 +12,7 @@ We analyzed data from 175 wild sloths captured between 1994 and 1995 during the 
 - `temperature` : Body temperature (quantitative variable, in °C)
 - `hematocrit` : Hematocrit level (quantitative variable, in %)
 - `health_condition` : Overall health status (G: Good; D: Deteriorated)
-- `hemoplasma` : Infection status with haemotropic mycoplasmas (0: Uninfected; 1: Infected)
+- `hemoplasma` : Infection status with hemotropic mycoplasmas (0: Uninfected; 1: Infected)
 - `anaplasma` : Infection status with *Anaplasma* (0: Uninfected; 1: Infected)
 - `tick` : Presence of ticks in the fur (0: Absent; 1: Present)
 - `microfilaria` : Infection status with microfilariae (0: Uninfected; 1: Infected)
