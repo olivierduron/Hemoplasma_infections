@@ -4,7 +4,7 @@ This repository contains the dataset, R command lines, and scripts used for the 
 
 We used data from two main sources:
 
-(1) An epidemiological survey of infections in 1,555 individuals representing 71 species, including 44 wild mammal species (n = 626), five passerine bird species (n = 247), and 22 tick species (n = 682). Hemoplasma infection was detected in 22 of the 44 sampled mammal species, comprising 340 of 626 individuals (54.3%). No hemoplasma infection was detected in passerine birds or ticks. Therefore, all statistical analyses were conducted using mammal data only.
+(1) An epidemiological survey of infections in 1,555 individuals representing 71 species, including 44 wild mammal species (n = 626), five passerine bird species (n = 247), and 22 tick species (n = 682). Hemoplasma infection was detected in 22 of the 44 sampled mammal species. No hemoplasma infection was detected in passerine birds or ticks. Therefore, all statistical analyses were conducted using mammal data only.
 
 -> The epidemiological survey dataset for mammals is available [here](data_hemoplasma_stat.csv).
 
