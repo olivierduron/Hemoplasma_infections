@@ -4,12 +4,12 @@ We analyzed data from 626 individuals across 44 wild mammal species captured in 
 - `species` : Species identity (one of the 44 wild mammal species included in this study)
 - `order` : Species taxonomic order
 - `hemoplasma` : Infection status with hemotropic mycoplasmas (0: Uninfected; 1: Infected)
-- `anaplasmataceae` : Infection status with bacteria from the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0: Uninfected; 1: Infected)
+- `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0: Uninfected; 1: Infected)
 - `apicomplexa` : Infection status with blood parasites, including piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0: Uninfected; 1: Infected)
 - `trypanosoma` : Infection status with trypanosomes (0: Uninfected; 1: Infected)
 - `filaria` : Infection status with microfilariae (0: Uninfected; 1: Infected)
   
-Details about all the experimental methods and measures are available in the related manuscript.
+Details about all the experimental methods are available in the related manuscript.
 
 ## Table of contents 
 - [Step 1. Retrieving the data](#step-1-retrieving-the-data)
