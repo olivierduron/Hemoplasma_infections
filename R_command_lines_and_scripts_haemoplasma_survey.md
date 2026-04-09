@@ -27,46 +27,35 @@ Details about all the experimental methods are available in the related manuscri
 
 ## Step 1. Retrieving the data
 
-All veterinary clinical data for the two sloth species are available here: (https://github.com/olivierduron/Hemoplasma_sloth_infections/blob/main/data_hemoplasma_sloth.csv)
+The epidemiological dataset for mammals is available [here](data_hemoplasma_stat.csv)
 
-This database will be referred to as `data_hemoplasma` throughout the R command lines and scripts provided below. It corresponds to the dataset provided in Table S1 of the related manuscript.
+This database will be referred to as `data_hemoplasma_stat` throughout the R command lines and scripts provided below. It corresponds to part of the dataset provided in Table S1 of the related manuscript.
 
-Load the dataset directly from the GitHub repository to R:
+Load the dataset directly from the GitHub repository to R and explore the dataset by summarizing the different modalities and their frequencies for each variable:
 ```
-data_hemoplasma <- read.csv ("https://raw.githubusercontent.com/olivierduron/Hemoplasma_sloth_infections/main/data_hemoplasma_sloth.csv", sep = "\t")
+data_hemoplasma_stat <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv")
+data_hemoplasma_stat
+str(data_hemoplasma_stat)
+get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
+lapply(data_hemoplasma_stat, get_modalities)
 ```
-
 
 ## Step 2. Prepare the data for analysis
 
 Convert categorical variables into factors:
 ```
-data_hemoplasma$hemoplasma      <- as.factor(data_hemoplasma$hemoplasma)
-data_hemoplasma$anaplasma      <- as.factor(data_hemoplasma$anaplasma)
-data_hemoplasma$species        <- as.factor(data_hemoplasma$species)
-data_hemoplasma$season         <- as.factor(data_hemoplasma$season)
-data_hemoplasma$sex            <- as.factor(data_hemoplasma$sex)
-data_hemoplasma$age            <- as.factor(data_hemoplasma$age)
-data_hemoplasma$tick           <- as.factor(data_hemoplasma$tick)
-data_hemoplasma$microfilaria   <- as.factor(data_hemoplasma$microfilaria)
-data_hemoplasma$trypanosome    <- as.factor(data_hemoplasma$trypanosome)
-data_hemoplasma$babesia        <- as.factor(data_hemoplasma$babesia)
-data_hemoplasma$bloodparasite  <- as.factor(data_hemoplasma$bloodparasite)
+data_hemoplasma_stat$species        <- as.factor(data_hemoplasma_stat$species)
+data_hemoplasma_stat$order           <- as.factor(data_hemoplasma_stat$order)
+data_hemoplasma_stat$hemoplasma      <- as.factor(data_hemoplasma_stat$hemoplasma)
+data_hemoplasma_stat$anaplasmataceae      <- as.factor(data_hemoplasma_stat$anaplasmataceae)
+data_hemoplasma_stat$apicomplexa         <- as.factor(data_hemoplasma_stat$apicomplexa)
+data_hemoplasma_stat$trypanosoma    <- as.factor(data_hemoplasma_stat$trypanosoma)
+data_hemoplasma_stat$filaria   <- as.factor(data_hemoplasma_stat$filaria)
 ```
 
 Load libraries for analysis: 
 ```
-library(binom)
-library(dplyr)
-library(MASS)
-library(ggplot2)
-library(patchwork)
-library(smatr)
-library(lmtest)
-library(akima)
-library(pwr)
-library(survival)
-library(RColorBrewer)
+xxx
 ```
 
 ## Step 3. Calculate hemoplasma infection prevalence
