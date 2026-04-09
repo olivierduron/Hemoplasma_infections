@@ -1,6 +1,6 @@
 # Hemoplasma_infections
 
-This repository contains the dataset, R command lines, and scripts used for the statistical analyses presented in the manuscript “XXX” by XXX et al. This study focuses on the transmission dynamics of haemotropic mycoplasmas (hemoplasmas) in wildlife in French Guiana, South America.
+This repository contains the dataset, R command lines, and scripts used for the statistical analyses presented in the manuscript “XXX” by XXX et al. This study focuses on the transmission dynamics of hemotropic mycoplasmas (hemoplasmas) in wildlife in French Guiana, South America.
 
 We used data from two main sources:
 
