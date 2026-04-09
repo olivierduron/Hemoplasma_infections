@@ -55,23 +55,149 @@ data_hemoplasma_stat$filaria   <- as.factor(data_hemoplasma_stat$filaria)
 
 Load libraries for analysis: 
 ```
-xxx
+library(dplyr)
+library(ggplot2)
 ```
 
-## Step 3. Calculate hemoplasma infection prevalence
-Calculate hemoplasma infection prevalence and 95% confidence interval for _Bradypus tridactylus_ (Bt) and _Choloepus didactylus_ (Cd):
+## Step 3. Hemoplasma prevalence analysis across host species
+
+Summarize by species:
 
 ```
-prevalence_results <- data_hemoplasma %>% group_by(species) %>% summarise(n = n(), positives = sum(hemoplasma == 1), prevalence = positives / n, conf_low = binom.confint(positives, n, conf.level = 0.95, methods = "exact")$lower, conf_high = binom.confint(positives, n, conf.level = 0.95, methods = "exact")$upper)
-print(prevalence_results)
+df_species <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),                             
+    n_infected = sum(hemoplasma == 1, na.rm = TRUE),  # infected individuals
+    prevalence = n_infected / n  
+  )
+print(df_species, n = Inf)
 ```
 
 Results are:
 ```
-A tibble: 2 × 6
-species     n positives prevalence conf_low conf_high
-  <fct>   <int>     <int>      <dbl>    <dbl>     <dbl>
-1 Bt         92         4     0.0435   0.0120     0.108
-2 Cd         83        68     0.819    0.720      0.895
+# A tibble: 44 × 4
+   species                       n n_infected prevalence
+   <fct>                     <int>      <int>      <dbl>
+ 1 Alouatta_macconnelli         22         20     0.909 
+ 2 Bradypus_tridactylus        108          4     0.0370
+ 3 Cabassous_unicinctus          2          0     0     
+ 4 Caluromys_philander           5          0     0     
+ 5 Cebus_apella                  1          0     0     
+ 6 Choloepus_didactylus         90         72     0.8   
+ 7 Coendou_melanurus             1          0     0     
+ 8 Coendou_sp                    3          1     0.333 
+ 9 Cyclopes_didactylus           1          0     0     
+10 Dasypus_novemcinctus         15          5     0.333 
+11 Didelphis_marsupialis        51         22     0.431 
+12 Eira_barbara                  4          0     0     
+13 Felis_wiedii                  1          0     0     
+14 Galictis_vittata              4          3     0.75  
+15 Holochilus_sciureus           5          1     0.2   
+16 Hydrochoerus_hydrochaeris     2          0     0     
+17 Hylaeamys_megacephalus       15          0     0     
+18 Hylaeamys_yunganus           10          0     0     
+19 Lontra_longicaudis            1          1     1     
+20 Makalata_didelphoides         8          0     0     
+21 Marmosa_lepida                1          1     1     
+22 Marmosa_murina               20          2     0.1   
+23 Marmosops_parvidens           5          0     0     
+24 Mesomys_hispidus             13          0     0     
+25 Metachirus_nudicaudatus       5          0     0     
+26 Micoureus_demerarae          16          0     0     
+27 Mus_musculus                 34          0     0     
+28 Neacomys_dubosti              1          0     0     
+29 Neacomys_paracou              8          0     0     
+30 Nectomys_rattus               4          2     0.5   
+31 Oecomys_auyantepui           16          1     0.0625
+32 Oecomys_bicolor              16          0     0     
+33 Oligoryzomys_fulvescens       7          1     0.143 
+34 Philander_opossum            20          8     0.4   
+35 Pithecia_pithecia             1          0     0     
+36 Potos_flavus                  2          1     0.5   
+37 Proechimys_cuvieri           18          1     0.0556
+38 Proechimys_guyannensis       20          1     0.05  
+39 Puma_yagouaroundi             5          0     0     
+40 Rattus_rattus                19          1     0.0526
+41 Saguinus_midas               41         41     1     
+42 Saimiri_sciureus              1          0     0     
+43 Sciurus_aestuans              1          0     0     
+44 Tamandua_tetradactyla         3          0     0     
+```
+
+Scatter plot
+```
+ggplot(df_species, aes(x = n, y = prevalence)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_minimal() +
+  labs(
+    x = "Number of sampled individuals per species",
+    y = "Hemoplasma prevalence"
+  )
+```
+
+Binomial GLM with all species
+```
+glm_model <- glm(
+  cbind(n_infected, n - n_infected) ~ n,
+  family = binomial,
+  data = df_species
+)
+summary(glm_model)
+
+# Null model
+glm_model_null <- glm(
+  cbind(n_infected, n - n_infected) ~ 1,
+  family = binomial,
+  data = df_species
+)
+
+# Likelihood ratio test
+anova_all <- anova(glm_model_null, glm_model, test = "Chisq")
+print(anova_all)
+```
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: cbind(n_infected, n - n_infected) ~ 1
+Model 2: cbind(n_infected, n - n_infected) ~ n
+  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
+1        43     442.01                          
+2        42     428.11  1   13.903 0.0001925 ***
+```
+
+Binomial GLM filtering species with n < 5
+```
+df_species_filtered <- df_species %>%
+  filter(n >= 5)
+# GLM with filtered data
+glm_model_f <- glm(
+  cbind(n_infected, n - n_infected) ~ n,
+  family = binomial,
+  data = df_species_filtered
+)
+summary(glm_model_f)
+
+# Null model for filtered data
+glm_model_null_f <- glm(
+  cbind(n_infected, n - n_infected) ~ 1,
+  family = binomial,
+  data = df_species_filtered
+)
+
+# Likelihood ratio test
+anova_filtered <- anova(glm_model_null_f, glm_model_f, test = "Chisq")
+print(anova_filtered)
+
+Results are:
+```
+Analysis of Deviance Table
+Model 1: cbind(n_infected, n - n_infected) ~ 1
+Model 2: cbind(n_infected, n - n_infected) ~ n
+  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
+1        25     419.11                          
+2        24     405.19  1   13.916 0.0001912 ***
 ```
 
