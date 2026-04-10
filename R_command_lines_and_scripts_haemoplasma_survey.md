@@ -8,12 +8,12 @@ We analyzed data on 626 individuals belonging to 44 species of wild mammals capt
 - `apicomplexa` : Infection status with blood parasites, including piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0: Uninfected; 1: Infected)
 - `trypanosoma` : Infection status with trypanosomes (0: Uninfected; 1: Infected)
 - `filaria` : Infection status with microfilariae (0: Uninfected; 1: Infected)
-- 'body_size' : Host body size category (Small, Medium, Large)
-- 'vertical_stratum' : Primary habitat use in the forest vertical strata (Ground, Canopy, Aquatic, Mixed)
-- 'locomotion': Primary mode of locomotion (e.g., Arboreal, Terrestrial, Scansorial, Semi-aquatic)
-- 'activity' : Activity rhythm (Nocturnal, Diurnal)
-- 'diet' : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
-- 'sociality' : Social organization (Solitary, Group)
+- `body_size` : Host body size category (Small, Medium, Large)
+- `vertical_stratum` : Primary habitat use in the forest vertical strata (Ground, Canopy, Aquatic, Mixed)
+- `locomotion`: Primary mode of locomotion (e.g., Arboreal, Terrestrial, Scansorial, Semi-aquatic)
+- `activity` : Activity rhythm (Nocturnal, Diurnal)
+- `diet` : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
+- `sociality` : Social organization (Solitary, Group)
   
 Details about all the experimental methods are available in the related manuscript.
 
@@ -57,6 +57,12 @@ data_hemoplasma_stat$anaplasmataceae      <- as.factor(data_hemoplasma_stat$anap
 data_hemoplasma_stat$apicomplexa         <- as.factor(data_hemoplasma_stat$apicomplexa)
 data_hemoplasma_stat$trypanosoma    <- as.factor(data_hemoplasma_stat$trypanosoma)
 data_hemoplasma_stat$filaria   <- as.factor(data_hemoplasma_stat$filaria)
+data_hemoplasma_stat$body_size   <- as.factor(data_hemoplasma_stat$body_size)
+data_hemoplasma_stat$vertical_stratum   <- as.factor(data_hemoplasma_stat$vertical_stratum)
+data_hemoplasma_stat$locomotion   <- as.factor(data_hemoplasma_stat$locomotion)
+data_hemoplasma_stat$activity   <- as.factor(data_hemoplasma_stat$activity)
+data_hemoplasma_stat$diet   <- as.factor(data_hemoplasma_stat$diet)
+data_hemoplasma_stat$sociality   <- as.factor(data_hemoplasma_stat$sociality)
 ```
 
 Load libraries for analysis: 
