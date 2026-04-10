@@ -8,6 +8,12 @@ We analyzed data on 626 individuals belonging to 44 species of wild mammals capt
 - `apicomplexa` : Infection status with blood parasites, including piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0: Uninfected; 1: Infected)
 - `trypanosoma` : Infection status with trypanosomes (0: Uninfected; 1: Infected)
 - `filaria` : Infection status with microfilariae (0: Uninfected; 1: Infected)
+- 'body_size' : Host body size category (Small, Medium, Large)
+- 'vertical_stratum' : Primary habitat use in the forest vertical strata (Ground, Canopy, Aquatic, Mixed)
+- 'locomotion': Primary mode of locomotion (e.g., Arboreal, Terrestrial, Scansorial, Semi-aquatic)
+- 'activity' : Activity rhythm (Nocturnal, Diurnal)
+- 'diet' : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
+- 'sociality' : Social organization (Solitary, Group)
   
 Details about all the experimental methods are available in the related manuscript.
 
@@ -439,6 +445,72 @@ ggplot(df_infected, aes(x = species, y = prevalence, size = n)) +
 dev.off()
 cat("PDF saved to:", plot_file, "\n")
 ```
+
+## Step 6. Hemoplasma prevalence by species | order
+
+GLMM GLOBAL
+```
+glmm_order <- glmer(
+  hemoplasma ~ order + (1 | species),
+  family = binomial,
+  data = data_hemoplasma_stat,
+  control = glmerControl(optimizer = "bobyqa")
+)
+glmm_null <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  family = binomial,
+  data = data_hemoplasma_stat,
+  control = glmerControl(optimizer = "bobyqa")
+)
+anova(glmm_null, glmm_order, test = "Chisq")
+summary(glmm_order)
+
+Results are:
+```
+Data: data_hemoplasma_stat
+Models:
+glmm_null: hemoplasma ~ 1 + (1 | species)
+glmm_order: hemoplasma ~ order + (1 | species)
+           npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
+glmm_null     2 416.38 425.22 -206.19    412.38                       
+glmm_order    7 416.19 447.13 -201.10    402.19 10.187  5    0.07011 .
+
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
+ Family: binomial  ( logit )
+Formula: hemoplasma ~ order + (1 | species)
+   Data: data_hemoplasma_stat
+Control: glmerControl(optimizer = "bobyqa")
+
+      AIC       BIC    logLik -2*log(L)  df.resid 
+    416.2     447.1    -201.1     402.2       607 
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-2.9140 -0.2196 -0.1671  0.1416  4.8727 
+
+Random effects:
+ Groups  Name        Variance Std.Dev.
+ species (Intercept) 3.633    1.906   
+Number of obs: 614, groups:  species, 44
+
+Fixed effects:
+                     Estimate Std. Error z value Pr(>|z|)  
+(Intercept)            -0.748      1.154  -0.648   0.5167  
+orderCingulata         -1.034      2.046  -0.505   0.6132  
+orderDidelphimorphia   -1.449      1.439  -1.007   0.3141  
+orderPilosa            -1.094      1.661  -0.659   0.5102  
+orderPrimates           1.732      1.668   1.039   0.2990  
+orderRodentia          -2.950      1.327  -2.222   0.0263 *
+
+Correlation of Fixed Effects:
+            (Intr) ordrCn ordrDd ordrPl ordrPr
+orderCinglt -0.552                            
+ordrDdlphmr -0.788  0.459                     
+orderPilosa -0.680  0.402  0.566              
+orderPrimts -0.675  0.403  0.567  0.498       
+orderRodent -0.853  0.500  0.706  0.617  0.619
+```
+
 
 
 
