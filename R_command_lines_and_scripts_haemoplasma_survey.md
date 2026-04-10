@@ -59,6 +59,7 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 library(ggthemes)
+library(lme4)
 ```
 
 ## Step 3. Hemoplasma prevalence analysis across host species
