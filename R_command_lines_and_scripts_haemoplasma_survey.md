@@ -1,6 +1,6 @@
 # **Hemoplasma epidemiological survey : R command lines and script**
 
-We analyzed data from 626 individuals across 44 wild mammal species captured in French Guiana. The epidemiological dataset includes the following variables for each sampled individual:
+We analyzed data on 626 individuals belonging to 44 species of wild mammals captured in French Guiana. The epidemiological dataset includes the following variables for each sampled individual:
 - `species` : Species identity (one of the 44 wild mammal species included in this study)
 - `order` : Species taxonomic order
 - `hemoplasma` : Infection status with hemotropic mycoplasmas (0: Uninfected; 1: Infected)
