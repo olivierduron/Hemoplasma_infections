@@ -180,6 +180,12 @@ mod_glmm <- glmer(
   control = glmerControl(optimizer = "bobyqa"))
 mod_glmm
 drop1(mod_glmm, test = "Chisq")
+AIC_table <- data.frame(
+model = c("full (order + species)", "null (species only)"),
+AIC = c(AIC(mod_glmm), AIC(mod_null))
+)
+AIC_table$delta_AIC <- AIC_table$AIC - min(AIC_table$AIC)
+AIC_table
 ```
 
 Results are: 
@@ -204,6 +210,10 @@ hemoplasma ~ order + (1 | species)
        npar    AIC    LRT Pr(Chi)  
 <none>      416.19                 
 order     5 416.38 10.187 0.07011 .
+
+                   model      AIC delta_AIC
+1 full (order + species) 416.1937 0.0000000
+2    null (species only) 416.3804 0.1866964
 ```
 
 Tukey-adjusted post-hoc comparisons of estimated marginal means :
