@@ -72,7 +72,288 @@ library(ggplot2)
 library(scales)
 library(ggthemes)
 library(lme4)
+library(car)
+library(emmeans)
+library(brms)
 ```
+
+## Step 3. Test infection distribution across mammalian orders
+
+Create and visualize contingency tables per species and order
+```
+df_species <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),                             
+    n_infected = sum(hemoplasma == 1, na.rm = TRUE),  # infected individuals
+    prevalence = n_infected / n  
+  )
+print(df_species, n = Inf)
+df_species <- data_hemoplasma_stat %>%
+  group_by(species, order) %>%
+  summarise(
+    n = n(),
+    n_infected = sum(as.numeric(as.character(hemoplasma)) == 1, na.rm = TRUE),
+    prevalence = n_infected / n,
+    infected = ifelse(n_infected > 0, 1, 0),
+    .groups = "drop"
+  )
+df_order <- df_species %>%
+  group_by(order) %>%
+  summarise(
+    infected_species = sum(infected),
+    uninfected_species = n() - sum(infected),
+    .groups = "drop"
+  )
+contingency_table <- df_order %>%
+  select(infected_species, uninfected_species) %>%
+  as.matrix()
+rownames(contingency_table) <- df_order$order
+contingency_table
+```
+
+Synthesis tables are :
+```
+# A tibble: 44 × 4
+   species                       n n_infected prevalence
+   <fct>                     <int>      <int>      <dbl>
+ 1 Alouatta_macconnelli         22         20     0.909 
+ 2 Bradypus_tridactylus        108          4     0.0370
+ 3 Cabassous_unicinctus          2          0     0     
+ 4 Caluromys_philander           5          0     0     
+ 5 Cebus_apella                  1          0     0     
+ 6 Choloepus_didactylus         90         72     0.8   
+ 7 Coendou_melanurus             1          0     0     
+ 8 Coendou_sp                    3          1     0.333 
+ 9 Cyclopes_didactylus           1          0     0     
+10 Dasypus_novemcinctus         15          5     0.333 
+11 Didelphis_marsupialis        51         22     0.431 
+12 Eira_barbara                  4          0     0     
+13 Felis_wiedii                  1          0     0     
+14 Galictis_vittata              4          3     0.75  
+15 Holochilus_sciureus           5          1     0.2   
+16 Hydrochoerus_hydrochaeris     2          0     0     
+17 Hylaeamys_megacephalus       15          0     0     
+18 Hylaeamys_yunganus           10          0     0     
+19 Lontra_longicaudis            1          1     1     
+20 Makalata_didelphoides         8          0     0     
+21 Marmosa_lepida                1          1     1     
+22 Marmosa_murina               20          2     0.1   
+23 Marmosops_parvidens           5          0     0     
+24 Mesomys_hispidus             13          0     0     
+25 Metachirus_nudicaudatus       5          0     0     
+26 Micoureus_demerarae          16          0     0     
+27 Mus_musculus                 34          0     0     
+28 Neacomys_dubosti              1          0     0     
+29 Neacomys_paracou              8          0     0     
+30 Nectomys_rattus               4          2     0.5   
+31 Oecomys_auyantepui           16          1     0.0625
+32 Oecomys_bicolor              16          0     0     
+33 Oligoryzomys_fulvescens       7          1     0.143 
+34 Philander_opossum            20          8     0.4   
+35 Pithecia_pithecia             1          0     0     
+36 Potos_flavus                  2          1     0.5   
+37 Proechimys_cuvieri           18          1     0.0556
+38 Proechimys_guyannensis       20          1     0.05  
+39 Puma_yagouaroundi             5          0     0     
+40 Rattus_rattus                19          1     0.0526
+41 Saguinus_midas               41         41     1     
+42 Saimiri_sciureus              1          0     0     
+43 Sciurus_aestuans              1          0     0     
+44 Tamandua_tetradactyla         3          0     0     
+
+Order                infected_species uninfected_species
+Carnivora                      3                  3
+Cingulata                      1                  1
+Didelphimorphia                4                  4
+Pilosa                         2                  2
+Primates                       2                  3
+Rodentia                       8                 11
+```
+
+Host order effects on hemoplasma infection prevalence (GLMM with species random effect) : 
+```
+mod_glmm <- glmer(
+  hemoplasma ~ order + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+  control = glmerControl(optimizer = "bobyqa"))
+mod_glmm
+drop1(mod_glmm, test = "Chisq")
+```
+
+Results are: 
+```
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
+ Family: binomial  ( logit )
+Formula: hemoplasma ~ order + (1 | species)
+   Data: data_hemoplasma_stat
+      AIC       BIC    logLik -2*log(L)  df.resid 
+ 416.1937  447.1337 -201.0969  402.1937       607 
+Random effects:
+ Groups  Name        Std.Dev.
+ species (Intercept) 1.906   
+Number of obs: 614, groups:  species, 44
+Fixed Effects:
+         (Intercept)        orderCingulata  orderDidelphimorphia           orderPilosa         orderPrimates         orderRodentia  
+              -0.748                -1.034                -1.449                -1.094                 1.732                -2.950  
+
+Single term deletions
+Model:
+hemoplasma ~ order + (1 | species)
+       npar    AIC    LRT Pr(Chi)  
+<none>      416.19                 
+order     5 416.38 10.187 0.07011 .
+```
+
+Tukey-adjusted post-hoc comparisons of estimated marginal means :
+```
+emm <- emmeans(mod_glmm, ~ order)
+pairs(emm, adjust = "tukey")
+```
+
+Results are:
+```
+ contrast                    estimate   SE  df z.ratio p.value
+ Carnivora - Cingulata         1.0345 2.05 Inf   0.505  0.9960
+ Carnivora - Didelphimorphia   1.4487 1.44 Inf   1.007  0.9159
+ Carnivora - Pilosa            1.0939 1.66 Inf   0.659  0.9863
+ Carnivora - Primates         -1.7321 1.67 Inf  -1.039  0.9050
+ Carnivora - Rodentia          2.9500 1.33 Inf   2.222  0.2273
+ Cingulata - Didelphimorphia   0.4142 1.89 Inf   0.220  0.9999
+ Cingulata - Pilosa            0.0594 2.05 Inf   0.029  1.0000
+ Cingulata - Primates         -2.7665 2.05 Inf  -1.347  0.7586
+ Cingulata - Rodentia          1.9155 1.80 Inf   1.065  0.8952
+ Didelphimorphia - Pilosa     -0.3548 1.46 Inf  -0.244  0.9999
+ Didelphimorphia - Primates   -3.1807 1.46 Inf  -2.180  0.2473
+ Didelphimorphia - Rodentia    1.5013 1.07 Inf   1.409  0.7218
+ Pilosa - Primates            -2.8259 1.67 Inf  -1.694  0.5358
+ Pilosa - Rodentia             1.8561 1.34 Inf   1.383  0.7372
+ Primates - Rodentia           4.6820 1.34 Inf   3.485  0.0065
+Results are given on the log odds ratio (not the response) scale. 
+P value adjustment: tukey method for comparing a family of 6 estimates 
+```
+
+Predicted prevalence with confidence interval per order
+```
+emm_prob <- emmeans(mod_glmm, ~ order, type = "response")
+prob_df <- as.data.frame(emm_prob)
+prob_df <- prob_df %>%
+  mutate(
+    percent = prob * 100,
+    lower_percent = asymp.LCL * 100,
+    upper_percent = asymp.UCL * 100
+  )
+```
+
+Results are:
+```
+            order       prob         SE  df   asymp.LCL  asymp.UCL   percent lower_percent upper_percent
+1       Carnivora 0.32124636 0.25153810 Inf 0.047018484 0.81949870 32.124636     4.7018484     81.949870
+2       Cingulata 0.14399309 0.21028873 Inf 0.005903137 0.82654332 14.399309     0.5903137     82.654332
+3 Didelphimorphia 0.10004408 0.07972107 Inf 0.019224258 0.38667771 10.004408     1.9224258     38.667771
+4          Pilosa 0.13682287 0.14390491 Inf 0.014342216 0.63326195 13.682287     1.4342216     63.326195
+5        Primates 0.72790324 0.24377576 Inf 0.193356424 0.96759081 72.790324    19.3356424     96.759081
+6        Rodentia 0.02417335 0.01635629 Inf 0.006324077 0.08794235  2.417335     0.6324077      8.794235
+```
+
+Create a plot of hemoplasma prevalence by species and mammalian order :
+```
+order_colors <- c(
+  "Primates" = "#0072B2",
+  "Pilosa" = "#E69F00",
+  "Cingulata" = "#009E73",
+  "Rodentia" = "#D55E00",
+  "Carnivora" = "#CC79A7",
+  "Didelphimorphia" = "#F0E442"
+)
+p <- ggplot() +
+  
+  # observed species data (improved jitter)
+  geom_jitter(
+    data = df_species,
+    aes(x = order, y = prevalence, color = order, size = n),
+    width = 0.35,
+    height = 0,
+    alpha = 0.5,
+    seed = 1
+  ) +
+  
+  # LOWER CI
+  geom_segment(
+    data = prob_df,
+    aes(
+      x = as.numeric(order) - 0.25,
+      xend = as.numeric(order) + 0.25,
+      y = lower,
+      yend = lower,
+      color = order
+    ),
+    linewidth = 1
+  ) +
+  
+  # ESTIMATE
+  geom_segment(
+    data = prob_df,
+    aes(
+      x = as.numeric(order) - 0.25,
+      xend = as.numeric(order) + 0.25,
+      y = prob,
+      yend = prob,
+      color = order
+    ),
+    linewidth = 1.5
+  ) +
+  
+  # UPPER CI
+  geom_segment(
+    data = prob_df,
+    aes(
+      x = as.numeric(order) - 0.25,
+      xend = as.numeric(order) + 0.25,
+      y = upper,
+      yend = upper,
+      color = order
+    ),
+    linewidth = 1
+  ) +
+  
+  # colors
+  scale_color_manual(values = order_colors) +
+  
+  # sample size scaling
+  scale_size_continuous(range = c(2, 10), name = "Sample size") +
+  
+  # percent axis
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  
+  # labels
+  labs(
+    x = "Mammalian order",
+    y = "Hemoplasma prevalence",
+    title = "Observed and GLMM-predicted hemoplasma prevalence"
+  ) +
+  
+  # theme
+  theme_classic(base_size = 16) +
+  
+  theme(
+    legend.position = "right",
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title = element_text(size = 16, face = "bold"),
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    panel.grid = element_blank()
+  )
+pdf("Hemoplasma_prevalence_by_order_GLMM_final_jitter.pdf", width = 8, height = 6)
+print(p)
+dev.off()
+print(p)
+```
+
+
+
+
 
 ## Step 3. Hemoplasma prevalence analysis across host species
 
@@ -215,89 +496,6 @@ Model 2: cbind(n_infected, n - n_infected) ~ n
   Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
 1        25     419.11                          
 2        24     405.19  1   13.916 0.0001912 ***
-```
-
-## Step 4. Test infection distribution across mammalian orders
-
-Create a contingency table
-```
-df_species <- data_hemoplasma_stat %>%
-  group_by(species, order) %>%
-  summarise(
-    n = n(),
-    n_infected = sum(as.numeric(as.character(hemoplasma)) == 1, na.rm = TRUE),
-    prevalence = n_infected / n,
-    infected = ifelse(n_infected > 0, 1, 0),
-    .groups = "drop"
-  )
-df_order <- df_species %>%
-  group_by(order) %>%
-  summarise(
-    infected_species = sum(infected),
-    uninfected_species = n() - sum(infected),
-    .groups = "drop"
-  )
-contingency_table <- df_order %>%
-  select(infected_species, uninfected_species) %>%
-  as.matrix()
-rownames(contingency_table) <- df_order$order
-contingency_table
-```
-
-Fisher's exact test
-```
-fisher_test <- fisher.test(contingency_table)
-print(fisher_test)
-```
-
-Results are:
-```
-Fisher's Exact Test for Count Data
-data:  contingency_table
-p-value = 0.9999
-alternative hypothesis: two.sided
-```
-
-Create a plot of hemoplasma prevalence by species and mammalian order
-```
-df_species <- data_hemoplasma_stat %>%
-  group_by(species, order) %>%
-  summarise(
-    n = n(),
-    n_infected = sum(as.numeric(as.character(hemoplasma)) == 1, na.rm = TRUE),
-    prevalence = n_infected / n,
-    .groups = "drop"
-  )
-order_colors <- c(
-  "Primates" = "#A6CEE3",
-  "Pilosa" = "#B2DF8A",
-  "Cingulata" = "#FB9A99",
-  "Rodentia" = "#FDBF6F",
-  "Carnivora" = "#CAB2D6",
-  "Didelphimorphia" = "#FFFF99"
-)
-pdf("Hemoplasma_prevalence_by_order.pdf", width = 8, height = 6)
-ggplot(df_species, aes(x = order, y = prevalence)) +
-  geom_jitter(aes(size = n, color = order), width = 0.2, height = 0, alpha = 0.6) +
-  scale_color_manual(values = order_colors) +
-  scale_size_continuous(range = c(2, 12), name = "Sample size") +
-  scale_y_continuous(labels = percent_format(accuracy = 1)) +
-  labs(
-    x = "Mammalian order",
-    y = "Hemoplasma prevalence",
-    title = "Hemoplasma prevalence by species and mammalian order"
-  ) +
-  theme_minimal(base_size = 16) +
-  theme(
-    legend.position = "right",
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title = element_text(size = 16, face = "bold"),
-    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor = element_blank()
-  )
-dev.off()
 ```
 
 ## Step 5. Hemoplasma prevalence by species
