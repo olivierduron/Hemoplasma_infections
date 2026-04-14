@@ -76,9 +76,75 @@ library(emmeans)
 library(brms)
 ```
 
-## Step 3. Test infection distribution across mammalian orders
+## Step 3. Test whether hemoplasma detection depends on sample size per species
 
-Create and visualize contingency tables per species and order
+Prepare species-level dataset and visualization : 
+```
+species_summary <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(as.numeric(as.character(hemoplasma)), na.rm = TRUE),
+    prevalence = n_positive / n_sampled
+  ) %>%
+  ungroup()
+head(species_summary)
+
+p <- ggplot(species_summary, aes(x = n_sampled, y = prevalence)) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = "glm",
+              method.args = list(family = "binomial"),
+              se = TRUE,
+              color = "blue") +
+  theme_minimal() +
+  labs(
+    x = "Sample size per species (n)",
+    y = "Hemoplasma prevalence",
+    title = "Effect of sampling effort on hemoplasma detection"
+  )
+print(p)
+ggsave(
+  filename = "sampling_effort_hemoplasma.pdf",
+  plot = p,
+  width = 7,
+  height = 5,
+  units = "in"
+  )
+```
+
+Binomial GLM (model #1) : 
+```
+model_n <- glm(
+  cbind(n_positive, n_sampled - n_positive) ~ n_sampled,
+  family = binomial,
+  data = species_summary
+)
+model_null <- glm(
+  cbind(n_positive, n_sampled - n_positive) ~ 1,
+  family = binomial,
+  data = species_summary
+)
+anova(model_null, model_n, test = "Chisq")
+AIC(model_null, model_n)
+```
+
+Results are : 
+```
+Analysis of Deviance Table
+Model 1: cbind(n_positive, n_sampled - n_positive) ~ 1
+Model 2: cbind(n_positive, n_sampled - n_positive) ~ n_sampled
+  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
+1        43     442.01                          
+2        42     428.11  1   13.903 0.0001925 ***
+
+AIC         df      AIC
+model_null  1 485.7779
+model_n     2 473.8746
+```
+
+## Step 4. Test infection distribution across mammalian orders
+
+Create and visualize contingency tables per species and order : 
 ```
 df_species <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -170,7 +236,7 @@ Primates                       2                  3
 Rodentia                       8                 11
 ```
 
-Host order effects on hemoplasma infection prevalence (GLMM with species random effect) : 
+Host order effects on hemoplasma infection prevalence (GLMM with species random effect; model #2) : 
 ```
 mod_glmm <- glmer(
   hemoplasma ~ order + (1 | species),
@@ -360,9 +426,9 @@ dev.off()
 print(p)
 ```
 
-## Step 4. Test infection distribution across mammalian class sizes
+## Step 5. Test infection distribution across mammalian class sizes
 
-Class size effects on hemoplasma infection prevalence (GLMM with species random effect) : 
+Class size effects on hemoplasma infection prevalence (GLMM with species random effect, model #3) : 
 ```
 df_body <- data %>%
   group_by(species, body_size) %>%
@@ -436,6 +502,16 @@ body_size      prob        SE  df   asymp.LCL asymp.UCL
  Medium    0.0857229 0.0578205 Inf 0.021605423 0.2847425
  Small     0.0258783 0.0243023 Inf 0.003999273 0.1494869
 ```
+
+
+XXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
+
+
+
+
 
 
 ## Step 3. Hemoplasma prevalence analysis across host species
