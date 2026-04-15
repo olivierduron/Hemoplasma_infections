@@ -75,7 +75,7 @@ library(emmeans)
 library(brms)
 ```
 
-## Step 3. Test whether hemoplasma detection depends on sample size per species
+## Step 3. Test whether hemoplasma detection depends on species sampling effort
 
 Prepare species-level dataset and visualization : 
 ```
@@ -135,7 +135,7 @@ sample estimates:
 0.312126 
 ```
 
-## Step 4. Test infection distribution across mammalian orders (+ test sampling bias effect; GLMM with species random effect : model #1) : 
+## Step 4. Test infection prevalence variation across mammalian orders (+ test sampling bias effect; GLMM with species random effect : model #1) : 
 
 Create and visualize contingency tables per species and order : 
 ```
@@ -513,7 +513,226 @@ dev.off()
 print(p)
 ```
 
-## Step 5. Test infection distribution across mammalian class sizes
+## Step 5. Test infection prevalence variation across species ecological traits (GLMM with species random effect : model #2) : 
+
+Prepare data (sampling effort) :
+```
+data_hemoplasma_stat <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  mutate(
+    n_sampled = n(),
+    log_n = log(n_sampled)
+  ) %>%
+  ungroup()
+```
+
+Fit models : 
+```
+# Null model (random effect only)
+mod_null <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  family = binomial,
+  data = data_hemoplasma_stat
+)
+
+# Sampling effort model
+mod_sampling <- glmer(
+  hemoplasma ~ log_n + (1 | species),
+  family = binomial,
+  data = data_hemoplasma_stat,
+  control = glmerControl(optimizer = "bobyqa",
+                         optCtrl = list(maxfun = 1e5))
+)
+
+# Full ecological model
+mod_traits_full <- glmer(
+  hemoplasma ~ log_n + vertical_stratum + activity + diet + sociality + (1 | species),
+  family = binomial,
+  data = data_hemoplasma_stat,
+  control = glmerControl(optimizer = "bobyqa",
+                         optCtrl = list(maxfun = 2e5))
+)
+```
+
+Model summaries: 
+```
+summary(mod_traits_full)
+```
+
+Results are: 
+```
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
+ Family: binomial  ( logit )
+Formula: hemoplasma ~ log_n + vertical_stratum + activity + diet + sociality +      (1 | species)
+   Data: data_hemoplasma_stat
+Control: glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e+05))
+
+      AIC       BIC    logLik -2*log(L)  df.resid 
+    421.8     466.0    -200.9     401.8       604 
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-2.9825 -0.2388 -0.1417  0.1252  4.8857 
+
+Random effects:
+ Groups  Name        Variance Std.Dev.
+ species (Intercept) 4.676    2.162   
+Number of obs: 614, groups:  species, 44
+
+Fixed effects:
+                       Estimate Std. Error z value Pr(>|z|)  
+(Intercept)             -0.2649     2.4589  -0.108   0.9142  
+log_n                    0.7135     0.3841   1.858   0.0632 .
+vertical_stratumGround   0.2483     1.1325   0.219   0.8265  
+vertical_stratumMixed   -1.9842     2.2823  -0.869   0.3846  
+activityNocturnal       -3.1289     1.6083  -1.946   0.0517 .
+dietInsectivore         -1.2706     2.7936  -0.455   0.6492  
+dietOmnivore            -1.1872     2.4231  -0.490   0.6242  
+dietPhytophage          -0.7991     2.6323  -0.304   0.7615  
+socialitySolitary       -0.2983     1.4131  -0.211   0.8328  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Correlation of Fixed Effects:
+            (Intr) log_n  vrtc_G vrtc_M actvtN dtInsc dtOmnv dtPhyt
+log_n       -0.137                                                 
+vrtcl_strtG -0.500 -0.008                                          
+vrtcl_strtM -0.284  0.007  0.324                                   
+actvtyNctrn  0.362 -0.142 -0.270 -0.082                            
+dietInsctvr -0.555 -0.101  0.112  0.008 -0.507                     
+dietOmnivor -0.735 -0.206  0.292  0.046 -0.586  0.781              
+dietPhytphg -0.812 -0.170  0.460  0.190 -0.551  0.714  0.894       
+socltySltry -0.621  0.013  0.209  0.273 -0.530  0.264  0.392  0.460
+```
+
+Likelihood Ratio Tests (LRT) :
+```
+anova(mod_null, mod_sampling, mod_traits_full, test = "Chisq")
+```
+
+Results:
+```
+Data: data_hemoplasma_stat
+Models:
+mod_null: hemoplasma ~ 1 + (1 | species)
+mod_sampling: hemoplasma ~ log_n + (1 | species)
+mod_traits_full: hemoplasma ~ log_n + vertical_stratum + activity + diet + sociality + (1 | species)
+                npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
+mod_null           2 416.38 425.22 -206.19    412.38                     
+mod_sampling       3 416.94 430.20 -205.47    410.94 1.4399  1     0.2302
+mod_traits_full   10 421.76 465.96 -200.88    401.76 9.1816  7     0.2399
+```
+
+AIC comparison : 
+```
+model_set <- list(
+  null = mod_null,
+  sampling = mod_sampling,
+  traits = mod_traits_full
+)
+AIC_table <- data.frame(
+  model = names(model_set),
+  AIC = sapply(model_set, AIC)
+)
+AIC_table$delta_AIC <- AIC_table$AIC - min(AIC_table$AIC)
+AIC_table
+```
+
+Results are:
+```
+            model      AIC delta_AIC
+null         null 416.3804 0.0000000
+sampling sampling 416.9406 0.5601158
+traits     traits 421.7590 5.3785552
+```
+
+Single-term deletion:
+```
+mod_drop <- drop1(mod_traits_full, test = "Chisq")
+mod_drop
+```
+
+Results are:
+```
+Single term deletions
+Model:
+hemoplasma ~ log_n + vertical_stratum + activity + diet + sociality + 
+    (1 | species)
+                 npar    AIC    LRT Pr(Chi)  
+<none>                421.76                 
+log_n               1 423.37 3.6160 0.05723 .
+vertical_stratum    2 418.86 1.0977 0.57760  
+activity            1 423.09 3.3279 0.06812 .
+diet                3 416.11 0.3554 0.94930  
+sociality           1 419.80 0.0445 0.83297  
+```
+
+Predicted probabilities and 95% CI:
+```
+emm_stratum <- emmeans(mod_traits_full, ~ vertical_stratum, type = "response")
+prob_stratum <- as.data.frame(emm_stratum) %>%
+  mutate(
+    percent = prob * 100,
+    lower = asymp.LCL * 100,
+    upper = asymp.UCL * 100
+  )
+emm_activity <- emmeans(mod_traits_full, ~ activity, type = "response")
+prob_activity <- as.data.frame(emm_activity) %>%
+  mutate(
+    percent = prob * 100,
+    lower = asymp.LCL * 100,
+    upper = asymp.UCL * 100
+  )
+emm_diet <- emmeans(mod_traits_full, ~ diet, type = "response")
+prob_diet <- as.data.frame(emm_diet) %>%
+  mutate(
+    percent = prob * 100,
+    lower = asymp.LCL * 100,
+    upper = asymp.UCL * 100
+  )
+emm_social <- emmeans(mod_traits_full, ~ sociality, type = "response")
+prob_social <- as.data.frame(emm_social) %>%
+  mutate(
+    percent = prob * 100,
+    lower = asymp.LCL * 100,
+    upper = asymp.UCL * 100
+  )
+prob_stratum
+prob_activity
+prob_diet
+prob_social
+```
+
+Results are: 
+```
+  vertical_stratum       prob        SE  df   asymp.LCL asymp.UCL   percent      lower    upper
+1           Canopy 0.41118131 0.2977796 Inf 0.058983632 0.8861024 41.118131  5.8983632 88.61024
+2           Ground 0.47232960 0.2609295 Inf 0.103147778 0.8744772 47.232960 10.3147778 87.44772
+3            Mixed 0.08759731 0.1765953 Inf 0.001261804 0.8794559  8.759731  0.1261804 87.94559
+
+   activity       prob         SE  df   asymp.LCL asymp.UCL   percent      lower    upper
+1   Diurnal 0.65174222 0.32496720 Inf 0.101611655 0.9687158 65.174222 10.1611655 96.87158
+2 Nocturnal 0.07570553 0.09187215 Inf 0.006209163 0.5177779  7.570553  0.6209163 51.77779
+
+         diet      prob        SE  df   asymp.LCL asymp.UCL  percent     lower    upper
+1   Carnivore 0.4691611 0.5834336 Inf 0.008880171 0.9886597 46.91611 0.8880171 98.86597
+2 Insectivore 0.1987451 0.3171466 Inf 0.004978985 0.9247860 19.87451 0.4978985 92.47860
+3    Omnivore 0.2123682 0.1722342 Inf 0.034594109 0.6698367 21.23682 3.4594109 66.98367
+4  Phytophage 0.2844348 0.2717129 Inf 0.028219860 0.8447450 28.44348 2.8219860 84.47450
+
+  sociality      prob        SE  df  asymp.LCL asymp.UCL  percent    lower    upper
+1     Group 0.3124687 0.3073413 Inf 0.02679051 0.8823988 31.24687 2.679051 88.23988
+2  Solitary 0.2522081 0.2257055 Inf 0.03129654 0.7788041 25.22081 3.129654 77.88041
+```
+
+
+
+
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+
+
+
+
 
 Class size effects on hemoplasma infection prevalence (GLMM with species random effect, model #3) : 
 ```
