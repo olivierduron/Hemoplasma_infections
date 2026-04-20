@@ -220,9 +220,12 @@ Primates                       2                  3
 Rodentia                       8                 11
 ```
 
-Create sampling effort variable :
+Data preparation :
 ```
 data_hemoplasma_stat <- data_hemoplasma_stat %>%
+  mutate(
+    hemoplasma = as.numeric(as.character(hemoplasma))
+  ) %>%
   group_by(species) %>%
   mutate(
     n_sampled = n(),
@@ -231,42 +234,64 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
   ungroup()
 ```
 
-Models : 
+Full GLMM: 
 ```
-# Null model (species random effect only)
-mod_null <- glmer(
-  hemoplasma ~ 1 + (1 | species),
-  family = binomial,
-  data = data_hemoplasma_stat
-)
-
-# Order only model
-mod_order_only <- glmer(
-  hemoplasma ~ order + (1 | species),
-  family = binomial,
-  data = data_hemoplasma_stat,
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5))
-)
-
-# Sampling effort only model
-mod_log_n_only <- glmer(
-  hemoplasma ~ log_n + (1 | species),
-  family = binomial,
-  data = data_hemoplasma_stat,
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5))
-)
-
-# Full model (order + sampling effort)
 mod_full <- glmer(
   hemoplasma ~ order + log_n + (1 | species),
   family = binomial,
   data = data_hemoplasma_stat,
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5))
+  control = glmerControl(optimizer = "bobyqa",
+                         optCtrl = list(maxfun = 1e5))
 )
+```
+
+Model selection (LRT) :
+```
+mod_no_order <- update(mod_full, . ~ . - order)
+mod_no_logn  <- update(mod_full, . ~ . - log_n)
+anova(mod_full, mod_no_order, test = "Chisq")
+anova(mod_full, mod_no_logn, test = "Chisq")
+```
+
+Results are: 
+```
+> anova(mod_full, mod_no_order, test = "Chisq")
+Data: data_hemoplasma_stat
+Models:
+mod_no_order: hemoplasma ~ log_n + (1 | species)
+mod_full: hemoplasma ~ order + log_n + (1 | species)
+             npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
+mod_no_order    3 416.94 430.20 -205.47    410.94                       
+mod_full        8 414.76 450.11 -199.38    398.76 12.185  5    0.03233 *
+> anova(mod_full, mod_no_logn, test = "Chisq")
+Data: data_hemoplasma_stat
+Models:
+mod_no_logn: hemoplasma ~ order + (1 | species)
+mod_full: hemoplasma ~ order + log_n + (1 | species)
+            npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
+mod_no_logn    7 416.19 447.13 -201.10    402.19                       
+mod_full       8 414.76 450.11 -199.38    398.76 3.4387  1    0.06369 .
+```
+
+AIC comparison : 
+```
+AIC(mod_full, mod_no_order, mod_no_logn)
+```
+
+Results are :
+```
+             df      AIC
+mod_full      8 414.7550
+mod_no_order  3 416.9406
+mod_no_logn   7 416.1937
+```
+
+Summarize full model :
+```
 summary(mod_full)
 ```
 
-Results are : 
+Results are :
 ```
 Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
  Family: binomial  ( logit )
@@ -308,68 +333,33 @@ orderRodent -0.599  0.534  0.751  0.676  0.640
 log_n       -0.333 -0.249 -0.434 -0.587 -0.277 -0.409
 ```
 
-Single-term deletion (drop1 analysis) :
+Predicted infection probabilities with confidence interval per order :
 ```
-mod_step1 <- drop1(mod_full, test = "Chisq")
-mod_step1
-```
-
-Results are : 
-```
-Model:
-hemoplasma ~ order + log_n + (1 | species)
-       npar    AIC     LRT Pr(Chi)  
-<none>      414.76                  
-order     5 416.94 12.1855 0.03233 *
-log_n     1 416.19  3.4387 0.06369 .
+emm_prob <- emmeans(mod_full, ~ order, type = "response")
+prob_df <- as.data.frame(emm_prob)
+prob_df <- prob_df %>%
+  mutate(
+    percent = prob * 100,
+    lower_percent = asymp.LCL * 100,
+    upper_percent = asymp.UCL * 100
+  )
+emm_prob
 ```
 
-Likelihood Ratio Tests (LRT) : 
+Results are :
 ```
-anova(mod_null, mod_order_only, mod_log_n_only,mod_full, test = "Chisq")
-```
-
-Results are:
-```
-Data: data_hemoplasma_stat
-Models:
-mod_null: hemoplasma ~ 1 + (1 | species)
-mod_order_only: hemoplasma ~ order + (1 | species)
-mod_full: hemoplasma ~ order + log_n + (1 | species)
-               npar    AIC    BIC  logLik -2*log(L)   Chisq Df Pr(>Chisq)  
-mod_null          2 416.38 425.22 -206.19    412.38                        
-mod_order_only    7 416.19 447.13 -201.10    402.19 10.1867  5    0.07011 .
-mod_full          8 414.76 450.11 -199.38    398.76  3.4387  1    0.06369 .
-```
-
-AIC model comparison :
-```
-model_set <- list(
-  null = mod_null,
-  order = mod_order_only,
-  log_n = mod_log_n_only,
-  full = mod_full
-)
-AIC_table <- data.frame(
-  model = names(model_set),
-  AIC = sapply(model_set, AIC)
-)
-AIC_table$delta_AIC <- AIC_table$AIC - min(AIC_table$AIC)
-AIC_table
-```
-
-Results are:
-```
-      model      AIC delta_AIC
-null   null 416.3804  1.625414
-order order 416.1937  1.438718
-full   full 414.7550  0.000000
+            order       prob         SE  df   asymp.LCL  asymp.UCL   percent lower_percent upper_percent
+1       Carnivora 0.32124636 0.25153810 Inf 0.047018484 0.81949870 32.124636     4.7018484     81.949870
+2       Cingulata 0.14399309 0.21028873 Inf 0.005903137 0.82654332 14.399309     0.5903137     82.654332
+3 Didelphimorphia 0.10004408 0.07972107 Inf 0.019224258 0.38667771 10.004408     1.9224258     38.667771
+4          Pilosa 0.13682287 0.14390491 Inf 0.014342216 0.63326195 13.682287     1.4342216     63.326195
+5        Primates 0.72790324 0.24377576 Inf 0.193356424 0.96759081 72.790324    19.3356424     96.759081
+6        Rodentia 0.02417335 0.01635629 Inf 0.006324077 0.08794235  2.417335     0.6324077      8.794235
 ```
 
 Tukey-adjusted post-hoc comparisons of estimated marginal means :
 ```
-emm <- emmeans(mod_glmm, ~ order)
-pairs(emm, adjust = "tukey")
+pairs(emm_prob, adjust = "tukey")
 ```
 
 Results are :
@@ -394,31 +384,30 @@ Results are given on the log odds ratio (not the response) scale.
 P value adjustment: tukey method for comparing a family of 6 estimates 
 ```
 
-Predicted infection probabilities with confidence interval per order :
+Create a plot of hemoplasma prevalence by species and mammalian order :
 ```
+df_species <- data_hemoplasma_stat %>%
+  group_by(species, order) %>%
+  summarise(
+    n = n(),
+    n_infected = sum(as.numeric(as.character(hemoplasma)) == 1, na.rm = TRUE),
+    prevalence = n_infected / n,
+    .groups = "drop"
+  )
+mod_glmm <- glmer(
+  hemoplasma ~ order + log_n + (1 | species),
+  family = binomial,
+  data = data_hemoplasma_stat,
+  control = glmerControl(optimizer = "bobyqa",
+                         optCtrl = list(maxfun = 1e5))
+)
 emm_prob <- emmeans(mod_glmm, ~ order, type = "response")
 prob_df <- as.data.frame(emm_prob)
 prob_df <- prob_df %>%
-  mutate(
-    percent = prob * 100,
-    lower_percent = asymp.LCL * 100,
-    upper_percent = asymp.UCL * 100
-  )
-```
-
-Results are :
-```
-            order       prob         SE  df   asymp.LCL  asymp.UCL   percent lower_percent upper_percent
-1       Carnivora 0.32124636 0.25153810 Inf 0.047018484 0.81949870 32.124636     4.7018484     81.949870
-2       Cingulata 0.14399309 0.21028873 Inf 0.005903137 0.82654332 14.399309     0.5903137     82.654332
-3 Didelphimorphia 0.10004408 0.07972107 Inf 0.019224258 0.38667771 10.004408     1.9224258     38.667771
-4          Pilosa 0.13682287 0.14390491 Inf 0.014342216 0.63326195 13.682287     1.4342216     63.326195
-5        Primates 0.72790324 0.24377576 Inf 0.193356424 0.96759081 72.790324    19.3356424     96.759081
-6        Rodentia 0.02417335 0.01635629 Inf 0.006324077 0.08794235  2.417335     0.6324077      8.794235
-```
-
-Create a plot of hemoplasma prevalence by species and mammalian order :
-```
+  arrange(prob) %>%
+  mutate(order = factor(order, levels = order))
+df_species <- df_species %>%
+  mutate(order = factor(order, levels = levels(prob_df$order)))
 order_colors <- c(
   "Primates" = "#0072B2",
   "Pilosa" = "#E69F00",
@@ -427,32 +416,26 @@ order_colors <- c(
   "Carnivora" = "#CC79A7",
   "Didelphimorphia" = "#F0E442"
 )
+set.seed(1)
 p <- ggplot() +
-  
-  # observed species data (improved jitter)
   geom_jitter(
     data = df_species,
     aes(x = order, y = prevalence, color = order, size = n),
     width = 0.35,
     height = 0,
-    alpha = 0.5,
-    seed = 1
+    alpha = 0.5
   ) +
-  
-  # LOWER CI
   geom_segment(
     data = prob_df,
     aes(
       x = as.numeric(order) - 0.25,
       xend = as.numeric(order) + 0.25,
-      y = lower,
-      yend = lower,
+      y = asymp.LCL,
+      yend = asymp.LCL,
       color = order
     ),
     linewidth = 1
   ) +
-  
-  # ESTIMATE
   geom_segment(
     data = prob_df,
     aes(
@@ -464,39 +447,25 @@ p <- ggplot() +
     ),
     linewidth = 1.5
   ) +
-  
-  # UPPER CI
   geom_segment(
     data = prob_df,
     aes(
       x = as.numeric(order) - 0.25,
       xend = as.numeric(order) + 0.25,
-      y = upper,
-      yend = upper,
+      y = asymp.UCL,
+      yend = asymp.UCL,
       color = order
     ),
     linewidth = 1
   ) +
-  
-  # colors
   scale_color_manual(values = order_colors) +
-  
-  # sample size scaling
   scale_size_continuous(range = c(2, 10), name = "Sample size") +
-  
-  # percent axis
   scale_y_continuous(labels = percent_format(accuracy = 1)) +
-  
-  # labels
   labs(
     x = "Mammalian order",
-    y = "Hemoplasma prevalence",
-    title = "Observed and GLMM-predicted hemoplasma prevalence"
+    y = "Hemoplasma prevalence"
   ) +
-  
-  # theme
   theme_classic(base_size = 16) +
-  
   theme(
     legend.position = "right",
     axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
@@ -505,10 +474,14 @@ p <- ggplot() +
     plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
     panel.grid = element_blank()
   )
-pdf("Hemoplasma_prevalence_by_order_GLMM_final_jitter.pdf", width = 8, height = 6)
 print(p)
-dev.off()
-print(p)
+ggsave(
+  filename = "Fig_2_Hemoplasma_prevalence_by_order.pdf",
+  plot = p,
+  width = 8,
+  height = 6,
+  units = "in"
+)
 ```
 
 ## Step 5. Test infection prevalence variation across species ecological traits (GLMM with species random effect : model #2) : 
