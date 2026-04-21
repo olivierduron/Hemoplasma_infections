@@ -78,7 +78,7 @@ library(patchwork)
 
 ## Step 3. Test whether hemoplasma detection depends on species sampling effort
 
-Prepare species-level dataset and visualization (Fig. S1) : 
+Prepare species-level dataset and visualization of species sampling effort (Fig. S1) : 
 ```
 species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -155,7 +155,7 @@ Results are:
 # 34 more rows
 ```
 
-Spearman correlation test :
+Test if `hemoplasma` `prevalence` is influenced by species sampling effort (Spearman correlation test) :
 ```
 cor.test(
   species_summary$n_sampled,
