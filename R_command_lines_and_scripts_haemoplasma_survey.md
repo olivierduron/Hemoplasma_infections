@@ -119,7 +119,7 @@ Results are:
 # 34 more rows
 ```
 
-## Visualization (Fig. S1)
+#### Visualization (Fig. S1)
 ```
 p <- ggplot(species_summary, aes(x = n_sampled, y = prevalence)) + 
   geom_ribbon(
