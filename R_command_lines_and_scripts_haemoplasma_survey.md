@@ -1,22 +1,25 @@
-# **Hemoplasma epidemiological survey : R command lines and script**
+# **Hemoplasma epidemiological survey: R scripts and analysis pipeline**
 
-We analyzed data on 626 individuals belonging to 44 species of wild mammals captured in French Guiana. The epidemiological dataset includes the following variables for each sampled individual:
-- `species` : Species identity (one of the 44 wild mammal species included in this study)
-- `order` : Species taxonomic order
-- `hemoplasma` : Infection status with hemotropic mycoplasmas (0: Uninfected; 1: Infected)
-- `sex` : Sex of the individual (M: Male; F: Female)
-- `vertical_stratum` : Primary habitat use in the forest vertical strata (Ground, Canopy, Mixed)
+We analyzed data from 626 individuals belonging to 44 species of wild mammals sampled in French Guiana. The dataset includes host ecological traits and infection status with multiple blood-borne parasites.
+
+Details of sampling and laboratory procedures are provided in the associated manuscript.
+
+## Dataset description
+Each row corresponds to one individual and includes the following variables :
+- `species` : Species identity (44 wild mammal species)
+- `order` : Taxonomic order
+- `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = Uninfected; 1 = Infected)
+- `sex` : Sex of the individual (M = Male; F = Female)
+- `vertical_stratum` : Habitat use in the forest strata (Ground, Canopy, Mixed)
 - `activity` : Activity rhythm (Nocturnal, Diurnal)
 - `diet` : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
 - `sociality` : Social organization (Solitary, Group)
-- `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0: Uninfected; 1: Infected)
-- `apicomplexa` : Infection status with blood parasites, including piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0: Uninfected; 1: Infected)
-- `trypanosoma` : Infection status with trypanosomes (0: Uninfected; 1: Infected)
-- `filaria` : Infection status with microfilariae (0: Uninfected; 1: Infected)
+- `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
+- `apicomplexa` : Infection status with blood parasites, including piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
+- `trypanosoma` : Infection status with trypanosomes (0 = Uninfected; 1 = Infected)
+- `filaria` : Infection status with microfilariae (0 = Uninfected; 1 = Infected)
    
-Details about all the experimental methods are available in the related manuscript.
-
-## Table of contents 
+## Table of contents A UPDATER !!!
 - [Step 1. Retrieving the data](#step-1-retrieving-the-data)
 - [Step 2. Prepare the data for analysis](#step-2-prepare-the-data-for-analysis)
 - [Step 3. Calculate *Anaplasma* infection prevalence](#step-3-calculate-anaplasma-infection-prevalence)
@@ -30,13 +33,9 @@ Details about all the experimental methods are available in the related manuscri
 - [Step 11. Impact of _Anaplasma_ infections on general health condition](#step-11-impact-of-anaplasma-infections-on-general-health-condition)
 - [Step 12. Impact of _Anaplasma_ infections on female reproductive status](#step-12-impact-of-anaplasma-infections-on-female-reproductive-status)
 
-## Step 1. Retrieving the data
+## Step 1. Data retrieval
 
-The epidemiological dataset for mammals is available [here](data_hemoplasma_stat.csv)
-
-This database will be referred to as `data_hemoplasma_stat` throughout the R command lines and scripts provided below. It corresponds to part of the dataset provided in Table S1 of the related manuscript.
-
-Load the dataset directly from the GitHub repository to R and explore the dataset by summarizing the different modalities and their frequencies for each variable:
+The epidemiological dataset is available in the GitHub repository [here](data_hemoplasma_stat.csv)
 ```
 data_hemoplasma_stat <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv")
 data_hemoplasma_stat
@@ -45,9 +44,9 @@ get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
 lapply(data_hemoplasma_stat, get_modalities)
 ```
 
-## Step 2. Prepare the data for analysis
+## Step 2. Data preparation
 
-Convert categorical variables into factors:
+Convert categorical variables :
 ```
 data_hemoplasma_stat$species        <- as.factor(data_hemoplasma_stat$species)
 data_hemoplasma_stat$order           <- as.factor(data_hemoplasma_stat$order)
@@ -63,7 +62,7 @@ data_hemoplasma_stat$trypanosoma    <- as.factor(data_hemoplasma_stat$trypanosom
 data_hemoplasma_stat$filaria   <- as.factor(data_hemoplasma_stat$filaria)
 ```
 
-Load libraries for analysis: 
+Load required libraries : 
 ```
 library(dplyr)
 library(ggplot2)
@@ -76,9 +75,11 @@ library(brms)
 library(patchwork)
 ```
 
-## Step 3. Test whether hemoplasma detection depends on species sampling effort
+## Step 3. Assess sampling effort bias on hemoplasma prevalence
 
-Prepare species-level dataset and visualization of species sampling effort (Fig. S1) : 
+We first evaluated whether infection prevalence depends on species sampling effort.
+
+## Species-level summary
 ```
 species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -99,43 +100,6 @@ species_summary <- data_hemoplasma_stat %>%
   ) %>%
   ungroup()
 species_summary
-
-#Fig S1
-model <- lm(prevalence ~ n_sampled, data = species_summary)
-newdata <- data.frame(
-  n_sampled = seq(min(species_summary$n_sampled),
-                  max(species_summary$n_sampled),
-                  length.out = 200)
-)
-pred <- predict(model, newdata, interval = "confidence")
-newdata$fit <- pred[, "fit"]
-newdata$lwr <- pred[, "lwr"]
-newdata$upr <- pred[, "upr"]
-p <- ggplot(species_summary, aes(x = n_sampled, y = prevalence)) +
-  geom_ribbon(
-    data = newdata,
-    aes(x = n_sampled, ymin = lwr, ymax = upr),
-    fill = "grey70",
-    alpha = 0.4,
-    inherit.aes = FALSE
-  ) +
-  geom_line(
-    data = newdata,
-    aes(x = n_sampled, y = fit),
-    color = "blue",
-    linewidth = 1,
-    inherit.aes = FALSE
-  ) +
-    geom_point(size = 3, alpha = 0.7) +
-    theme_minimal() +
-   labs(
-    x = "Sample size per species",
-    y = "Hemoplasma prevalence"
-  )
-print(p)
-pdf("Fig_S1_hemoplasma_sampling_effect.pdf", width = 7, height = 5)
-print(p)
-dev.off()
 ```
 
 Results are: 
@@ -155,7 +119,36 @@ Results are:
 # 34 more rows
 ```
 
-Test if `hemoplasma` `prevalence` is influenced by species sampling effort (Spearman correlation test) :
+## Visualization (Fig. S1)
+```
+p <- ggplot(species_summary, aes(x = n_sampled, y = prevalence)) + 
+  geom_ribbon(
+    data = newdata,
+    aes(x = n_sampled, ymin = lwr, ymax = upr),
+    fill = "grey70",
+    alpha = 0.4,
+    inherit.aes = FALSE
+  ) +
+  geom_line(
+    data = newdata,
+    aes(x = n_sampled, y = fit),
+    color = "blue",
+    linewidth = 1,
+    inherit.aes = FALSE
+  ) +
+  geom_point(size = 3, alpha = 0.7) +
+  theme_minimal() +
+  labs(
+    x = "Sample size per species",
+    y = "Hemoplasma prevalence"
+  )
+print(p)
+pdf("Fig_S1_hemoplasma_sampling_effect.pdf", width = 7, height = 5)
+print(p)
+dev.off()
+```
+
+## Spearman correlation test
 ```
 cor.test(
   species_summary$n_sampled,
@@ -174,10 +167,11 @@ sample estimates:
      rho 
 0.312126 
 ```
+--> Hemoplasma prevalence increased weakly but significantly with sample size per species, suggesting that prevalence in mammals is likely underestimated in less sampled species.
 
-## Step 4. Test infection prevalence variation across mammalian orders (+ test sampling bias effect; GLMM with species random effect : model #1) : 
+## Step 4. Test whether hemoplasma infection prevalence varies across mammalian orders (GLMM model 1) 
 
-Create and visualize contingency tables order : 
+Create and visualize a contingency table of hemoplasma infection by mammalian order :
 ```
 df_species <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -209,7 +203,7 @@ rownames(contingency_table) <- df_order$order
 contingency_table
 ```
 
-Synthesis tables are :
+Contingency table is :
 ```
 Order                infected_species uninfected_species
 Carnivora                      3                  3
@@ -220,7 +214,7 @@ Primates                       2                  3
 Rodentia                       8                 11
 ```
 
-Data preparation :
+Prepare dataset: Compute sample size (`log_n`) per species for GLMM adjustment :
 ```
 data_hemoplasma_stat <- data_hemoplasma_stat %>%
   mutate(
@@ -234,7 +228,7 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
   ungroup()
 ```
 
-Full GLMM: 
+Fit a GLMM to test the effects of `order` and `log_n` on 'hemoplasma', with `species` as a random effect :
 ```
 mod1_full <- glmer(
   hemoplasma ~ order + log_n + (1 | species),
@@ -243,10 +237,10 @@ mod1_full <- glmer(
   control = glmerControl(optimizer = "bobyqa",
                          optCtrl = list(maxfun = 1e5))
 )
-```
 
-Model selection (LRT) :
-```
+
+
+# Model selection (LRT) :
 mod1_no_order <- update(mod1_full, . ~ . - order)
 mod1_no_logn  <- update(mod1_full, . ~ . - log_n)
 anova(mod1_full, mod1_no_order, test = "Chisq")
