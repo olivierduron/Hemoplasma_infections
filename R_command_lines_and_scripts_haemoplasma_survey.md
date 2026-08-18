@@ -74,9 +74,7 @@ library(brms)
 library(patchwork)
 ```
 
-## Step 3. Assess sampling effort bias on hemoplasma prevalence
-
-We first evaluated whether infection prevalence depends on species sampling effort.
+## Step 3. Species-level summary
 
 ### Species-level summary
 ```
@@ -246,44 +244,13 @@ ggplot(plot_data, aes(
   )
 ```
 
-
-
-
-### Visualization (Fig. S1)
-```
-p <- ggplot(species_summary, aes(x = n_sampled, y = prevalence)) + 
-  geom_ribbon(
-    data = newdata,
-    aes(x = n_sampled, ymin = lwr, ymax = upr),
-    fill = "grey70",
-    alpha = 0.4,
-    inherit.aes = FALSE
-  ) +
-  geom_line(
-    data = newdata,
-    aes(x = n_sampled, y = fit),
-    color = "blue",
-    linewidth = 1,
-    inherit.aes = FALSE
-  ) +
-  geom_point(size = 3, alpha = 0.7) +
-  theme_minimal() +
-  labs(
-    x = "Sample size per species",
-    y = "Hemoplasma prevalence"
-  )
-print(p)
-pdf("Fig_S1_hemoplasma_sampling_effect.pdf", width = 7, height = 5)
-print(p)
-dev.off()
-```
-
 ### Spearman correlation test
 ```
 cor.test(
   species_summary$n_sampled,
   species_summary$prevalence,
-  method = "spearman"
+  method = "spearman",
+  exact = FALSE
 )
 ```
 
@@ -291,15 +258,66 @@ Results :
 ```
 Spearman's rank correlation rho
 data:  species_summary$n_sampled and species_summary$prevalence
-S = 9760.9, p-value = 0.03915
+S = 9444.8, p-value = 0.02651
 alternative hypothesis: true rho is not equal to 0
 sample estimates:
-     rho 
-0.312126 
+      rho 
+0.3344048 
 ```
 
 ### Interpretation
-Hemoplasma prevalence increased weakly but significantly with sample size per species, suggesting that prevalence in mammals is likely underestimated in less sampled species.
+Hemoplasma prevalence increased significantly with sample size per species, suggesting that prevalence in mammals is likely underestimated in less sampled species.
+
+### Visualization
+```
+plot_data <- species_summary %>%
+  filter(
+    is.finite(n_sampled),
+    is.finite(prevalence),
+    n_sampled > 0
+  ) %>%
+  mutate(
+    log_n = log10(n_sampled)
+  )
+
+p <- ggplot(
+  plot_data,
+  aes(x = log_n, y = prevalence)
+) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x,
+    se = TRUE,
+    color = "blue",
+    fill = "grey70"
+  ) +
+  scale_x_continuous(
+    breaks = log10(c(1, 2, 5, 10, 20, 50, 100)),
+    labels = c(1, 2, 5, 10, 20, 50, 100)
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    limits = c(0, 1)
+  ) +
+  theme_classic() +
+  labs(
+    x = "Sample size per species",
+    y = "Hemoplasma prevalence"
+  )
+print(p)
+```
+
+
+
+
+
+
+
+
+
+
+
 
 ## Step 4. Variation in hemoplasma infection across mammalian orders (GLMM model 1) 
 
@@ -353,7 +371,7 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
 This model tests whether `hemoplasma` infection probability varies among mammalian orders (`order`) while controlling for differences in sampling effort (`log_n`) and accounting for species-level random effects (`1 | species`).
 ```
 mod1_full <- glmer(
-  hemoplasma ~ order + log_n + (1 | species),
+  hemoplasma ~ order * log_n + (1 | species),
   family = binomial,
   data = data_hemoplasma_stat,
   control = glmerControl(
