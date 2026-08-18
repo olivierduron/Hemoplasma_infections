@@ -1,8 +1,6 @@
 # **Hemoplasma epidemiological survey: R scripts and analysis pipeline**
 
-We analyzed data from 626 individuals belonging to 44 species of wild mammals sampled in French Guiana. The dataset includes host ecological traits and infection status with multiple blood-borne parasites.
-
-Details of sampling and laboratory procedures are provided in the associated manuscript.
+We analyzed data from 626 individuals belonging to 44 species of wild mammals sampled in French Guiana. Details of sampling, examined traits and laboratory procedures are provided in the associated manuscript.
 
 ## Dataset description
 Each row corresponds to one individual and includes the following variables :
@@ -15,7 +13,7 @@ Each row corresponds to one individual and includes the following variables :
 - `diet` : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
 - `sociality` : Social organization (Solitary, Group)
 - `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
-- `apicomplexa` : Infection status with blood parasites, including piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
+- `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
 - `trypanosoma` : Infection status with trypanosomes (0 = Uninfected; 1 = Infected)
 - `filaria` : Infection status with microfilariae (0 = Uninfected; 1 = Infected)
    
