@@ -303,7 +303,7 @@ p <- ggplot(
 print(p)
 ```
 
-
+## Step 4. Variation in hemoplasma infection status according to the host’s sex and the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
 
 
