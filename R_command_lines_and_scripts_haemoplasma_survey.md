@@ -14,8 +14,6 @@ Each row corresponds to one individual and includes the following variables :
 - `sociality` : Social organization (Solitary, Group)
 - `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
 - `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
-- `trypanosoma` : Infection status with trypanosomes (0 = Uninfected; 1 = Infected)
-- `filaria` : Infection status with microfilariae (0 = Uninfected; 1 = Infected)
    
 ## Table of contents A UPDATER !!!
 - [Step 1. Retrieving the data](#step-1-retrieving-the-data)
@@ -56,8 +54,6 @@ data_hemoplasma_stat$diet   <- as.factor(data_hemoplasma_stat$diet)
 data_hemoplasma_stat$sociality   <- as.factor(data_hemoplasma_stat$sociality)
 data_hemoplasma_stat$anaplasmataceae      <- as.factor(data_hemoplasma_stat$anaplasmataceae)
 data_hemoplasma_stat$apicomplexa         <- as.factor(data_hemoplasma_stat$apicomplexa)
-data_hemoplasma_stat$trypanosoma    <- as.factor(data_hemoplasma_stat$trypanosoma)
-data_hemoplasma_stat$filaria   <- as.factor(data_hemoplasma_stat$filaria)
 ```
 
 Load required libraries : 
@@ -76,7 +72,6 @@ library(patchwork)
 
 ## Step 3. Species-level summary
 
-### Species-level summary
 ```
 species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -307,6 +302,14 @@ p <- ggplot(
   )
 print(p)
 ```
+
+
+
+
+
+
+
+
 
 
 
