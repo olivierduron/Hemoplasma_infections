@@ -62,6 +62,7 @@ data_hemoplasma_stat$filaria   <- as.factor(data_hemoplasma_stat$filaria)
 
 Load required libraries : 
 ```
+library(binom)
 library(dplyr)
 library(ggplot2)
 library(scales)
@@ -83,39 +84,170 @@ species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
   summarise(
     n_sampled = n(),
-    n_positive = sum(as.numeric(as.character(hemoplasma)), na.rm = TRUE)
+    n_positive = sum(as.numeric(as.character(hemoplasma)), na.rm = TRUE),
+    .groups = "drop"
   ) %>%
-  ungroup() %>%
   mutate(
     n_negative = n_sampled - n_positive,
     prevalence = n_positive / n_sampled
   ) %>%
   rowwise() %>%
   mutate(
-    ci = list(binom.test(n_positive, n_sampled)$conf.int),
-    ci_low = ci[[1]],
-    ci_high = ci[[2]]
+    ci_low = binom::binom.confint(
+      n_positive, n_sampled, method = "wilson"
+    )$lower,
+    ci_high = binom::binom.confint(
+      n_positive, n_sampled, method = "wilson"
+    )$upper
   ) %>%
-  ungroup()
-species_summary
+  ungroup() %>%
+  mutate(
+    ci_low = ifelse(n_positive == 0, 0, ci_low)
+  )
+print(species_summary, n = Inf)
 ```
 
 Results : 
 ```
-# A tibble: 44 × 8
-   species                 n_sampled n_positive n_negative prevalence ci_low ci_high
- 1 Alouatta_macconnelli        22         20          2     0.909   0.708    0.989 
- 2 Bradypus_tridactylus       108          4        104     0.0370  0.0102   0.0921
- 3 Cabassous_unicinctus         2          0          2     0       0        0.842 
- 4 Caluromys_philander          5          0          5     0       0        0.522 
- 5 Cebus_apella                 1          0          1     0       0        0.975 
- 6 Choloepus_didactylus        90         72         18     0.8     0.702    0.877 
- 7 Coendou_melanurus            1          0          1     0       0        0.975 
- 8 Coendou_sp                   3          1          2     0.333   0.00840  0.906 
- 9 Cyclopes_didactylus          1          0          1     0       0        0.975 
-10 Dasypus_novemcinctus        15          5         10     0.333   0.118    0.616 
-# 34 more rows
+# A tibble: 44 × 7
+   species                   n_sampled n_positive n_negative prevalence  ci_low ci_high
+   <fct>                         <int>      <dbl>      <dbl>      <dbl>   <dbl>   <dbl>
+ 1 Alouatta_macconnelli             22         20          2     0.909  0.722    0.975 
+ 2 Bradypus_tridactylus            108          4        104     0.0370 0.0145   0.0914
+ 3 Cabassous_unicinctus              2          0          2     0      0        0.658 
+ 4 Caluromys_philander               5          0          5     0      0        0.434 
+ 5 Cebus_apella                      1          0          1     0      0        0.793 
+ 6 Choloepus_didactylus             90         72         18     0.8    0.706    0.870 
+ 7 Coendou_melanurus                 1          0          1     0      0        0.793 
+ 8 Coendou_sp                        3          1          2     0.333  0.0615   0.792 
+ 9 Cyclopes_didactylus               1          0          1     0      0        0.793 
+10 Dasypus_novemcinctus             15          5         10     0.333  0.152    0.583 
+11 Didelphis_marsupialis            51         24         27     0.471  0.341    0.605 
+12 Eira_barbara                      4          0          4     0      0        0.490 
+13 Felis_wiedii                      1          0          1     0      0        0.793 
+14 Galictis_vittata                  4          3          1     0.75   0.301    0.954 
+15 Holochilus_sciureus               5          1          4     0.2    0.0362   0.624 
+16 Hydrochoerus_hydrochaeris         2          0          2     0      0        0.658 
+17 Hylaeamys_megacephalus           15          0         15     0      0        0.204 
+18 Hylaeamys_yunganus               10          0         10     0      0        0.278 
+19 Lontra_longicaudis                1          1          0     1      0.207    1     
+20 Makalata_didelphoides             8          0          8     0      0        0.324 
+21 Marmosa_lepida                    1          1          0     1      0.207    1     
+22 Marmosa_murina                   20          3         17     0.15   0.0524   0.360 
+23 Marmosops_parvidens               5          0          5     0      0        0.434 
+24 Mesomys_hispidus                 13          0         13     0      0        0.228 
+25 Metachirus_nudicaudatus           5          0          5     0      0        0.434 
+26 Micoureus_demerarae              16          2         14     0.125  0.0350   0.360 
+27 Mus_musculus                     34          0         34     0      0        0.102 
+28 Neacomys_dubosti                  1          0          1     0      0        0.793 
+29 Neacomys_paracou                  8          0          8     0      0        0.324 
+30 Nectomys_rattus                   4          2          2     0.5    0.150    0.850 
+31 Oecomys_auyantepui               16          1         15     0.0625 0.0111   0.283 
+32 Oecomys_bicolor                  16          0         16     0      0        0.194 
+33 Oligoryzomys_fulvescens           7          1          6     0.143  0.0257   0.513 
+34 Philander_opossum                20          9         11     0.45   0.258    0.658 
+35 Pithecia_pithecia                 1          0          1     0      0        0.793 
+36 Potos_flavus                      2          1          1     0.5    0.0945   0.905 
+37 Proechimys_cuvieri               18          2         16     0.111  0.0310   0.328 
+38 Proechimys_guyannensis           20          1         19     0.05   0.00888  0.236 
+39 Puma_yagouaroundi                 5          0          5     0      0        0.434 
+40 Rattus_rattus                    19          2         17     0.105  0.0294   0.314 
+41 Saguinus_midas                   41         41          0     1      0.914    1     
+42 Saimiri_sciureus                  1          0          1     0      0        0.793 
+43 Sciurus_aestuans                  1          0          1     0      0        0.793 
+44 Tamandua_tetradactyla             3          0          3     0      0        0.561
 ```
+
+### Visualization
+```
+species_order <- c(
+  "Alouatta macconnelli",
+  "Saguinus midas",
+  "Cebus apella",
+  "Saimiri sciureus",
+  "Pithecia pithecia",
+  "Bradypus tridactylus",
+  "Choloepus didactylus",
+  "Cyclopes didactylus",
+  "Tamandua tetradactyla",
+  "Cabassous unicinctus",
+  "Dasypus novemcinctus",
+  "Hydrochoerus hydrochaeris",
+  "Holochilus sciureus",
+  "Hylaeamys megacephalus",
+  "Hylaeamys yunganus",
+  "Neacomys dubosti",
+  "Neacomys paracou",
+  "Nectomys rattus",
+  "Oecomys auyantepui",
+  "Oecomys bicolor",
+  "Oligoryzomys fulvescens",
+  "Makalata didelphoides",
+  "Mesomys hispidus",
+  "Proechimys cuvieri",
+  "Proechimys guyannensis",
+  "Coendou melanurus",
+  "Coendou sp.",
+  "Mus musculus",
+  "Rattus rattus",
+  "Sciurus aestuans",
+  "Felis wiedii",
+  "Puma yagouaroundi",
+  "Eira barbara",
+  "Galictis vittata",
+  "Lontra longicaudis",
+  "Potos flavus",
+  "Caluromys philander",
+  "Didelphis marsupialis",
+  "Marmosa lepida",
+  "Marmosa murina",
+  "Marmosops parvidens",
+  "Metachirus nudicaudatus",
+  "Micoureus demerarae",
+  "Philander opossum"
+)
+plot_data <- species_summary %>%
+  mutate(
+    species_label = gsub("_", " ", as.character(species))
+  ) %>%
+  mutate(
+    species_label = factor(species_label, levels = rev(species_order))
+  )
+ggplot(plot_data, aes(
+  x = prevalence * 100,
+  y = species_label
+)) +
+  geom_errorbarh(
+    aes(
+      xmin = ci_low * 100,
+      xmax = ci_high * 100
+    ),
+    height = 0.15
+  ) +
+  geom_point(size = 3) +
+  scale_x_continuous(
+    limits = c(0, 100),
+    breaks = seq(0, 100, 20),
+    labels = function(x) paste0(x, "%")
+  ) +
+  labs(
+    x = "Hemoplasma prevalence",
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10),
+    axis.title.x = element_text(size = 11),
+    panel.grid.major.x = element_line(
+      linewidth = 0.3,
+      colour = "grey85"
+    )
+  )
+```
+
+
+
 
 ### Visualization (Fig. S1)
 ```
