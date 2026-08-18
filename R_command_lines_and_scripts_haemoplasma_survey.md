@@ -8,7 +8,7 @@ Each row corresponds to one individual and includes the following variables :
 - `order` : Taxonomic order
 - `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = Uninfected; 1 = Infected)
 - `sex` : Sex of the individual (M = Male; F = Female)
-- `vertical_stratum` : Habitat use in the forest strata (Ground, Canopy, Mixed)
+- `strata` : Habitat use in the forest strata (Ground, Canopy, Mixed)
 - `activity` : Activity rhythm (Nocturnal, Diurnal)
 - `diet` : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
 - `sociality` : Social organization (Solitary, Group)
@@ -50,7 +50,7 @@ data_hemoplasma_stat$species        <- as.factor(data_hemoplasma_stat$species)
 data_hemoplasma_stat$order           <- as.factor(data_hemoplasma_stat$order)
 data_hemoplasma_stat$hemoplasma      <- as.factor(data_hemoplasma_stat$hemoplasma)
 data_hemoplasma_stat$sex   <- as.factor(data_hemoplasma_stat$sex)
-data_hemoplasma_stat$vertical_stratum   <- as.factor(data_hemoplasma_stat$vertical_stratum)
+data_hemoplasma_stat$strata   <- as.factor(data_hemoplasma_stat$strata)
 data_hemoplasma_stat$activity   <- as.factor(data_hemoplasma_stat$activity)
 data_hemoplasma_stat$diet   <- as.factor(data_hemoplasma_stat$diet)
 data_hemoplasma_stat$sociality   <- as.factor(data_hemoplasma_stat$sociality)
@@ -847,10 +847,10 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
 
 ### GLMM (Model 3)
 
-This model tests whether hemoplasma infection probability varies according to host ecological traits (`vertical_stratum`, `activity`, `diet`, `sociality`), while controlling for sampling effort (`log_n`) and accounting for species-level random effects (`1 | species`).
+This model tests whether hemoplasma infection probability varies according to host ecological traits (`strata`, `activity`, `diet`, `sociality`), while controlling for sampling effort (`log_n`) and accounting for species-level random effects (`1 | species`).
 ```
 mod3_full <- glmer(
-  hemoplasma ~ vertical_stratum + activity + diet + sociality + log_n + (1 | species),
+  hemoplasma ~ strata + activity + diet + sociality + log_n + (1 | species),
   family = binomial,
   data = data_hemoplasma_stat,
   control = glmerControl(
@@ -871,10 +871,10 @@ Results :
 ```
 Single term deletions
 Model:
-hemoplasma ~ vertical_stratum + activity + diet + sociality + log_n + (1 | species)
+hemoplasma ~ strata + activity + diet + sociality + log_n + (1 | species)
                  npar    AIC    LRT Pr(Chi)  
 <none>                421.76                 
-vertical_stratum    2 418.86 1.0977 0.57760  
+strata    2 418.86 1.0977 0.57760  
 activity            1 423.09 3.3279 0.06812 .
 diet                3 416.11 0.3554 0.94930  
 sociality           1 419.80 0.0445 0.83297
@@ -898,8 +898,8 @@ mod3_null <- glmer(
   )
 )
 
-mod3_vertical_stratum <- glmer(
-  hemoplasma ~ vertical_stratum + (1 | species),
+mod3_strata <- glmer(
+  hemoplasma ~ strata + (1 | species),
   family = binomial,
   data = data_hemoplasma_stat,
   control = glmerControl(
@@ -948,14 +948,14 @@ mod3_log_n <- glmer(
   )
 )
 
-anova(mod3_null, mod3_vertical_stratum, test = "Chisq")
+anova(mod3_null, mod3_strata, test = "Chisq")
 anova(mod3_null, mod3_activity, test = "Chisq")
 anova(mod3_null, mod3_diet, test = "Chisq")
 anova(mod3_null, mod3_sociality, test = "Chisq")
 anova(mod3_null, mod3_log_n, test = "Chisq")
 
 aics <- AIC(mod3_null,
-            mod3_vertical_stratum,
+            mod3_strata,
             mod3_activity,
             mod3_diet,
             mod3_sociality,
@@ -968,14 +968,14 @@ aics[, c("AIC", "delta_AIC_vs_null")]
 
 Results : 
 ```
-> anova(mod3_null, mod3_vertical_stratum, test = "Chisq")
+> anova(mod3_null, mod3_strata, test = "Chisq")
 Data: data_hemoplasma_stat
 Models:
 mod3_null: hemoplasma ~ 1 + (1 | species)
-mod3_vertical_stratum: hemoplasma ~ vertical_stratum + (1 | species)
+mod3_strata: hemoplasma ~ strata + (1 | species)
                       npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
 mod3_null                2 416.38 425.22 -206.19    412.38                     
-mod3_vertical_stratum    4 419.55 437.23 -205.78    411.55 0.8301  2     0.6603
+mod3_strata    4 419.55 437.23 -205.78    411.55 0.8301  2     0.6603
 
 > anova(mod3_null, mod3_activity, test = "Chisq")
 Data: data_hemoplasma_stat
@@ -1015,7 +1015,7 @@ mod3_log_n    3 416.94 430.20 -205.47    410.94 1.4399  1     0.2302
 
                            AIC delta_AIC_vs_null
 mod3_null             416.3804         0.0000000
-mod3_vertical_stratum 419.5503         3.1698637
+mod3_strata 419.5503         3.1698637
 mod3_activity         413.1365        -3.2439419
 mod3_diet             419.4395         3.0590596
 mod3_sociality        417.5777         1.1973107
@@ -1029,12 +1029,12 @@ Activity showed a marginal effect in the univariate model comparison (_p_ = 0.02
 We estimated marginal means (back-transformed to response scale) for each level of host ecological traits.
 
 ```
-emm_vertical_stratum <- emmeans(mod3_full, ~ vertical_stratum, type = "response")
+emm_strata <- emmeans(mod3_full, ~ strata, type = "response")
 emm_activity <- emmeans(mod3_full, ~ activity, type = "response")
 emm_diet <- emmeans(mod3_full, ~ diet, type = "response")
 emm_sociality <- emmeans(mod3_full, ~ sociality, type = "response")
 
-emm_vertical_stratum
+emm_strata
 emm_activity
 emm_diet
 emm_sociality
@@ -1042,7 +1042,7 @@ emm_sociality
 
 Results :
 ```
- vertical_stratum   prob    SE  df asymp.LCL asymp.UCL
+ strata   prob    SE  df asymp.LCL asymp.UCL
  Canopy           0.4112 0.298 Inf   0.05898     0.886
  Ground           0.4723 0.261 Inf   0.10315     0.874
  Mixed            0.0876 0.177 Inf   0.00126     0.879
@@ -1061,14 +1061,14 @@ Results :
  Group     0.312 0.307 Inf    0.0268     0.882
  Solitary  0.252 0.226 Inf    0.0313     0.779
 
-Results are averaged over the levels of: vertical_stratum, activity, diet 
+Results are averaged over the levels of: strata, activity, diet 
 Confidence level used: 0.95 
 Intervals are back-transformed from the logit scale 
 ```
 
 ### Post-hoc analysis of differences between levelS of host ecological traits (model-based pairwise comparisons)
 ```
-pairs(emmeans(mod3_full, ~ vertical_stratum), adjust = "tukey")
+pairs(emmeans(mod3_full, ~ strata), adjust = "tukey")
 pairs(emmeans(mod3_full, ~ activity), adjust = "tukey")
 pairs(emmeans(mod3_full, ~ diet), adjust = "tukey")
 pairs(emmeans(mod3_full, ~ sociality), adjust = "tukey")
@@ -1076,7 +1076,7 @@ pairs(emmeans(mod3_full, ~ sociality), adjust = "tukey")
 
 Results:
 ```
-> pairs(emmeans(mod3_full, ~ vertical_stratum), adjust = "tukey")
+> pairs(emmeans(mod3_full, ~ strata), adjust = "tukey")
  contrast        estimate   SE  df z.ratio p.value
  Canopy - Ground   -0.248 1.13 Inf  -0.219  0.9739
  Canopy - Mixed     1.984 2.28 Inf   0.869  0.6596
@@ -1106,7 +1106,7 @@ Marginal means showed broadly overlapping confidence intervals across all ecolog
 Create a plot of hemoplasma prevalence by species ecological traits :
 ```
 df_species <- data_hemoplasma_stat %>%
-  group_by(species, vertical_stratum, activity, diet, sociality) %>%
+  group_by(species, strata, activity, diet, sociality) %>%
   summarise(
     n = n(),
     n_infected = sum(hemoplasma == 1, na.rm = TRUE),
@@ -1130,7 +1130,7 @@ fix_emm <- function(df, var){
   df
 }
 
-prob_stratum  <- fix_emm(prob_stratum, "vertical_stratum")
+prob_stratum  <- fix_emm(prob_stratum, "strata")
 prob_activity  <- fix_emm(prob_activity, "activity")
 prob_diet      <- fix_emm(prob_diet, "diet")
 prob_social    <- fix_emm(prob_social, "sociality")
@@ -1210,7 +1210,7 @@ make_panel <- function(df, pred, var, palette, title){
       plot.title = element_text(face = "bold", hjust = 0.5)
     )
 }
-pA <- make_panel(df_species, prob_stratum, "vertical_stratum", stratum_colors, "A")
+pA <- make_panel(df_species, prob_stratum, "strata", stratum_colors, "A")
 pB <- make_panel(df_species, prob_activity, "activity", activity_colors, "B")
 pC <- make_panel(df_species, prob_diet, "diet", diet_colors, "C")
 pD <- make_panel(df_species, prob_social, "sociality", social_colors, "D")
@@ -1917,7 +1917,7 @@ library(tidyr)
 # 1. AGGREGATION PAR ESPECE
 # =========================
 df_species <- data_hemoplasma_stat %>%
-  group_by(species, body_size, vertical_stratum, locomotion,
+  group_by(species, body_size, strata, locomotion,
            activity, diet, sociality) %>%
   summarise(
     n = n(),
@@ -1931,7 +1931,7 @@ df_species <- data_hemoplasma_stat %>%
 # =========================
 df_long <- df_species %>%
   pivot_longer(
-    cols = c(body_size, vertical_stratum, locomotion,
+    cols = c(body_size, strata, locomotion,
              activity, diet, sociality),
     names_to = "trait",
     values_to = "category"
@@ -1939,7 +1939,7 @@ df_long <- df_species %>%
 
 df_long$trait <- factor(df_long$trait,
                         levels = c("body_size",
-                                   "vertical_stratum",
+                                   "strata",
                                    "locomotion",
                                    "activity",
                                    "diet",
@@ -1950,7 +1950,7 @@ df_long$trait <- factor(df_long$trait,
 # =========================
 trait_colors <- c(
   body_size = "#A6CEE3",
-  vertical_stratum = "#B2DF8A",
+  strata = "#B2DF8A",
   locomotion = "#FDBF6F",
   activity = "#CAB2D6",
   diet = "#FFFF99",
