@@ -305,6 +305,252 @@ print(p)
 
 ## Step 4. Variation in hemoplasma infection status according to the host’s sex and the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
+### Data preparation: Create the `pathogens` variable by merging `anaplasmataceae` and `apicomplexa`
+```
+data_hemoplasma_stat <- data_hemoplasma_stat %>%
+  mutate(
+    pathogens = ifelse(
+      anaplasmataceae == 1 | apicomplexa == 1,
+      1, 0
+    ),
+    sex = factor(sex),
+    species = factor(species)
+  )
+```
+
+### Data preparation: Sampling effort is included as a covariate (log-transformed number of individuals per species)
+```
+data_hemoplasma_stat <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  mutate(
+    n_sampled = n(),
+    log_n = log(n_sampled)
+  ) %>%
+  ungroup() %>%
+  mutate(hemoplasma = as.numeric(as.character(hemoplasma)))
+```
+
+### Restrict all candidate models to the same complete-case dataset to ensure that likelihood-ratio tests and AIC comparisons are based on identical observations
+```
+model_data <- data_hemoplasma_stat %>%
+  filter(
+    !is.na(hemoplasma),
+    !is.na(sex),
+    !is.na(pathogens),
+    !is.na(species),
+    !is.na(log_n)
+  )
+```
+
+### Fit the full GLMM (model 1)
+This model tests whether hemoplasma infection probability differs between sexes (`sex`) and infections by other blood-borne pathogens (`pathogens`) while controlling for sampling effort (`log_n`) and accounting for species-level random effects (`1 | species`).
+```
+model1_a <- glmer(
+  hemoplasma ~ sex * pathogens + log_n + (1 | species),
+  data = model_data,
+  family = binomial
+)
+summary(model1_a)
+```
+
+Results are:
+```
+Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
+ Family: binomial  ( logit )
+Formula: hemoplasma ~ sex * pathogens + log_n + (1 | species)
+   Data: model_data
+
+      AIC       BIC    logLik -2*log(L)  df.resid 
+    312.3     336.2    -150.1     300.3       393 
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-3.2582 -0.2720 -0.1449  0.3537  7.8807 
+
+Random effects:
+ Groups  Name        Variance Std.Dev.
+ species (Intercept) 7.995    2.827   
+Number of obs: 399, groups:  species, 33
+
+Fixed effects:
+               Estimate Std. Error z value Pr(>|z|)   
+(Intercept)     -3.6176     1.3830  -2.616   0.0089 **
+sexM             0.6581     0.4101   1.605   0.1086   
+pathogens        1.5469     0.6324   2.446   0.0144 * 
+log_n            0.4084     0.4623   0.883   0.3770   
+sexM:pathogens  -0.9243     0.7755  -1.192   0.2333   
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Correlation of Fixed Effects:
+            (Intr) sexM   pthgns log_n 
+sexM        -0.238                     
+pathogens   -0.076  0.272              
+log_n       -0.826  0.033 -0.025       
+sexM:pthgns  0.117 -0.514 -0.712 -0.005
+```
+
+### Test and remove the sex × pathogen interaction
+
+```
+model1_b <- glmer(
+  hemoplasma ~ sex + pathogens + log_n + (1 | species),
+  data = model_data,
+  family = binomial,
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+anova(
+  model1_b,
+  model1_a,
+  test = "Chisq"
+)
+
+AIC(model1_a, model1_b)
+```
+
+Results are:
+```
+Data: model_data
+Models:
+model1_b: hemoplasma ~ sex + pathogens + log_n + (1 | species)
+model1_a: hemoplasma ~ sex * pathogens + log_n + (1 | species)
+         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
+model1_b    5 311.72 331.67 -150.86    301.72                     
+model1_a    6 312.27 336.21 -150.14    300.27 1.4494  1     0.2286
+---
+> AIC(model1_a, model1_b)
+         df      AIC
+model1_a  6 312.2718
+model1_b  5 311.7212
+```
+
+Interpretation: The model including the sex × pathogens interaction did not provide a better fit than the additive model (likelihood-ratio test: χ² = 1.45, df = 1, p = 0.229). The additive model also had a lower AIC (311.72 vs. 312.27; ΔAIC = 0.55). The interaction was therefore removed from the model, and the additive model was retained for subsequent model simplification.
+
+
+### Test and remove the sampling effect
+```
+model1_c <- glmer(
+  hemoplasma ~ sex + pathogens + (1 | species),
+  data = model_data,
+  family = binomial,
+)
+
+anova(
+  model1_b,
+  model1_c,
+  test = "Chisq"
+)
+
+AIC(model1_b, model1_c)
+```
+
+Results are: 
+```
+Data: model_data
+Models:
+model1_c: hemoplasma ~ sex + pathogens + (1 | species)
+model1_b: hemoplasma ~ sex + pathogens + log_n + (1 | species)
+         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
+model1_c    4 310.53 326.48 -151.26    302.53                     
+model1_b    5 311.72 331.67 -150.86    301.72 0.8049  1     0.3696
+---
+> AIC(model1_b, model1_c)
+         df      AIC
+model1_b  5 311.7212
+model1_c  4 310.5262
+```
+Interpretation: Removing log-transformed sampling effort (`log_n`) did not significantly reduce model fit (likelihood-ratio test: χ² = 0.80, df = 1, p = 0.370). The model without log_n also had a lower AIC (310.53 vs. 311.72; ΔAIC = 1.20). Sampling effort was therefore removed.
+
+### Test the `sex` effect
+```
+model1_d <- glmer(
+  hemoplasma ~ pathogens + (1 | species),
+  data = model_data,
+  family = binomial,
+)
+
+anova(
+  model1_c,
+  model1_d,
+  test = "Chisq"
+)
+
+AIC(model1_c, model1_d)
+```
+
+Results are: 
+```
+Data: model_data
+Models:
+model1_d: hemoplasma ~ pathogens + (1 | species)
+model1_c: hemoplasma ~ sex + pathogens + (1 | species)
+         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
+model1_d    3 309.90 321.86 -151.95    303.90                     
+model1_c    4 310.53 326.48 -151.26    302.53 1.3717  1     0.2415
+---
+> AIC(model1_c, model1_d)
+         df      AIC
+model1_c  4 310.5262
+model1_d  3 309.8978
+```
+
+Interpretation: Sex did not improve model fit (LRT: χ² = 1.37, df = 1, P = 0.242; ΔAIC = 0.63). Sex was therefore removed
+
+### Test the `pathogens` effect
+```
+model1_e <- glmer(
+  hemoplasma ~ sex + (1 | species),
+  data = model_data,
+  family = binomial,
+)
+
+anova(
+  model1_c,
+  model1_e,
+  test = "Chisq"
+)
+
+AIC(model1_c, model1_e)
+```
+
+Results are: 
+```
+Data: model_data
+Models:
+model1_e: hemoplasma ~ sex + (1 | species)
+model1_c: hemoplasma ~ sex + pathogens + (1 | species)
+         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
+model1_e    3 314.73 326.70 -154.37    308.73                       
+model1_c    4 310.53 326.48 -151.26    302.53 6.2041  1    0.01275 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+---
+> AIC(model1_c, model1_e)
+         df      AIC
+model1_c  4 310.5262
+model1_e  3 314.7303
+```
+
+Interpretation: Removing pathogen occurrence from the model resulted in a significant decrease in model fit (likelihood-ratio test: χ² = 6.20, df = 1, p = 0.013). The model including pathogen occurrence also had a lower AIC (310.53 vs. 314.73; ΔAIC = 4.20), providing stronger support for the more complex model. Pathogen occurrence was therefore retained as a significant predictor in the minimal adequate model.
+
+
+CALCULER ODD RATIO SEX ET PATHOGENS 
+
+DISSOCIER EFFET PATHOGENS EN DEUX!!! IDEM ODD RATIO POUR CHAQUE PATHOGEN!
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
