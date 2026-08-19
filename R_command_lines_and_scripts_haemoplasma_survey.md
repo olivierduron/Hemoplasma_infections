@@ -62,6 +62,7 @@ library(binom)
 library(dplyr)
 library(ggplot2)
 library(bayestestR)
+library(posterior)
 library(scales)
 library(ggthemes)
 library(lme4)
@@ -611,21 +612,130 @@ model2_d  2 315.0649
 
 Interpretation: Removing `anaplasmataceae` significantly reduced model fit (likelihood-ratio test: χ² = 8.95, df = 1, p = 0.003). The model including `anaplasmataceae` also had a substantially lower AIC (308.12 vs. 315.06; ΔAIC = 6.94), providing strong support for retaining this predictor. `anaplasmataceae` infection was therefore retained as a significant predictor in the minimal adequate model.
 
+### Odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
+```
+model1_b_bayes <- brm(
+  hemoplasma ~ sex + pathogens + (1 | species),
+  data = model_data,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 4,
+  seed = 1234
+)
+model2_b_bayes <- brm(
+  hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
+  data = model_data,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 4,
+  seed = 1234
+)
+posterior_model1 <- as_draws_df(model1_b_bayes)
+posterior_model2 <- as_draws_df(model2_b_bayes)
+or_sex <- exp(posterior_model1$b_sexM)
+or_pathogens <- exp(posterior_model1$b_pathogens)
+or_anaplasmataceae <- exp(
+  posterior_model2$b_anaplasmataceae1
+)
+or_apicomplexa <- exp(
+  posterior_model2$b_apicomplexa1
+)
+or_results <- data.frame(
+  
+  variable = c(
+    "Sex (M vs F)",
+    "Pathogens (1 vs 0)",
+    "Anaplasmataceae (1 vs 0)",
+    "Apicomplexa (1 vs 0)"
+  ),
+  OR = c(
+    median(or_sex),
+    median(or_pathogens),
+    median(or_anaplasmataceae),
+    median(or_apicomplexa)
+  ),
+  HDI_low = c(
+    hdi(or_sex, ci = 0.95)$CI_low,
+    hdi(or_pathogens, ci = 0.95)$CI_low,
+    hdi(or_anaplasmataceae, ci = 0.95)$CI_low,
+    hdi(or_apicomplexa, ci = 0.95)$CI_low
+  ),
+  HDI_high = c(
+    hdi(or_sex, ci = 0.95)$CI_high,
+    hdi(or_pathogens, ci = 0.95)$CI_high,
+    hdi(or_anaplasmataceae, ci = 0.95)$CI_high,
+    hdi(or_apicomplexa, ci = 0.95)$CI_high
+  )
+)
+or_results
+```
 
+Results are: 
+```
+                  variable       OR   HDI_low  HDI_high
+1             Sex (M vs F) 1.508622 0.6341916  2.826458
+2       Pathogens (1 vs 0) 2.977485 1.0463991  6.634585
+3 Anaplasmataceae (1 vs 0) 4.323103 1.0301907 11.702642
+4     Apicomplexa (1 vs 0) 2.302248 0.2783500  7.422254
+```
 
+Interpretation: `sex` was not strongly associated with `hemoplasma` infection, with males showing higher odds of infection than females (OR = 1.51, 95% HDI: 0.63–2.83), but the HDI included 1. In contrast, individuals infected with other `pathogens` had approximately threefold higher odds of `hemoplasma` infection (OR = 2.98, 95% HDI: 1.05–6.63). `anaplasmataceae` infection was associated with an approximately fourfold increase in the odds of `hemoplasma` infection (OR = 4.32, 95% HDI: 1.03–11.70), whereas there was no association with `apicomplexa` infection (OR = 2.30, 95% HDI: 0.28–7.42), with the HDI broadly overlapping 1.
 
+### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
+```
+plot_or <- or_results %>%
+  mutate(
+    variable = factor(
+      variable,
+      levels = rev(c(
+        "Sex (M vs F)",
+        "Pathogens (1 vs 0)",
+        "Anaplasmataceae (1 vs 0)",
+        "Apicomplexa (1 vs 0)"
+      ))
+    )
+  )
 
-
-
-
-
-
-`
-CALCULER ODD RATIO SEX ET PATHOGENS + figure
-IDEM ODD RATIO POUR CHAQUE PATHOGEN!
-ET PREVALENCE AVEC IC WILSON
-
-
+ggplot(
+  plot_or,
+  aes(
+    x = OR,
+    y = variable
+  )
+) +
+  geom_vline(
+    xintercept = 1,
+    linetype = "dashed",
+    linewidth = 0.5
+  ) +
+  geom_segment(
+    aes(
+      x = HDI_low,
+      xend = HDI_high,
+      y = variable,
+      yend = variable
+    ),
+    linewidth = 1
+  ) +
+  geom_point(
+    size = 5
+  ) +
+  scale_x_log10() +
+  labs(
+    x = "Odds ratio (95% HDI)",
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(size = 11),
+    axis.text.x = element_text(size = 10),
+    axis.title.x = element_text(size = 11)
+  )
+```
 
 
 
