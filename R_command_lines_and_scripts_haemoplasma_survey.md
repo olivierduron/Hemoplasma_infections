@@ -71,6 +71,7 @@ library(phytools)
 library(MCMCglmm)
 library(scales)
 library(ggthemes)
+library(ggtree)
 library(lme4)
 library(car)
 library(emmeans)
@@ -1000,12 +1001,12 @@ ggplot(
 ```
 
 ## Step 5. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics
-###List of mammalian species
+### List of mammalian species
 ```
 mammal_species <- c(
   "Alouatta macconnelli",
   "Saguinus midas",
-  "Cebus apella",
+  "Sapajus apella",
   "Saimiri sciureus",
   "Pithecia pithecia",
   "Bradypus tridactylus",
@@ -1033,7 +1034,7 @@ mammal_species <- c(
   "Mus musculus",
   "Rattus rattus",
   "Sciurus aestuans",
-  "Felis wiedii",
+  "Leopardus wiedii",
   "Puma yagouaroundi",
   "Eira barbara",
   "Galictis vittata",
@@ -1270,21 +1271,607 @@ ggsave(
 )
 ```
 
+### Step 6. `hemoplasma` prevalence by mammalian `order`
+## Observed prevalence and 95% Wilson CI by `order`
+```
+order_prevalence <- data_hemoplasma_stat %>%
+  group_by(order) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    prevalence = n_positive / n_sampled,
+    CI_low = binom.confint(
+      n_positive,
+      n_sampled,
+      method = "wilson"
+    )$lower,
+    CI_high = binom.confint(
+      n_positive,
+      n_sampled,
+      method = "wilson"
+    )$upper
+  ) %>%
+  ungroup() %>%
+  mutate(
+    prevalence_percent = prevalence * 100,
+    CI_low_percent = CI_low * 100,
+    CI_high_percent = CI_high * 100
+  )
+order_prevalence
+```
+
+Results are:
+```
+# A tibble: 6 × 9
+  order           n_sampled n_positive prevalence CI_low CI_high prevalence_percent CI_low_percent CI_high_percent
+  <fct>               <int>      <int>      <dbl>  <dbl>   <dbl>              <dbl>          <dbl>           <dbl>
+1 Carnivora              17          5     0.294  0.133   0.531               29.4           13.3            53.1 
+2 Cingulata              17          5     0.294  0.133   0.531               29.4           13.3            53.1 
+3 Didelphimorphia       123         39     0.317  0.241   0.404               31.7           24.1            40.4 
+4 Pilosa                202         76     0.376  0.312   0.445               37.6           31.2            44.5 
+5 Primates               66         61     0.924  0.835   0.967               92.4           83.5            96.7 
+6 Rodentia              201         11     0.0547 0.0308  0.0953               5.47           3.08            9.53
+```
+
+## GLMM testing the effect of mammalian `order`
+```
+model_order <- glmer(
+  hemoplasma ~ order + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+  control = glmerControl(
+    optimizer = "bobyqa"
+  )
+)
+summary(model_order)
+model_order_null <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+  control = glmerControl(
+    optimizer = "bobyqa"
+  )
+)
+order_test <- anova(
+  model_order_null,
+  model_order,
+  test = "Chisq"
+)
+order_test
+AIC(
+  model_order_null,
+  model_order
+)
+```
+
+Results are:
+```
+Data: data_hemoplasma_stat
+Models:
+model_order_null: hemoplasma ~ 1 + (1 | species)
+model_order: hemoplasma ~ order + (1 | species)
+                 npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
+model_order_null    2 453.95 462.83 -224.97    449.95                       
+model_order         7 452.52 483.60 -219.26    438.52 11.426  5    0.04355 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+---
+> AIC(
++   model_order_null,
++   model_order
++ )
+                 df      AIC
+model_order_null  2 453.9505
+model_order       7 452.5242
+```
+
+Interpretation: Hemoplasma infection probability differed among mammalian orders (GLMM, likelihood-ratio test: χ²₅ = 11.43, p = 0.044; ΔAIC = 1.43), although the improvement in model fit was modest.
 
 
+## Post-hoc pairwise comparisons (odds ratios)
+```
+order_emmeans <- emmeans(
+  model_order,
+  ~ order
+)
+order_OR <- pairs(
+  order_emmeans,
+  adjust = "tukey"
+)
+order_OR
+order_OR_results <- summary(
+  order_OR,
+  infer = TRUE
+) %>%
+  as.data.frame() %>%
+  mutate(
+    OR = exp(estimate),
+    CI_low = exp(asymp.LCL),
+    CI_high = exp(asymp.UCL)
+  ) %>%
+  select(
+    contrast,
+    OR,
+    CI_low,
+    CI_high,
+    p.value
+  )
+order_OR_results
+```
 
+Results are: 
+```
+                      contrast          OR       CI_low     CI_high     p.value
+1        Carnivora / Cingulata  1.64568553 0.0097803566  276.910237 0.999781286
+2  Carnivora / Didelphimorphia  1.68480227 0.0498315840   56.963043 0.998297197
+3           Carnivora / Pilosa  1.73031002 0.0277156411  108.024662 0.999002034
+4         Carnivora / Primates  0.09942907 0.0015067896    6.561061 0.618377988
+5         Carnivora / Rodentia  9.64033829 0.3582351226  259.427724 0.364879022
+6  Cingulata / Didelphimorphia  1.02376927 0.0091349909  114.735035 1.000000000
+7           Cingulata / Pilosa  1.05142203 0.0059761555  184.983187 0.999999998
+8         Cingulata / Primates  0.06041802 0.0003319356   10.997126 0.640349199
+9         Cingulata / Rodentia  5.85794680 0.0629637391  545.004811 0.876917680
+10    Didelphimorphia / Pilosa  1.02701074 0.0275811172   38.241781 0.999999999
+11  Didelphimorphia / Primates  0.05901527 0.0014915853    2.334967 0.241032395
+12  Didelphimorphia / Rodentia  5.72194048 0.4180120223   78.324548 0.402198511
+13           Pilosa / Primates  0.05746315 0.0008410547    3.926039 0.385397146
+14           Pilosa / Rodentia  5.57145146 0.1921761003  161.524099 0.693822202
+15         Primates / Rodentia 96.95694286 3.1685032997 2966.905154 0.001927086
 
+```
 
+Interpretation: After Tukey correction, only Primates and Rodentia differed significantly, with `hemoplasma` infection showing substantially higher odds in Rodentia than in Primates (OR = 96.96, 95% CI: 3.17–2966.91, p = 0.0019). All other pairwise comparisons were non-significant after correction.
 
+## Step 7. Phylogenetic signal of hemoplasma prevalence (Pagel's lambda — 44 mammal species)
+```
+species_prev <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n_sampled,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    species = as.character(species)
+  )
+species_prev <- species_prev %>%
+  mutate(
+    species = case_when(
+      species == "Alouatta_macconnelli" ~
+        "Alouatta_seniculus_macconnelli",
+      TRUE ~ species
+    )
+  )
+cat(
+  "Number of species in data:",
+  nrow(species_prev),
+  "\n"
+)
+cat(
+  "Number of species in phylogeny:",
+  length(mammal_tree_grafen$tip.label),
+  "\n"
+)
+cat("\nSpecies in data but not in phylogeny:\n")
+print(
+  setdiff(
+    species_prev$species,
+    mammal_tree_grafen$tip.label
+  )
+)
+cat("\nSpecies in phylogeny but not in data:\n")
+print(
+  setdiff(
+    mammal_tree_grafen$tip.label,
+    species_prev$species
+  )
+)
+stopifnot(nrow(species_prev) == 44)
+stopifnot(length(mammal_tree_grafen$tip.label) == 44)
+prevalence <- species_prev$prevalence
+names(prevalence) <- species_prev$species
+prevalence <- prevalence[
+  mammal_tree_grafen$tip.label
+]
+stopifnot(
+  identical(
+    names(prevalence),
+    mammal_tree_grafen$tip.label
+  )
+)
+pagel_lambda <- phylosig(
+  tree = mammal_tree_grafen,
+  x = prevalence,
+  method = "lambda",
+  test = TRUE,
+  nsim = 1000
+)
+pagel_lambda
+```
 
+Results are:
+```
+Phylogenetic signal lambda : 7.50593e-05 
+logL(lambda) : -12.0333 
+LR(lambda=0) : -0.000669289 
+P-value (based on LR test) : 1 
+```
 
+Interpretation: Hemoplasma prevalence showed no detectable phylogenetic signal across the 44 mammalian species sampled (Pagel’s λ ≈ 0; likelihood-ratio test, p = 1), indicating that prevalence did not systematically covary with host evolutionary relatedness (closely related mammalian species did not exhibit more similar hemoplasma prevalence than expected under a model with no phylogenetic structure).
 
+## Step 8. Exhaustive phylogenetic clade screening `hemoplasma` prevalence across 44 mammalian species
+```
+## Prepare species-level data
+```
+species_data <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n_sampled,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    species = as.character(species)
+  )
+species_data <- species_data %>%
+  mutate(
+    species = case_when(
+      species == "Alouatta_macconnelli" ~
+        "Alouatta_seniculus_macconnelli",
+      species == "Cebus_apella" ~
+        "Sapajus_apella",
+      species == "Coendou_sp" ~
+        "Coendou_prehensilis",
+      species == "Felis_wiedii" ~
+        "Leopardus_wiedii",
+      TRUE ~ species
+    )
+  )
+stopifnot(
+  all(species_data$species %in% mammal_tree_grafen$tip.label)
+)
+cat(
+  "Number of species:",
+  nrow(species_data),
+  "\n"
+)
+```
+## Function testing one internal node
+```
+test_clade <- function(node, tree, species_data) {
+  clade_species <- extract.clade(
+    tree,
+    node = node
+  )$tip.label
+  test_data <- species_data %>%
+    mutate(
+      clade = ifelse(
+        species %in% clade_species,
+        "Clade",
+        "Outside"
+      ),
+      clade = factor(
+        clade,
+        levels = c("Outside", "Clade")
+      )
+    )
+  if (
+    n_distinct(test_data$clade) < 2 ||
+    sum(test_data$clade == "Clade") < 2 ||
+    sum(test_data$clade == "Outside") < 2
+  ) {
+    return(NULL)
+  }
+  model_full <- tryCatch(
+    glmer(
+      cbind(n_positive, n_sampled - n_positive) ~
+        clade + (1 | species),
+      data = test_data,
+      family = binomial,
+      control = glmerControl(
+        optimizer = "bobyqa"
+      )
+    ),
+    error = function(e) NULL
+  )
 
+  if (is.null(model_full)) {
+    return(NULL)
+  }
+  model_null <- tryCatch(
+    glmer(
+      cbind(n_positive, n_sampled - n_positive) ~
+        1 + (1 | species),
+      data = test_data,
+      family = binomial,
+      control = glmerControl(
+        optimizer = "bobyqa"
+      )
+    ),
+    error = function(e) NULL
+  )
 
+  if (is.null(model_null)) {
+    return(NULL)
+  }
+  LRT <- anova(
+    model_null,
+    model_full,
+    test = "Chisq"
+  )
 
+  chi2 <- LRT$Chisq[2]
+  p_value <- LRT$`Pr(>Chisq)`[2]
+  coef_table <- summary(model_full)$coefficients
 
+  clade_row <- grep(
+    "^clade",
+    rownames(coef_table)
+  )
 
+  if (length(clade_row) != 1) {
+    return(NULL)
+  }
 
+  estimate <- coef_table[
+    clade_row,
+    "Estimate"
+  ]
+  OR <- exp(estimate)
+prevalence_clade <- test_data %>%
+    filter(clade == "Clade") %>%
+    summarise(
+      prev = sum(n_positive) /
+        sum(n_sampled)
+    ) %>%
+    pull(prev)
+  prevalence_outside <- test_data %>%
+    filter(clade == "Outside") %>%
+    summarise(
+      prev = sum(n_positive) /
+        sum(n_sampled)
+    ) %>%
+    pull(prev)
+  tibble(
+    node = node,
+    n_species_clade =
+      sum(test_data$clade == "Clade"),
+    n_species_outside =
+      sum(test_data$clade == "Outside"),
+    prevalence_clade =
+      prevalence_clade,
+    prevalence_outside =
+      prevalence_outside,
+    OR = OR,
+    chi2 = chi2,
+    p_value = p_value,
+    species_clade =
+      paste(
+        clade_species,
+        collapse = "; "
+      )
+  )
+}
+```
+## Test all internal nodes
+```
+internal_nodes <- (
+  Ntip(mammal_tree_grafen) + 1
+):
+(
+  Ntip(mammal_tree_grafen) +
+    Nnode(mammal_tree_grafen)
+)
+clade_results_list <- lapply(
+  internal_nodes,
+  test_clade,
+  tree = mammal_tree_grafen,
+  species_data = species_data
+)
+clade_results <- bind_rows(
+  clade_results_list
+)
+```
+## Multiple-testing correction
+```
+clade_results <- clade_results %>%
+  mutate(
+    p_adjusted = p.adjust(
+      p_value,
+      method = "BH"
+    )
+  ) %>%
+  arrange(
+    p_adjusted,
+    p_value
+  )
+clade_results %>%
+  select(
+    node,
+    n_species_clade,
+    n_species_outside,
+    prevalence_clade,
+    prevalence_outside,
+    OR,
+    chi2,
+    p_value,
+    p_adjusted,
+    species_clade
+  ) %>%
+  print(n = 30)
+significant_clades <- clade_results %>%
+  filter(
+    p_adjusted < 0.05
+  )
+significant_clades
+suggestive_clades <- clade_results %>%
+  filter(
+    p_adjusted < 0.10
+  )
+suggestive_clades
+```
+## Most interesting clades
+```
+clade_results %>%
+  arrange(p_value) %>%
+  select(
+    node,
+    n_species_clade,
+    prevalence_clade,
+    prevalence_outside,
+    OR,
+    chi2,
+    p_value,
+    p_adjusted,
+    species_clade
+  ) %>%
+  print(n = 20)
+```
+
+Results are (most interesting clades):
+```
+    node n_species_clade prevalence_clade prevalence_outside      OR  chi2 p_value p_adjusted species_clade                                                                                                                          
+   <int>           <int>            <dbl>              <dbl>   <dbl> <dbl>   <dbl>      <dbl> <chr>                                                                                                                                  
+ 1    68               4           0.938               0.242 6.55e+1  7.60 0.00583      0.164 Saguinus_midas; Saimiri_sciureus; Sapajus_apella; Alouatta_seniculus_macconnelli                                                       
+ 2    49              19           0.0547              0.438 9.23e-2  6.98 0.00823      0.164 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
+ 3    50              18           0.055               0.437 1.01e-1  6.36 0.0117       0.164 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
+ 4    67               5           0.924               0.243 3.21e+1  5.51 0.0189       0.199 Saguinus_midas; Saimiri_sciureus; Sapajus_apella; Alouatta_seniculus_macconnelli; Pithecia_pithecia                                    
+ 5    74               2           0.8                 0.311 1.79e+2  4.81 0.0282       0.237 Lontra_longicaudis; Galictis_vittata                                                                                                   
+ 6    54               4           0.0175              0.344 3.02e-2  4.07 0.0436       0.305 Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus                                                        
+ 7    56               2           0                   0.328 2.24e-9  3.52 0.0608       0.365 Hylaeamys_megacephalus; Hylaeamys_yunganus                                                                                             
+ 8    64               2           0                   0.326 2.52e-9  3.24 0.0717       0.376 Makalata_didelphoides; Mesomys_hispidus                                                                                                
+ 9    51              11           0.0519              0.387 1.53e-1  3.03 0.0817       0.381 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
+10    69               3           0.953               0.268 2.99e+1  2.74 0.0977       0.401 Saguinus_midas; Saimiri_sciureus; Sapajus_apella                                                                                       
+11    72               4           0.455               0.312 1.56e+1  2.63 0.105        0.401 Eira_barbara; Lontra_longicaudis; Galictis_vittata; Potos_flavus                                                                       
+12    59               2           0                   0.319 6.21e-9  1.86 0.173        0.504 Neacomys_dubosti; Neacomys_paracou                                                                                                     
+13    73               3           0.444               0.313 1.46e+1  1.84 0.175        0.504 Eira_barbara; Lontra_longicaudis; Galictis_vittata                                                                                     
+14    53               9           0.0610              0.353 1.99e-1  1.83 0.176        0.504 Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens; Neacomys_dubosti; Neacomys_p…
+15    87               2           0.465               0.295 1.21e+1  1.78 0.182        0.504 Philander_opossum; Didelphis_marsupialis                                                                                               
+16    75               2           0                   0.318 9.84e-9  1.57 0.211        0.504 Puma_yagouaroundi; Leopardus_wiedii                                                                                                    
+17    84               2           0.190               0.319 1.67e+1  1.47 0.226        0.504 Marmosa_lepida; Marmosa_murina                                                                                                         
+18    62               4           0.0508              0.342 1.42e-1  1.45 0.228        0.504 Proechimys_cuvieri; Proechimys_guyannensis; Makalata_didelphoides; Mesomys_hispidus                                                    
+19    61               7           0.0615              0.344 2.03e-1  1.41 0.235        0.504 Proechimys_cuvieri; Proechimys_guyannensis; Makalata_didelphoides; Mesomys_hispidus; Coendou_melanurus; Coendou_prehensilis; Hydrochoe…
+20    48              24           0.270               0.348 3.22e-1  1.38 0.240        0.504 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
+```
+
+Interpretation: Across the 44-species phylogeny, several clades showed nominal differences in hemoplasma prevalence, with the strongest contrasts observed for a four-species primate clade (93.8% vs. 24.2% outside; OR = 65.5, p = 0.0058) and a 19-species rodent-rich clade (5.5% vs. 43.8%; OR = 0.092, p = 0.0082). However, none remained significant after Benjamini–Hochberg correction (all adjusted p ≥ 0.164), providing no robust evidence for a specific phylogenetic clade associated with hemoplasma prevalence.
+
+## Visualization:
+```
+species_prevalence <- data_hemoplasma_stat %>%
+  group_by(species, order) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n_sampled,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    n_class = case_when(
+      n_sampled <= 10 ~ "1–10",
+      n_sampled <= 20 ~ "11–20",
+      n_sampled <= 50 ~ "21–50",
+      n_sampled <= 100 ~ "51–100",
+      n_sampled > 100 ~ ">100"
+    ),
+    n_class = factor(
+      n_class,
+      levels = c(
+        "1–10",
+        "11–20",
+        "21–50",
+        "51–100",
+        ">100"
+      )
+    )
+  )
+setdiff(
+  species_prevalence$species,
+  mammal_tree_grafen$tip.label
+)
+
+setdiff(
+  mammal_tree_grafen$tip.label,
+  species_prevalence$species
+)
+tree_44 <- drop.tip(
+  mammal_tree_grafen,
+  setdiff(
+    mammal_tree_grafen$tip.label,
+    species_prevalence$species
+  )
+)
+
+Ntip(tree_44)
+
+p_tree <- ggtree(
+  tree_44,
+  layout = "rectangular"
+)
+
+p_tree <- p_tree %<+% species_prevalence
+x_max <- max(p_tree$data$x, na.rm = TRUE)
+p <- p_tree +
+
+  # Species names
+  geom_tiplab(
+    size = 2.7,
+    hjust = 0,
+    offset = 0.05
+  ) +
+
+  # Prevalence points
+  geom_tippoint(
+    aes(
+      x = x_max + 1.5,
+      colour = prevalence,
+      size = n_class
+    ),
+    shape = 16
+  ) +
+
+  # Prevalence scale
+  scale_colour_viridis_c(
+    name = "Hemoplasma\nprevalence",
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1)
+  ) +
+
+  # Sample size classes
+  scale_size_manual(
+    name = "n sampled",
+    values = c(
+      "1–10" = 2.5,
+      "11–20" = 3.5,
+      "21–50" = 4.5,
+      "51–100" = 5.5,
+      ">100" = 7
+    ),
+    drop = FALSE
+  ) +
+
+  # Give space for labels and points
+  xlim(
+    0,
+    x_max + 3
+  ) +
+
+  theme_tree2() +
+
+  theme(
+    legend.position = "right",
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank()
+  )
+p
+```
 
 
 
