@@ -63,6 +63,8 @@ library(dplyr)
 library(ggplot2)
 library(bayestestR)
 library(posterior)
+library(rotl)
+library(ape)
 library(scales)
 library(ggthemes)
 library(lme4)
@@ -825,6 +827,47 @@ Results are:
 
 Interpretation: After excluding Choloepus didactylus, Anaplasmataceae-positive individuals still showed higher estimated odds of hemoplasma infection (OR = 3.96), but the 95% HDI was very wide and included 1 (0.20–20.30), indicating substantial uncertainty and no clear evidence for an association.
 
+
+### Fisher's exact test: hemoplasma × Anaplasmataceae in Choloepus didactylus
+```
+choloepus_data <- model_data %>%
+  filter(species == "Choloepus_didactylus")
+table_choloepus <- table(
+  choloepus_data$hemoplasma,
+  choloepus_data$anaplasmataceae
+)
+table_choloepus
+fisher_choloepus <- fisher.test(
+  table_choloepus
+)
+fisher_choloepus
+```
+
+Results are:
+```
+data:  table_choloepus
+p-value = 0.02172
+alternative hypothesis: true odds ratio is not equal to 1
+95 percent confidence interval:
+  1.126489 28.191553
+sample estimates:
+odds ratio 
+  4.689964 
+```
+
+Interpretation: In Choloepus didactylus, hemoplasma infection was significantly associated with Anaplasmataceae infection (Fisher’s exact test, p = 0.022).
+
+
+
+
+
+
+
+
+
+
+
+
 ### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
 ```
 or_results_extended <- bind_rows(
@@ -962,6 +1005,41 @@ ggplot(
     axis.title.x = element_text(size = 11)
   )
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
