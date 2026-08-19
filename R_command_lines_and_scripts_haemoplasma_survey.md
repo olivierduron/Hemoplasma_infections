@@ -60,11 +60,15 @@ Load required libraries :
 ```
 library(binom)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(bayestestR)
 library(posterior)
 library(rotl)
 library(ape)
+library(picante)
+library(phytools)
+library(MCMCglmm)
 library(scales)
 library(ggthemes)
 library(lme4)
@@ -113,15 +117,15 @@ Results :
  2 Bradypus_tridactylus            108          4        104     0.0370 0.0145   0.0914
  3 Cabassous_unicinctus              2          0          2     0      0        0.658 
  4 Caluromys_philander               5          0          5     0      0        0.434 
- 5 Cebus_apella                      1          0          1     0      0        0.793 
+ 5 Sapajus_apella                    1          0          1     0      0        0.793 
  6 Choloepus_didactylus             90         72         18     0.8    0.706    0.870 
  7 Coendou_melanurus                 1          0          1     0      0        0.793 
- 8 Coendou_sp                        3          1          2     0.333  0.0615   0.792 
+ 8 Coendou_prehensilis               3          1          2     0.333  0.0615   0.792 
  9 Cyclopes_didactylus               1          0          1     0      0        0.793 
 10 Dasypus_novemcinctus             15          5         10     0.333  0.152    0.583 
 11 Didelphis_marsupialis            51         24         27     0.471  0.341    0.605 
 12 Eira_barbara                      4          0          4     0      0        0.490 
-13 Felis_wiedii                      1          0          1     0      0        0.793 
+13 Leopardus_wiedii                  1          0          1     0      0        0.793 
 14 Galictis_vittata                  4          3          1     0.75   0.301    0.954 
 15 Holochilus_sciureus               5          1          4     0.2    0.0362   0.624 
 16 Hydrochoerus_hydrochaeris         2          0          2     0      0        0.658 
@@ -857,17 +861,6 @@ odds ratio
 
 Interpretation: In Choloepus didactylus, hemoplasma infection was significantly associated with Anaplasmataceae infection (Fisher’s exact test, p = 0.022).
 
-
-
-
-
-
-
-
-
-
-
-
 ### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
 ```
 or_results_extended <- bind_rows(
@@ -1005,6 +998,300 @@ ggplot(
     axis.title.x = element_text(size = 11)
   )
 ```
+
+## Step 5. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics
+###List of mammalian species
+```
+mammal_species <- c(
+  "Alouatta macconnelli",
+  "Saguinus midas",
+  "Cebus apella",
+  "Saimiri sciureus",
+  "Pithecia pithecia",
+  "Bradypus tridactylus",
+  "Choloepus didactylus",
+  "Cyclopes didactylus",
+  "Tamandua tetradactyla",
+  "Cabassous unicinctus",
+  "Dasypus novemcinctus",
+  "Hydrochoerus hydrochaeris",
+  "Holochilus sciureus",
+  "Hylaeamys megacephalus",
+  "Hylaeamys yunganus",
+  "Neacomys dubosti",
+  "Neacomys paracou",
+  "Nectomys rattus",
+  "Oecomys auyantepui",
+  "Oecomys bicolor",
+  "Oligoryzomys fulvescens",
+  "Makalata didelphoides",
+  "Mesomys hispidus",
+  "Proechimys cuvieri",
+  "Proechimys guyannensis",
+  "Coendou melanurus",
+  "Coendou prehensilis",
+  "Mus musculus",
+  "Rattus rattus",
+  "Sciurus aestuans",
+  "Felis wiedii",
+  "Puma yagouaroundi",
+  "Eira barbara",
+  "Galictis vittata",
+  "Lontra longicaudis",
+  "Potos flavus",
+  "Caluromys philander",
+  "Didelphis marsupialis",
+  "Marmosa lepida",
+  "Marmosa murina",
+  "Marmosops parvidens",
+  "Metachirus nudicaudatus",
+  "Micoureus demerarae",
+  "Philander opossum"
+)
+```
+### Match species names to the Open Tree Taxonomy, extract OTT IDs and check tree coverage
+```
+taxon_matches <- tnrs_match_names(
+  names = mammal_species,
+  context_name = "Mammals",
+  do_approximate_matching = TRUE
+)
+taxon_matches[, c(
+  "search_string",
+  "unique_name",
+  "score",
+  "ott_id",
+  "is_synonym",
+  "number_matches"
+)]
+ott_ids <- ott_id(taxon_matches)
+
+in_tree <- is_in_tree(ott_ids)
+
+taxa_not_in_tree <- taxon_matches[
+  !in_tree,
+  c(
+    "search_string",
+    "unique_name",
+    "score",
+    "ott_id"
+  )
+]
+```
+### Extract the induced subtree and add branch lengths using Grafen's method
+```
+mammal_tree <- tol_induced_subtree(
+  ott_ids = ott_ids[in_tree],
+  label_format = "name"
+)
+mammal_tree$tip.label <- gsub(
+  " ",
+  "_",
+  mammal_tree$tip.label
+)
+mammal_tree_grafen <- compute.brlen(
+  mammal_tree,
+  method = "Grafen"
+)
+Ntip(mammal_tree_grafen)
+
+expected_species <- gsub(
+  " ",
+  "_",
+  mammal_species
+)
+missing_species <- setdiff(
+  expected_species,
+  mammal_tree_grafen$tip.label
+)
+missing_species
+```
+### Plot and save the phylogeny
+```
+plot(
+  mammal_tree_grafen,
+  cex = 0.7,
+  no.margin = TRUE
+)
+write.tree(
+  mammal_tree_grafen,
+  file = "mammal_phylogeny_Grafen.tre"
+)
+write.csv(
+  taxon_matches,
+  file = "OpenTree_taxon_matching.csv",
+  row.names = FALSE
+)
+```
+
+### Pairwise phylogenetic distances and heatmap
+```
+phylo_dist <- cophenetic.phylo(mammal_tree_grafen)
+dim(phylo_dist)
+write.csv(
+  phylo_dist,
+  file = "pairwise_phylogenetic_distances_Grafen.csv",
+  row.names = TRUE
+)
+phylo_dist_long <- as.data.frame(phylo_dist) %>%
+  mutate(
+    species_1 = rownames(.)
+  ) %>%
+  pivot_longer(
+    cols = -species_1,
+    names_to = "species_2",
+    values_to = "phylogenetic_distance"
+  )
+tree_order <- mammal_tree_grafen$tip.label
+phylo_dist_long <- phylo_dist_long %>%
+  mutate(
+    species_1 = factor(
+      species_1,
+      levels = tree_order
+    ),
+    species_2 = factor(
+      species_2,
+      levels = rev(tree_order)
+    )
+  )
+ggplot(
+  phylo_dist_long,
+  aes(
+    x = species_1,
+    y = species_2,
+    fill = phylogenetic_distance
+  )
+) +
+  geom_tile() +
+  scale_fill_gradient(
+    low = "white",
+    high = "darkgreen",
+    name = "Phylogenetic\ndistance"
+  ) +
+  coord_fixed() +
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5,
+      size = 7
+    ),
+    axis.text.y = element_text(
+      size = 7
+    ),
+    legend.title = element_text(size = 9),
+    legend.text = element_text(size = 8)
+  )
+  "pairwise_phylogenetic_distances_heatmap.pdf",
+  width = 10,
+  height = 10
+)
+ggsave(
+  "pairwise_phylogenetic_distances_heatmap.png",
+  width = 10,
+  height = 10,
+  dpi = 300
+)
+```
+
+### Evolutionary distinctiveness of the 44 mammalian species (Equal-splits method)
+```
+evolutionary_distinctiveness <- evol.distinct(
+  mammal_tree_grafen,
+  type = "equal.splits",
+  scale = FALSE,
+  use.branch.lengths = TRUE
+)
+evolutionary_distinctiveness
+colnames(evolutionary_distinctiveness) <- c(
+  "species",
+  "evolutionary_distinctiveness"
+)
+evolutionary_distinctiveness <- evolutionary_distinctiveness %>%
+  mutate(
+    species = gsub(" ", "_", species)
+  )
+print(
+  evolutionary_distinctiveness,
+  n = 44
+)
+nrow(evolutionary_distinctiveness)
+setdiff(
+  mammal_species %>% gsub(" ", "_", .),
+  evolutionary_distinctiveness$species
+)
+write.csv(
+  evolutionary_distinctiveness,
+  file = "evolutionary_distinctiveness_44_mammals.csv",
+  row.names = FALSE
+)
+plot_ed <- evolutionary_distinctiveness %>%
+  mutate(
+    species = reorder(
+      species,
+      evolutionary_distinctiveness
+    )
+  )
+ggplot(
+  plot_ed,
+  aes(
+    x = evolutionary_distinctiveness,
+    y = species
+  )
+) +
+  geom_point(
+    size = 4
+  ) +
+  labs(
+    x = "Evolutionary distinctiveness",
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(size = 9),
+    axis.text.x = element_text(size = 10),
+    axis.title.x = element_text(size = 11)
+  )
+ggsave(
+  "evolutionary_distinctiveness_44_mammals.pdf",
+  width = 8,
+  height = 10
+)
+ggsave(
+  "evolutionary_distinctiveness_44_mammals.png",
+  width = 8,
+  height = 10,
+  dpi = 300
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2462,15 +2749,15 @@ Results are:
  2 Bradypus_tridactylus        108          4     0.0370
  3 Cabassous_unicinctus          2          0     0     
  4 Caluromys_philander           5          0     0     
- 5 Cebus_apella                  1          0     0     
+ 5 Sapajus_apella                  1          0     0     
  6 Choloepus_didactylus         90         72     0.8   
  7 Coendou_melanurus             1          0     0     
- 8 Coendou_sp                    3          1     0.333 
+ 8 Coendou_prehensilis                    3          1     0.333 
  9 Cyclopes_didactylus           1          0     0     
 10 Dasypus_novemcinctus         15          5     0.333 
 11 Didelphis_marsupialis        51         22     0.431 
 12 Eira_barbara                  4          0     0     
-13 Felis_wiedii                  1          0     0     
+13 Leopardus_wiedii                  1          0     0     
 14 Galictis_vittata              4          3     0.75  
 15 Holochilus_sciureus           5          1     0.2   
 16 Hydrochoerus_hydrochaeris     2          0     0     
@@ -2625,7 +2912,7 @@ Coefficients:
 (Intercept)                        2.3026     0.7416   3.105  0.00190 ** 
 speciesBradypus_tridactylus       -5.5607     0.8998  -6.180 6.41e-10 ***
 speciesCholoepus_didactylus       -0.9163     0.7870  -1.164  0.24434    
-speciesCoendou_sp                 -2.9957     1.4318  -2.092  0.03641 *  
+speciesCoendou_prehensilis                 -2.9957     1.4318  -2.092  0.03641 *  
 speciesDasypus_novemcinctus       -2.9957     0.9220  -3.249  0.00116 ** 
 speciesDidelphis_marsupialis      -2.5788     0.7937  -3.249  0.00116 ** 
 speciesGalictis_vittata           -1.2040     1.3723  -0.877  0.38032    
