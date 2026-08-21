@@ -130,52 +130,52 @@ print(species_summary, n = Inf)
 ```
 
 -> Results : 
-
-   species                   n_sampled n_positive n_negative prevalence  ci_low ci_high
- 1 Alouatta_macconnelli             22         20          2     0.909  0.722    0.975 
- 2 Bradypus_tridactylus            108          4        104     0.0370 0.0145   0.0914
- 3 Cabassous_unicinctus              2          0          2     0      0        0.658 
- 4 Caluromys_philander               5          0          5     0      0        0.434 
- 5 Sapajus_apella                    1          0          1     0      0        0.793 
- 6 Choloepus_didactylus             90         72         18     0.8    0.706    0.870 
- 7 Coendou_melanurus                 1          0          1     0      0        0.793 
- 8 Coendou_prehensilis               3          1          2     0.333  0.0615   0.792 
- 9 Cyclopes_didactylus               1          0          1     0      0        0.793 
-10 Dasypus_novemcinctus             15          5         10     0.333  0.152    0.583 
-11 Didelphis_marsupialis            51         24         27     0.471  0.341    0.605 
-12 Eira_barbara                      4          0          4     0      0        0.490 
-13 Leopardus_wiedii                  1          0          1     0      0        0.793 
-14 Galictis_vittata                  4          3          1     0.75   0.301    0.954 
-15 Holochilus_sciureus               5          1          4     0.2    0.0362   0.624 
-16 Hydrochoerus_hydrochaeris         2          0          2     0      0        0.658 
-17 Hylaeamys_megacephalus           15          0         15     0      0        0.204 
-18 Hylaeamys_yunganus               10          0         10     0      0        0.278 
-19 Lontra_longicaudis                1          1          0     1      0.207    1     
-20 Makalata_didelphoides             8          0          8     0      0        0.324 
-21 Marmosa_lepida                    1          1          0     1      0.207    1     
-22 Marmosa_murina                   20          3         17     0.15   0.0524   0.360 
-23 Marmosops_parvidens               5          0          5     0      0        0.434 
-24 Mesomys_hispidus                 13          0         13     0      0        0.228 
-25 Metachirus_nudicaudatus           5          0          5     0      0        0.434 
-26 Micoureus_demerarae              16          2         14     0.125  0.0350   0.360 
-27 Mus_musculus                     34          0         34     0      0        0.102 
-28 Neacomys_dubosti                  1          0          1     0      0        0.793 
-29 Neacomys_paracou                  8          0          8     0      0        0.324 
-30 Nectomys_rattus                   4          2          2     0.5    0.150    0.850 
-31 Oecomys_auyantepui               16          1         15     0.0625 0.0111   0.283 
-32 Oecomys_bicolor                  16          0         16     0      0        0.194 
-33 Oligoryzomys_fulvescens           7          1          6     0.143  0.0257   0.513 
-34 Philander_opossum                20          9         11     0.45   0.258    0.658 
-35 Pithecia_pithecia                 1          0          1     0      0        0.793 
-36 Potos_flavus                      2          1          1     0.5    0.0945   0.905 
-37 Proechimys_cuvieri               18          2         16     0.111  0.0310   0.328 
-38 Proechimys_guyannensis           20          1         19     0.05   0.00888  0.236 
-39 Puma_yagouaroundi                 5          0          5     0      0        0.434 
-40 Rattus_rattus                    19          2         17     0.105  0.0294   0.314 
-41 Saguinus_midas                   41         41          0     1      0.914    1     
-42 Saimiri_sciureus                  1          0          1     0      0        0.793 
-43 Sciurus_aestuans                  1          0          1     0      0        0.793 
-44 Tamandua_tetradactyla             3          0          3     0      0        0.561
+| Species | N sampled | N positive | N negative | Prevalence | 95% CI |
+|:---|---:|---:|---:|---:|:---|
+| *Alouatta macconnelli* | 22 | 20 | 2 | 90.9% | 72.2–97.5% |
+| *Bradypus tridactylus* | 108 | 4 | 104 | 3.7% | 1.5–9.1% |
+| *Cabassous unicinctus* | 2 | 0 | 2 | 0% | 0–65.8% |
+| *Caluromys philander* | 5 | 0 | 5 | 0% | 0–43.4% |
+| *Sapajus apella* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Choloepus didactylus* | 90 | 72 | 18 | 80.0% | 70.6–87.0% |
+| *Coendou melanurus* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Coendou prehensilis* | 3 | 1 | 2 | 33.3% | 6.2–79.2% |
+| *Cyclopes didactylus* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Dasypus novemcinctus* | 15 | 5 | 10 | 33.3% | 15.2–58.3% |
+| *Didelphis marsupialis* | 51 | 24 | 27 | 47.1% | 34.1–60.5% |
+| *Eira barbara* | 4 | 0 | 4 | 0% | 0–49.0% |
+| *Leopardus wiedii* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Galictis vittata* | 4 | 3 | 1 | 75.0% | 30.1–95.4% |
+| *Holochilus sciureus* | 5 | 1 | 4 | 20.0% | 3.6–62.4% |
+| *Hydrochoerus hydrochaeris* | 2 | 0 | 2 | 0% | 0–65.8% |
+| *Hylaeamys megacephalus* | 15 | 0 | 15 | 0% | 0–20.4% |
+| *Hylaeamys yunganus* | 10 | 0 | 10 | 0% | 0–27.8% |
+| *Lontra longicaudis* | 1 | 1 | 0 | 100% | 20.7–100% |
+| *Makalata didelphoides* | 8 | 0 | 8 | 0% | 0–32.4% |
+| *Marmosa lepida* | 1 | 1 | 0 | 100% | 20.7–100% |
+| *Marmosa murina* | 20 | 3 | 17 | 15.0% | 5.2–36.0% |
+| *Marmosops parvidens* | 5 | 0 | 5 | 0% | 0–43.4% |
+| *Mesomys hispidus* | 13 | 0 | 13 | 0% | 0–22.8% |
+| *Metachirus nudicaudatus* | 5 | 0 | 5 | 0% | 0–43.4% |
+| *Micoureus demerarae* | 16 | 2 | 14 | 12.5% | 3.5–36.0% |
+| *Mus musculus* | 34 | 0 | 34 | 0% | 0–10.2% |
+| *Neacomys dubosti* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Neacomys paracou* | 8 | 0 | 8 | 0% | 0–32.4% |
+| *Nectomys rattus* | 4 | 2 | 2 | 50.0% | 15.0–85.0% |
+| *Oecomys auyantepui* | 16 | 1 | 15 | 6.3% | 1.1–28.3% |
+| *Oecomys bicolor* | 16 | 0 | 16 | 0% | 0–19.4% |
+| *Oligoryzomys fulvescens* | 7 | 1 | 6 | 14.3% | 2.6–51.3% |
+| *Philander opossum* | 20 | 9 | 11 | 45.0% | 25.8–65.8% |
+| *Pithecia pithecia* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Potos flavus* | 2 | 1 | 1 | 50.0% | 9.5–90.5% |
+| *Proechimys cuvieri* | 18 | 2 | 16 | 11.1% | 3.1–32.8% |
+| *Proechimys guyannensis* | 20 | 1 | 19 | 5.0% | 0.9–23.6% |
+| *Puma yagouaroundi* | 5 | 0 | 5 | 0% | 0–43.4% |
+| *Rattus rattus* | 19 | 2 | 17 | 10.5% | 2.9–31.4% |
+| *Saguinus midas* | 41 | 41 | 0 | 100% | 91.4–100% |
+| *Saimiri sciureus* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Sciurus aestuans* | 1 | 0 | 1 | 0% | 0–79.3% |
+| *Tamandua tetradactyla* | 3 | 0 | 3 | 0% | 0–56.1% |
 
 Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1): 
 ```
