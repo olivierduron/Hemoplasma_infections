@@ -4,16 +4,28 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 
 ## Dataset description
 Each row corresponds to one individual and includes the following variables :
+-> For the epidemiological survey dataset [here](data_hemoplasma_stat.csv): 
 - `species` : Species identity (44 wild mammal species)
 - `order` : Taxonomic order
 - `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = Uninfected; 1 = Infected)
 - `sex` : Sex of the individual (M = Male; F = Female)
-- `strata` : Habitat use in the forest strata (Ground, Canopy, Mixed)
-- `activity` : Activity rhythm (Nocturnal, Diurnal)
-- `diet` : Dietary category (Phytophage, Omnivore, Insectivore, Carnivore)
-- `sociality` : Social organization (Solitary, Group)
 - `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
 - `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
+-> For the life trait dataset [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv) :
+-  `species` : Species identity (44 wild mammal species)
+-  `dietinv` : Percentage of the diet consisting of invertebrates (from 0 to 100%)
+-  `dietvet` : Percentage of the diet consisting of other vertebrates (from 0 to 100%)
+-  `dietplant` : Percentage of the diet consisting of plants (fruits, leaves, seeds, nectar, etc; from 0 to 100%)
+-  `strata` : Foraging stratum category (G = Ground level, including aquatic foraging; S = Scansorial; Ar = Arboreal)
+-  `strataG` : Foraging activity at ground level (0 = No; 1 = Yes); species with scansorial foraging were classified as 1
+-  `strataAr` : Foraging activity at arboreal level (0 = No; 1 = Yes); species with scansorial foraging were classified as 1
+-  `activitynocturnal` : Foraging activity at night (0 = No; 1 = Yes)
+-  `activitycrepuscular` : Foraging activity at at twilight (0 = No; 1 = Yes)
+-  `activitydiurnal` : Foraging activity at day (0 = No; 1 = Yes)
+-  `bodymass` : Adult body mass (mean, in grammes)
+-  `longevity` : Longevity (mean, in years)
+-  `femalematurity` : Age at maturity for females (mean, in days)
+-  `littersize` : Mean litter size (number of offspring per litter)
    
 ## Table of contents A UPDATER !!!
 - [Step 1. Retrieving the data](#step-1-retrieving-the-data)
