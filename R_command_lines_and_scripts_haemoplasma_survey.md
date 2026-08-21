@@ -241,13 +241,72 @@ plot_data <- species_summary %>%
           species_order
         )
       )
+    ),    
+    group = case_when(
+      species %in% c(
+        "Alouatta_macconnelli",
+        "Saguinus_midas",
+        "Sapajus_apella",
+        "Saimiri_sciureus",
+        "Pithecia_pithecia"
+      ) ~ "Primates",      
+      species %in% c(
+        "Bradypus_tridactylus",
+        "Choloepus_didactylus",
+        "Cyclopes_didactylus",
+        "Tamandua_tetradactyla"
+      ) ~ "Xenarthrans",      
+      species %in% c(
+        "Cabassous_unicinctus",
+        "Dasypus_novemcinctus"
+      ) ~ "Armadillos",      
+      species %in% c(
+        "Hydrochoerus_hydrochaeris",
+        "Holochilus_sciureus",
+        "Hylaeamys_megacephalus",
+        "Hylaeamys_yunganus",
+        "Neacomys_dubosti",
+        "Neacomys_paracou",
+        "Nectomys_rattus",
+        "Oecomys_auyantepui",
+        "Oecomys_bicolor",
+        "Oligoryzomys_fulvescens",
+        "Makalata_didelphoides",
+        "Mesomys_hispidus",
+        "Proechimys_cuvieri",
+        "Proechimys_guyannensis",
+        "Coendou_melanurus",
+        "Coendou_prehensilis",
+        "Mus_musculus",
+        "Rattus_rattus",
+        "Sciurus_aestuans"
+      ) ~ "Rodents",     
+      species %in% c(
+        "Leopardus_wiedii",
+        "Puma_yagouaroundi",
+        "Eira_barbara",
+        "Galictis_vittata",
+        "Lontra_longicaudis",
+        "Potos_flavus"
+      ) ~ "Carnivores",     
+      species %in% c(
+        "Caluromys_philander",
+        "Didelphis_marsupialis",
+        "Marmosa_lepida",
+        "Marmosa_murina",
+        "Marmosops_parvidens",
+        "Metachirus_nudicaudatus",
+        "Micoureus_demerarae",
+        "Philander_opossum"
+      ) ~ "Didelphids"
     )
   )
 p_species_prevalence <- ggplot(
   plot_data,
   aes(
     x = prevalence * 100,
-    y = species_label
+    y = species_label,
+    colour = group
   )
 ) +
   geom_segment(
@@ -271,6 +330,16 @@ p_species_prevalence <- ggplot(
     labels = function(x) {
       paste0(x, "%")
     }
+  ) +
+  scale_colour_manual(
+    values = c(
+      "Primates" = "#264478",
+      "Xenarthrans" = "#C65911",
+      "Armadillos" = "#666666",
+      "Rodents" = "#D6A500",
+      "Carnivores" = "#375623",
+      "Didelphids" = "#4472C4"
+    )
   ) +
   labs(
     x = "Haemoplasma prevalence",
@@ -296,7 +365,8 @@ p_species_prevalence <- ggplot(
       colour = "black",
       fill = NA,
       linewidth = 0.8
-    )
+    ),
+    legend.position = "none"
   )
 print(
   p_species_prevalence
