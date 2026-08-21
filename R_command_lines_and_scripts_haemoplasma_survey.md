@@ -336,7 +336,7 @@ print(
 )
 ```
 
-### Spearman correlation test
+Test for the association between `hemoplasma` prevalence and sample size per `species` (Spearman correlation test) :
 ```
 cor.test(
   species_summary$n_sampled,
@@ -346,21 +346,13 @@ cor.test(
 )
 ```
 
-Results : 
-```
-Spearman's rank correlation rho
-data:  species_summary$n_sampled and species_summary$prevalence
-S = 9444.8, p-value = 0.02651
-alternative hypothesis: true rho is not equal to 0
-sample estimates:
-      rho 
-0.3344048 
-```
+Results :
+Spearman's ρ = 0.334, p = 0.027.
 
-### Interpretation
-Hemoplasma prevalence increased significantly with sample size per species, suggesting that prevalence in mammals is likely underestimated in less sampled species.
+Interpretation: 
+A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
 
-### Visualization
+Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) : 
 ```
 plot_data <- species_summary %>%
   filter(
@@ -398,6 +390,14 @@ p <- ggplot(
     y = "Hemoplasma prevalence"
   )
 print(p)
+ggsave(
+  filename = "hemoplasma_prevalence_vs_sample_size.png",
+  plot = p,
+  width = 7,
+  height = 5,
+  units = "in",
+  dpi = 300
+)
 ```
 
 ## Step 4. Variation in hemoplasma infection status according to the host’s `sex` and the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
