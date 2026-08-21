@@ -4,6 +4,7 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 
 ## Dataset description
 Each row corresponds to one individual and includes the following variables :
+
 -> For the epidemiological survey dataset [here](data_hemoplasma_stat.csv): 
 - `species` : Species identity (44 wild mammal species)
 - `order` : Taxonomic order
@@ -11,6 +12,7 @@ Each row corresponds to one individual and includes the following variables :
 - `sex` : Sex of the individual (M = Male; F = Female)
 - `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
 - `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
+
 -> For the life trait dataset [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv) :
 -  `species` : Species identity (44 wild mammal species)
 -  `dietinv` : Percentage of the diet consisting of invertebrates (from 0 to 100%)
