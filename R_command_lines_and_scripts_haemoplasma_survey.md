@@ -398,7 +398,7 @@ anova(
 AIC(model1_a, model1_b)
 ```
 
-### Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
 ```
 model_sex_bayes <- brm(
   hemoplasma ~ sex + (1 | species),
@@ -473,7 +473,7 @@ anova(
 AIC(model2_a, model2_b)
 ```
 
-### Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
 ```
 model_pathogens_bayes <- brm(
   hemoplasma ~ pathogens + (1 | species),
@@ -558,7 +558,7 @@ anova(
 AIC(model3_c, model3_d)
 ```
 
-### Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection
 ```
 model_pathogens_bayes <- brm(
   hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
@@ -629,137 +629,115 @@ or_pathogens_results
 
 -> Interpretation : `anaplasmataceae` was associated with higher odds of `hemoplasma` infection, with the 95% HDI excluding 1. In contrast, there was no clear evidence for an independent effect of `apicomplexa`, as its 95% HDI included 1, nor for an interaction between `anaplasmataceae` and `apicomplexa`.
 
-
-
-
-
-
-### Fit the full GLMM : model 3
-Model 3 tests whether `hemoplasma` infection is associated `anaplasmataceae` without the Linnaeus’s two-toed sloths (Choloepus didactylus) while accounting for species-level random effects (`1 | species`).
+### Sensitivity analysis : 
+A leave-one-species-out analysis was further performed to assess whether the association between `anaplasmataceae` and `hemoplasma` infection was driven by any single `species`.
 ```
-model_data_no_choloepus <- model_data %>%
-  filter(species != "Choloepus_didactylus")
-
-model3_a <- glmer(
-  hemoplasma ~ anaplasmataceae + (1 | species),
-  data = model_data_no_choloepus,
-  family = binomial,
-  control = glmerControl(optimizer = "bobyqa")
+species_list <- unique(
+  data_hemoplasma_stat$species
 )
-summary(model3_a)
-model3_b <- glmer(
-  hemoplasma ~ (1 | species),
-  data = model_data_no_choloepus,
-  family = binomial,
-  control = glmerControl(optimizer = "bobyqa")
+leave_one_species <- lapply(  
+  species_list,  
+  function(sp) {    
+    data_tmp <- data_hemoplasma_stat %>%
+      filter(
+        species != sp
+      )    
+    model_full <- glmer(
+      hemoplasma ~ anaplasmataceae + (1 | species),
+      data = data_tmp,
+      family = binomial,
+      control = glmerControl(
+        optimizer = "bobyqa"
+      )    )    
+    model_null <- glmer(
+      hemoplasma ~ 1 + (1 | species),
+      data = data_tmp,
+      family = binomial,
+      control = glmerControl(
+        optimizer = "bobyqa"
+      )    )    
+    coef_model <- summary(
+      model_full
+    )$coefficients[
+      "anaplasmataceae",
+      ]    
+    lrt <- anova(
+      model_full,
+      model_null,
+      test = "Chisq"
+    )    
+    data.frame(      
+      excluded_species = sp,      
+      estimate = coef_model["Estimate"],      
+      SE = coef_model["Std. Error"],      
+      z = coef_model["z value"],      
+      p_value = coef_model["Pr(>|z|)"],
+            OR = exp(
+        coef_model["Estimate"]
+      ),
+            LRT_chisq = lrt$Chisq[2],
+            LRT_p = lrt$`Pr(>Chisq)`[2],
+      
+      AIC_full = AIC(
+        model_full
+      ),
+           AIC_null = AIC(
+        model_null
+      ),
+           delta_AIC = AIC(
+        model_null
+      ) - AIC(
+        model_full
+      )
+    )
+  }
 )
-anova(
-  model3_a,
-  model3_b,
-  test = "Chisq"
+leave_one_species_results <- bind_rows(
+  leave_one_species
 )
-
-AIC(model3_a, model3_b)
+leave_one_species_results
+leave_one_species_results %>%
+  arrange(
+    p_value
+  )
+leave_one_species_results %>%
+  arrange(
+    desc(OR)
+  )
 ```
 
-Results are: 
-```
-Data: model_data_no_choloepus
-Models:
-model3_b: hemoplasma ~ (1 | species)
-model3_a: hemoplasma ~ anaplasmataceae + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
-model3_b    2 230.26 237.77 -113.13    226.26                     
-model3_a    3 229.92 241.19 -111.96    223.92 2.3393  1     0.1261
----
-> AIC(model3_a, model3_b)
-         df      AIC
-model3_a  3 229.9228
-model3_b  2 230.2621
-```
+-> Results: Leave-one-species-out analyses showed a consistently positive association between `hemoplasma` and `anaplasmataceae`, with ORs ranging from 2.35 to 5.05. The association remained significant in 42/44 species-exclusion models (Wald p < 0.05; LRT p < 0.05), with highly similar estimates in most cases (OR ≈ 3.1–3.4). The strongest effect, with increased statistical support, was observed when Bradypus tridactylus was excluded (OR = 5.05, LRT p = 0.0013). In contrast, excluding Dasypus novemcinctus or Choloepus didactylus resulted in loss of statistical significance, although the estimated effects remained positive (OR = 2.35 and 2.95, respectively).
 
-Interpretation: After excluding Choloepus didactylus, Anaplasmataceae infection no longer significantly improved model fit (likelihood-ratio test: χ²₁ = 2.34, p = 0.126). The model including Anaplasmataceae had only a marginally lower AIC than the model without this predictor (229.92 vs. 230.26; ΔAIC = 0.34), providing little support for an independent association between Anaplasmataceae and hemoplasma infection.
-
-### Odds ratio and 95% HDIs for `anaplasmataceae` after excluding Choloepus didactylus
-```
-model3_a_bayes <- brm(
-  hemoplasma ~ anaplasmataceae + (1 | species),
-  data = model_data_no_choloepus,
-  family = bernoulli(link = "logit"),
-  chains = 4,
-  iter = 4000,
-  warmup = 2000,
-  cores = 4,
-  seed = 1234
-)
-posterior_model3 <- as_draws_df(model3_a_bayes)
-or_anaplasmataceae_model3 <- exp(
-  posterior_model3$b_anaplasmataceae1
-)
-or_model3_results <- data.frame(
-  variable = "Anaplasmataceae (1 vs 0)",
-  
-  OR = median(or_anaplasmataceae_model3),
-  
-  HDI_low = hdi(
-    or_anaplasmataceae_model3,
-    ci = 0.95
-  )$CI_low,
-  
-  HDI_high = hdi(
-    or_anaplasmataceae_model3,
-    ci = 0.95
-  )$CI_high
-)
-or_model3_results
-```
-
-Results are:
-```
-                  variable       OR   HDI_low HDI_high
-1 Anaplasmataceae (1 vs 0) 3.958514 0.1981571 20.30309
-
-```
-
-Interpretation: After excluding Choloepus didactylus, Anaplasmataceae-positive individuals still showed higher estimated odds of hemoplasma infection (OR = 3.96), but the 95% HDI was very wide and included 1 (0.20–20.30), indicating substantial uncertainty and no clear evidence for an association.
-
-
-### Fisher's exact test: hemoplasma × Anaplasmataceae in Choloepus didactylus
-```
-choloepus_data <- model_data %>%
-  filter(species == "Choloepus_didactylus")
-table_choloepus <- table(
-  choloepus_data$hemoplasma,
-  choloepus_data$anaplasmataceae
-)
-table_choloepus
-fisher_choloepus <- fisher.test(
-  table_choloepus
-)
-fisher_choloepus
-```
-
-Results are:
-```
-data:  table_choloepus
-p-value = 0.02172
-alternative hypothesis: true odds ratio is not equal to 1
-95 percent confidence interval:
-  1.126489 28.191553
-sample estimates:
-odds ratio 
-  4.689964 
-```
-
-Interpretation: In Choloepus didactylus, hemoplasma infection was significantly associated with Anaplasmataceae infection (Fisher’s exact test, p = 0.022).
-
-
-
-
-
+-> Interpretation: The association between `hemoplasma` and `anaplasmataceae` is generally robust to the exclusion of individual species and is not driven by a single species. Bradypus tridactylus tends to attenuate the effect, whereas exclusion of Dasypus novemcinctus or Choloepus didactylus reduces statistical support. Overall, the direction and magnitude of the association remain broadly consistent across sensitivity analyses.
 
 ### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
 ```
+or_results <- data.frame(
+  variable = c(
+    "Sex (M vs F)",
+    "Pathogens (1 vs 0)",
+    "Anaplasmataceae (1 vs 0)",
+    "Apicomplexa (1 vs 0)"
+  ),
+  OR = c(
+    1.51,
+    2.98,
+    4.32,
+    2.30
+  ),
+  HDI_low = c(
+    0.63,
+    1.05,
+    1.03,
+    0.28
+  ),
+  HDI_high = c(
+    2.83,
+    6.63,
+    11.70,
+    7.42
+  )
+)
 plot_or <- or_results %>%
   mutate(
     variable = factor(
@@ -772,7 +750,6 @@ plot_or <- or_results %>%
       ))
     )
   )
-
 ggplot(
   plot_or,
   aes(
@@ -795,152 +772,14 @@ ggplot(
     linewidth = 1
   ) +
   geom_point(
-    size = 5
-  ) +
-  scale_x_log10() +
-  labs(
-    x = "Odds ratio (95% HDI)",
-    y = NULL
-  ) +
-  theme_classic() +
-  theme(
-    axis.text.y = element_text(size = 11),
-    axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11)
-  )
-
-
-
-
-
-### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
-```
-or_results_extended <- bind_rows(
-  or_results,
-  or_model3_results %>%
-    mutate(
-      variable = "Anaplasmataceae (excluding Choloepus)"
-    )
-)
-plot_or <- or_results_extended %>%
-  mutate(
-    variable = factor(
-      variable,
-      levels = rev(c(
-        "Sex (M vs F)",
-        "Pathogens (1 vs 0)",
-        "Apicomplexa (1 vs 0)",
-        "Anaplasmataceae (1 vs 0)",
-        "Anaplasmataceae (excluding Choloepus)"
-      ))
-    )
-  )
-ggplot(
-  plot_or,
-  aes(
-    x = OR,
-    y = variable
-  )
-) +
-  geom_vline(
-    xintercept = 1,
-    linetype = "dashed",
-    linewidth = 0.5
-  ) +
-  geom_segment(
-    aes(
-      x = HDI_low,
-      xend = HDI_high,
-      y = variable,
-      yend = variable
-    ),
-    linewidth = 1
-  ) +
-  geom_point(
-    size = 5
-  ) +
-  scale_x_log10() +
-  labs(
-    x = "Odds ratio (95% HDI)",
-    y = NULL
-  ) +
-  theme_classic() +
-  theme(
-    axis.text.y = element_text(size = 11),
-    axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11)
-  )
-```
-
-### Visualization of `hemoplasma` prevalence et 95% CI (Wilson) by `anaplasmataceae` infection status in Choloepus didactylus
-```
-choloepus_data <- model_data %>%
-  filter(species == "Choloepus_didactylus")
-choloepus_prev <- choloepus_data %>%
-  group_by(anaplasmataceae) %>%
-  summarise(
-    n_sampled = n(),
-    n_positive = sum(hemoplasma == 1),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    prevalence = n_positive / n_sampled
-  ) %>%
-  rowwise() %>%
-  mutate(
-    ci = list(
-      binom.confint(
-        x = n_positive,
-        n = n_sampled,
-        method = "wilson"
-      )
-    ),
-    ci_low = ci$lower,
-    ci_high = ci$upper
-  ) %>%
-  ungroup() %>%
-  mutate(
-    Anaplasmataceae = ifelse(
-      anaplasmataceae == 1,
-      "Anaplasmataceae +",
-      "Anaplasmataceae −"
-    )
-  ) %>%
-  select(
-    Anaplasmataceae,
-    n_sampled,
-    n_positive,
-    prevalence,
-    ci_low,
-    ci_high
-  )
-choloepus_prev
-ggplot(
-  choloepus_prev,
-  aes(
-    x = prevalence * 100,
-    y = Anaplasmataceae
-  )
-) +
-  geom_segment(
-    aes(
-      x = ci_low * 100,
-      xend = ci_high * 100,
-      y = Anaplasmataceae,
-      yend = Anaplasmataceae
-    ),
-    linewidth = 1
-  ) +
-  geom_point(
-    size = 7
+    size = 12
   ) +
   scale_x_continuous(
-    limits = c(0, 100),
-    breaks = seq(0, 100, 20),
-    labels = function(x) paste0(x, "%")
+    limits = c(0, 12),
+    breaks = seq(0, 12, by = 2)
   ) +
   labs(
-    x = "Hemoplasma prevalence",
+    x = "Odds ratio (95% HDI)",
     y = NULL
   ) +
   theme_classic() +
@@ -949,7 +788,57 @@ ggplot(
     axis.text.x = element_text(size = 10),
     axis.title.x = element_text(size = 11)
   )
+ggsave(
+  filename = "OR_hemoplasma_pathogens.pdf",
+  plot = last_plot(),
+  width = 7,
+  height = 4.5,
+  units = "in"
+)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Step 5. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics
 ### List of mammalian species
