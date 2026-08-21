@@ -130,6 +130,7 @@ print(species_summary, n = Inf)
 ```
 
 -> Results : 
+
    species                   n_sampled n_positive n_negative prevalence  ci_low ci_high
  1 Alouatta_macconnelli             22         20          2     0.909  0.722    0.975 
  2 Bradypus_tridactylus            108          4        104     0.0370 0.0145   0.0914
