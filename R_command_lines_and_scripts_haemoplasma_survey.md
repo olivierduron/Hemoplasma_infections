@@ -3,9 +3,7 @@
 We analyzed data from 626 individuals belonging to 44 species of wild mammals sampled in French Guiana. Details of sampling, examined traits and laboratory procedures are provided in the associated manuscript.
 
 ## Dataset description
-Each row corresponds to one individual and includes the following variables :
-
--> For the epidemiological survey dataset [here](data_hemoplasma_stat.csv): 
+-> For the epidemiological survey dataset ([here](data_hemoplasma_stat.csv)), each row corresponds to one individual and includes the following variables : 
 - `species` : Species identity (44 wild mammal species)
 - `order` : Taxonomic order
 - `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = Uninfected; 1 = Infected)
@@ -13,7 +11,7 @@ Each row corresponds to one individual and includes the following variables :
 - `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
 - `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
 
--> For the life trait dataset [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv) :
+-> For the life trait dataset ([here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv)), each row corresponds to one species and includes the following variables :
 -  `species` : Species identity (44 wild mammal species)
 -  `dietinv` : Percentage of the diet consisting of invertebrates (from 0 to 100%)
 -  `dietvet` : Percentage of the diet consisting of other vertebrates (from 0 to 100%)
