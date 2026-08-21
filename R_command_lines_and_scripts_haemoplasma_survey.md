@@ -17,8 +17,6 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 -  `dietvet` : Percentage of the diet consisting of vertebrates (from 0 to 100%)
 -  `dietplant` : Percentage of the diet consisting of plants (fruits, leaves, seeds, nectar, etc; from 0 to 100%)
 -  `strata` : Foraging stratum category (G = Ground level, including aquatic foraging; S = Scansorial; Ar = Arboreal)
--  `strataG` : Foraging activity at ground level (0 = No; 1 = Yes); species with scansorial foraging were classified as 1
--  `strataAr` : Foraging activity at arboreal level (0 = No; 1 = Yes); species with scansorial foraging were classified as 1
 -  `activitynocturnal` : Foraging activity at night (0 = No; 1 = Yes)
 -  `activitycrepuscular` : Foraging activity at at twilight (0 = No; 1 = Yes)
 -  `activitydiurnal` : Foraging activity at day (0 = No; 1 = Yes)
