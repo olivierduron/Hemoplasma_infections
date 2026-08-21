@@ -1517,8 +1517,8 @@ P-value (based on LR test) : 1
 Interpretation: Hemoplasma prevalence showed no detectable phylogenetic signal across the 44 mammalian species sampled (Pagel’s λ ≈ 0; likelihood-ratio test, p = 1), indicating that prevalence did not systematically covary with host evolutionary relatedness (closely related mammalian species did not exhibit more similar hemoplasma prevalence than expected under a model with no phylogenetic structure).
 
 ## Step 8. Exhaustive phylogenetic clade screening `hemoplasma` prevalence across 44 mammalian species
-```
-## Prepare species-level data
+
+### Prepare species-level data
 ```
 species_data <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -1554,7 +1554,7 @@ cat(
   "\n"
 )
 ```
-## Function testing one internal node
+### Function testing one internal node
 ```
 test_clade <- function(node, tree, species_data) {
   clade_species <- extract.clade(
@@ -1671,7 +1671,7 @@ prevalence_clade <- test_data %>%
   )
 }
 ```
-## Test all internal nodes
+### Test all internal nodes
 ```
 internal_nodes <- (
   Ntip(mammal_tree_grafen) + 1
@@ -1690,7 +1690,7 @@ clade_results <- bind_rows(
   clade_results_list
 )
 ```
-## Multiple-testing correction
+### Multiple-testing correction
 ```
 clade_results <- clade_results %>%
   mutate(
@@ -1728,7 +1728,7 @@ suggestive_clades <- clade_results %>%
   )
 suggestive_clades
 ```
-## Most interesting clades
+### Most interesting clades
 ```
 clade_results %>%
   arrange(p_value) %>%
@@ -1774,7 +1774,7 @@ Results are (most interesting clades):
 
 Interpretation: Across the 44-species phylogeny, several clades showed nominal differences in hemoplasma prevalence, with the strongest contrasts observed for a four-species primate clade (93.8% vs. 24.2% outside; OR = 65.5, p = 0.0058) and a 19-species rodent-rich clade (5.5% vs. 43.8%; OR = 0.092, p = 0.0082). However, none remained significant after Benjamini–Hochberg correction (all adjusted p ≥ 0.164), providing no robust evidence for a specific phylogenetic clade associated with hemoplasma prevalence.
 
-## Visualization:
+### Visualization:
 ```
 species_prevalence <- data_hemoplasma_stat %>%
   group_by(species, order) %>%
@@ -1885,12 +1885,26 @@ p <- p_tree +
 p
 ```
 
-
-
-
-
-
-
+### Step 9. `hemoplasma` infection prevalence and mammal trait-based analyses
+Data retrieval and convert categorical variables. The life trait dataset  is available in the GitHub repository [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv).
+```
+data_mammal_traits <- read.csv2("[https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv)")
+data_mammal_traits
+data_mammal_traits$species        <- as.factor(mammal_traits$species)
+data_mammal_traits$dietinv        <- as.factor(mammal_traits$dietinv)
+data_mammal_traits$dietvet        <- as.factor(mammal_traits$dietvet)
+data_mammal_traits$dietplant        <- as.factor(mammal_traits$dietplant)
+data_mammal_traits$strata        <- as.factor(mammal_traits$strata)
+data_mammal_traits$strataG        <- as.factor(mammal_traits$strataG)
+data_mammal_traits$strataAr        <- as.factor(mammal_traits$strataAr)
+data_mammal_traits$activitynocturnal        <- as.factor(mammal_traits$activitynocturnal)
+data_mammal_traits$activitycrepuscular        <- as.factor(mammal_traits$activitydiurnal)
+data_mammal_traits$activitydiurnal        <- as.factor(mammal_traits$activitydiurnal)
+data_mammal_traits$bodymass        <- as.factor(mammal_traits$bodymass)
+data_mammal_traits$longevity        <- as.factor(mammal_traits$longevity)
+data_mammal_traits$femalematurity        <- as.factor(mammal_traits$femalematurity)
+data_mammal_traits$littersize        <- as.factor(mammal_traits$littersize)
+```
 
 
 
