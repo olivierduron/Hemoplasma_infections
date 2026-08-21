@@ -398,10 +398,44 @@ anova(
 AIC(model1_a, model1_b)
 ```
 
--> Results : `sex` was not significantly associated with `hemoplasma` infection status (LRT: χ²₁ = 2.33, p = 0.127). The model including `sex` had a slightly lower AIC than the null model (314.73 vs. 315.06; ΔAIC = 0.33).
+### Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
+```
+model_sex_bayes <- brm(
+  hemoplasma ~ sex + (1 | species),
+  data = model_sex_data,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 4,
+  seed = 1234
+)
+posterior_sex <- as_draws_df(
+  model_sex_bayes
+)
+or_sex <- exp(
+  posterior_sex$b_sexM
+)
+or_sex_results <- data.frame(
+    variable = "Sex (M vs F)",
+    OR = median(
+    or_sex
+  ),
+    HDI_low = hdi(
+    or_sex,
+    ci = 0.95
+  )$CI_low,
+    HDI_high = hdi(
+    or_sex,
+    ci = 0.95
+  )$CI_high
+)
+or_sex_results
+```
 
--> Interpretation : There was no strong evidence for a `sex` effect on `hemoplasma` infection probability. 
+-> Results : `sex` was not significantly associated with `hemoplasma` infection status (LRT: χ²₁ = 2.33, p = 0.127). The model including `sex` had a slightly lower AIC than the null model (314.73 vs. 315.06; ΔAIC = 0.33). Males showed higher estimated odds of infection than females (OR = 1.69, 95% HDI: 0.77–3.13), but the HDI included 1.
 
+-> Interpretation : There was no significant evidence for a `sex` effect on `hemoplasma` infection probability. 
 
 ## Step 4. Variation in `hemoplasma` infection status according to the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
@@ -441,46 +475,43 @@ AIC(model2_a, model2_b)
 
 ### Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
 ```
-model_sex_bayes <- brm(
-  hemoplasma ~ sex + (1 | species),
-  data = model_sex_data,
+model_pathogens_bayes <- brm(
+  hemoplasma ~ pathogens + (1 | species),
+  data = data_hemoplasma_stat,
   family = bernoulli(link = "logit"),
   chains = 4,
   iter = 4000,
   warmup = 2000,
-  cores = 4,
+  cores = 1,
   seed = 1234
 )
-# Extract posterior draws
-posterior_sex <- as_draws_df(
-  model_sex_bayes
+posterior_pathogens <- as_draws_df(
+  model_pathogens_bayes
 )
-# Odds ratio: Male vs Female
-or_sex <- exp(
-  posterior_sex$b_sexM
+or_pathogens <- exp(
+  posterior_pathogens$b_pathogens
 )
-or_sex_results <- data.frame(
-    variable = "Sex (M vs F)",
-  
-  OR = median(
-    or_sex
+or_pathogens_results <- data.frame(
+    variable = "Pathogens (1 vs 0)",
+    OR = median(
+    or_pathogens
   ),
     HDI_low = hdi(
-    or_sex,
+    or_pathogens,
     ci = 0.95
   )$CI_low,
   
   HDI_high = hdi(
-    or_sex,
+    or_pathogens,
     ci = 0.95
   )$CI_high
 )
-or_sex_results
+or_pathogens_results
 ```
 
--> Results : `pathogens` was significantly associated with `hemoplasma` infection (GLMM, LRT: χ²₁ = 7.56, p = 0.006). The model including pathogens had a lower AIC than the null model (448.39 vs. 453.95; ΔAIC = 5.56).
+-> Results : `pathogens` was significantly associated with `hemoplasma` infection (GLMM, LRT: χ²₁ = 7.56, p = 0.006). The model including pathogens had a lower AIC than the null model (448.39 vs. 453.95; ΔAIC = 5.56). Individuals positive for other blood-borne `pathogens` had higher estimated odds of `hemoplasma` infection (OR = 2.85, 95% HDI: 1.07–5.71).
 
--> Interpretation : Individuals positive for other blood-borne `pathogens` had a higher probability of `hemoplasma` infection. 
+-> Interpretation : Individuals positive for other blood-borne `pathogens` had approximately 2.8-fold higher odds of `hemoplasma` infection than `pathogens`-negative individuals, with the 95% HDI excluding 1.
 
 ### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (`1 | species`) :
 Fit the full GLMM (model 3) :
@@ -526,145 +557,83 @@ anova(
 )
 AIC(model3_c, model3_d)
 ```
--> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was not retained. Adding `apicomplexa` to the additive model did not significantly improve model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, `anaplasmataceae` significantly improved model fit compared with the null model (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01).
 
--> Interpretation: `anaplasmataceae` was associated with `hemoplasma` infection, whereas there was no clear evidence for an independent effect of `apicomplexa` or an interaction between the two pathogen groups.
-
-
-
-
-
-
-
-
-
-
-
-
-### Odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
+### Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection
 ```
-model1_b_bayes <- brm(
-  hemoplasma ~ sex + pathogens + (1 | species),
-  data = model_data,
-  family = bernoulli(link = "logit"),
-  chains = 4,
-  iter = 4000,
-  warmup = 2000,
-  cores = 4,
-  seed = 1234
-)
-model2_b_bayes <- brm(
+model_pathogens_bayes <- brm(
   hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
-  data = model_data,
+  data = data_hemoplasma_stat,
   family = bernoulli(link = "logit"),
   chains = 4,
   iter = 4000,
   warmup = 2000,
-  cores = 4,
+  cores = 1,
   seed = 1234
 )
-posterior_model1 <- as_draws_df(model1_b_bayes)
-posterior_model2 <- as_draws_df(model2_b_bayes)
-or_sex <- exp(posterior_model1$b_sexM)
-or_pathogens <- exp(posterior_model1$b_pathogens)
+model_anaplasmataceae_bayes <- brm(
+  hemoplasma ~ anaplasmataceae + (1 | species),
+  data = data_hemoplasma_stat,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 1,
+  seed = 1234
+)
+posterior_pathogens <- as_draws_df(
+  model_pathogens_bayes
+)
+posterior_anaplasmataceae <- as_draws_df(
+  model_anaplasmataceae_bayes
+)
 or_anaplasmataceae <- exp(
-  posterior_model2$b_anaplasmataceae1
+  posterior_anaplasmataceae$b_anaplasmataceae
 )
 or_apicomplexa <- exp(
-  posterior_model2$b_apicomplexa1
+  posterior_pathogens$b_apicomplexa
 )
-or_results <- data.frame(
-  
-  variable = c(
-    "Sex (M vs F)",
-    "Pathogens (1 vs 0)",
+or_pathogens_results <- data.frame(
+    variable = c(
     "Anaplasmataceae (1 vs 0)",
     "Apicomplexa (1 vs 0)"
   ),
-  OR = c(
-    median(or_sex),
-    median(or_pathogens),
+    OR = c(
     median(or_anaplasmataceae),
     median(or_apicomplexa)
   ),
   HDI_low = c(
-    hdi(or_sex, ci = 0.95)$CI_low,
-    hdi(or_pathogens, ci = 0.95)$CI_low,
-    hdi(or_anaplasmataceae, ci = 0.95)$CI_low,
-    hdi(or_apicomplexa, ci = 0.95)$CI_low
-  ),
+    hdi(
+      or_anaplasmataceae,
+      ci = 0.95
+    )$CI_low,
+    hdi(
+      or_apicomplexa,
+      ci = 0.95
+    )$CI_low
+  ),  
   HDI_high = c(
-    hdi(or_sex, ci = 0.95)$CI_high,
-    hdi(or_pathogens, ci = 0.95)$CI_high,
-    hdi(or_anaplasmataceae, ci = 0.95)$CI_high,
-    hdi(or_apicomplexa, ci = 0.95)$CI_high
+    hdi(
+      or_anaplasmataceae,
+      ci = 0.95
+    )$CI_high,    
+    hdi(
+      or_apicomplexa,
+      ci = 0.95
+    )$CI_high
   )
 )
-or_results
+or_pathogens_results
 ```
 
-Results are: 
-```
-                  variable       OR   HDI_low  HDI_high
-1             Sex (M vs F) 1.508622 0.6341916  2.826458
-2       Pathogens (1 vs 0) 2.977485 1.0463991  6.634585
-3 Anaplasmataceae (1 vs 0) 4.323103 1.0301907 11.702642
-4     Apicomplexa (1 vs 0) 2.302248 0.2783500  7.422254
-```
+-> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was not retained. Adding `apicomplexa` to the additive model did not significantly improve model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, `anaplasmataceae` significantly improved model fit compared with the null model (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (OR = 3.38, 95% HDI: 1.07–7.96), whereas the estimated effect of `apicomplexa` was not supported (OR = 2.93, 95% HDI: 0.50–8.72).
 
-Interpretation: `sex` was not strongly associated with `hemoplasma` infection, with males showing higher odds of infection than females (OR = 1.51, 95% HDI: 0.63–2.83), but the HDI included 1. In contrast, individuals infected with other `pathogens` had approximately threefold higher odds of `hemoplasma` infection (OR = 2.98, 95% HDI: 1.05–6.63). `anaplasmataceae` infection was associated with an approximately fourfold increase in the odds of `hemoplasma` infection (OR = 4.32, 95% HDI: 1.03–11.70), whereas there was no association with `apicomplexa` infection (OR = 2.30, 95% HDI: 0.28–7.42), with the HDI broadly overlapping 1.
+-> Interpretation : `anaplasmataceae` was associated with higher odds of `hemoplasma` infection, with the 95% HDI excluding 1. In contrast, there was no clear evidence for an independent effect of `apicomplexa`, as its 95% HDI included 1, nor for an interaction between `anaplasmataceae` and `apicomplexa`.
 
-### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
-```
-plot_or <- or_results %>%
-  mutate(
-    variable = factor(
-      variable,
-      levels = rev(c(
-        "Sex (M vs F)",
-        "Pathogens (1 vs 0)",
-        "Anaplasmataceae (1 vs 0)",
-        "Apicomplexa (1 vs 0)"
-      ))
-    )
-  )
 
-ggplot(
-  plot_or,
-  aes(
-    x = OR,
-    y = variable
-  )
-) +
-  geom_vline(
-    xintercept = 1,
-    linetype = "dashed",
-    linewidth = 0.5
-  ) +
-  geom_segment(
-    aes(
-      x = HDI_low,
-      xend = HDI_high,
-      y = variable,
-      yend = variable
-    ),
-    linewidth = 1
-  ) +
-  geom_point(
-    size = 5
-  ) +
-  scale_x_log10() +
-  labs(
-    x = "Odds ratio (95% HDI)",
-    y = NULL
-  ) +
-  theme_classic() +
-  theme(
-    axis.text.y = element_text(size = 11),
-    axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11)
-  )
-```
+
+
+
+
 ### Fit the full GLMM : model 3
 Model 3 tests whether `hemoplasma` infection is associated `anaplasmataceae` without the Linnaeus’s two-toed sloths (Choloepus didactylus) while accounting for species-level random effects (`1 | species`).
 ```
@@ -783,6 +752,66 @@ odds ratio
 ```
 
 Interpretation: In Choloepus didactylus, hemoplasma infection was significantly associated with Anaplasmataceae infection (Fisher’s exact test, p = 0.022).
+
+
+
+
+
+
+### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
+```
+plot_or <- or_results %>%
+  mutate(
+    variable = factor(
+      variable,
+      levels = rev(c(
+        "Sex (M vs F)",
+        "Pathogens (1 vs 0)",
+        "Anaplasmataceae (1 vs 0)",
+        "Apicomplexa (1 vs 0)"
+      ))
+    )
+  )
+
+ggplot(
+  plot_or,
+  aes(
+    x = OR,
+    y = variable
+  )
+) +
+  geom_vline(
+    xintercept = 1,
+    linetype = "dashed",
+    linewidth = 0.5
+  ) +
+  geom_segment(
+    aes(
+      x = HDI_low,
+      xend = HDI_high,
+      y = variable,
+      yend = variable
+    ),
+    linewidth = 1
+  ) +
+  geom_point(
+    size = 5
+  ) +
+  scale_x_log10() +
+  labs(
+    x = "Odds ratio (95% HDI)",
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(size = 11),
+    axis.text.x = element_text(size = 10),
+    axis.title.x = element_text(size = 11)
+  )
+
+
+
+
 
 ### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
 ```
