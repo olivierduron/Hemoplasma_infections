@@ -175,7 +175,6 @@ print(species_summary, n = Inf)
 42 Saimiri_sciureus                  1          0          1     0      0        0.793 
 43 Sciurus_aestuans                  1          0          1     0      0        0.793 
 44 Tamandua_tetradactyla             3          0          3     0      0        0.561
-```
 
 Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1): 
 ```
