@@ -2351,8 +2351,7 @@ ggsave(
 # ~ FORAGING STRATA
 # Beta-binomial GLM + LRT + AIC + FDR + predictions
 # ============================================================
-
-
+```
 library(dplyr)
 library(glmmTMB)
 library(ggplot2)
@@ -3468,6 +3467,1818 @@ write.csv(
   row.names = FALSE
 )
 ```
+
+#ALTERNATIVE AVEC JUSTE STRATA:
+# ============================================================
+# SPECIES-LEVEL HAEMOPLASMA PREVALENCE ~ FORAGING STRATUM
+# Beta-binomial GLM + LRT + AIC + pairwise comparisons
+# + FDR + predictions + figure
+#
+# strata:
+# G  = Ground level, including aquatic foraging
+# S  = Scansorial
+# Ar = Arboreal
+# ============================================================
+```
+library(dplyr)
+library(glmmTMB)
+library(ggplot2)
+library(emmeans)
+
+
+# ============================================================
+# 1. PREPARE SPECIES-LEVEL DATA
+# ============================================================
+
+# G = reference category
+
+data_mammal_traits$strata <- factor(
+  data_mammal_traits$strata,
+  levels = c("G", "S", "Ar")
+)
+
+
+species_data_strata <- data_hemoplasma_stat %>%
+  
+  group_by(species) %>%
+  
+  summarise(
+    n = n(),
+    n_positive = sum(
+      hemoplasma == 1,
+      na.rm = TRUE
+    ),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  
+  left_join(
+    data_mammal_traits %>%
+      select(
+        species,
+        strata
+      ),
+    by = "species"
+  )
+
+
+# ============================================================
+# 2. CHECK DATA
+# ============================================================
+
+cat(
+  "\nNumber of species =",
+  nrow(species_data_strata),
+  "\n"
+)
+
+cat(
+  "\nMissing strata =",
+  sum(
+    is.na(
+      species_data_strata$strata
+    )
+  ),
+  "\n"
+)
+
+
+data_strata <- species_data_strata %>%
+  
+  filter(
+    !is.na(strata)
+  )
+
+
+cat(
+  "\nSpecies used in analysis =",
+  nrow(data_strata),
+  "\n"
+)
+
+
+cat(
+  "\nDistribution of foraging strata:\n"
+)
+
+print(
+  table(
+    data_strata$strata
+  )
+)
+
+
+# ============================================================
+# 3. NULL MODEL
+# ============================================================
+
+model_strata_null <- glmmTMB(
+  
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+  
+  data = data_strata,
+  
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+# ============================================================
+# 4. FULL MODEL
+# ============================================================
+
+model_strata <- glmmTMB(
+  
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ strata,
+  
+  data = data_strata,
+  
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+# ============================================================
+# 5. LIKELIHOOD-RATIO TEST
+# ============================================================
+
+lrt_strata <- anova(
+  
+  model_strata_null,
+  model_strata
+  
+)
+
+
+cat(
+  "\n================ STRATA LRT ================\n"
+)
+
+print(
+  lrt_strata
+)
+
+
+# ============================================================
+# 6. AIC
+# ============================================================
+
+cat(
+  "\n================ AIC ================\n"
+)
+
+print(
+  AIC(
+    model_strata_null,
+    model_strata
+  )
+)
+
+
+# ============================================================
+# 7. MODEL SUMMARY
+# ============================================================
+
+cat(
+  "\n================ STRATA MODEL ================\n"
+)
+
+print(
+  summary(
+    model_strata
+  )
+)
+
+
+# ============================================================
+# 8. EXTRACT MODEL COEFFICIENTS
+# ============================================================
+
+coef_table <-
+  summary(
+    model_strata
+  )$coefficients$cond
+
+
+# ------------------------------------------------------------
+# S vs G
+# ------------------------------------------------------------
+
+estimate_S <-
+  coef_table[
+    "strataS",
+    "Estimate"
+  ]
+
+SE_S <-
+  coef_table[
+    "strataS",
+    "Std. Error"
+  ]
+
+z_S <-
+  coef_table[
+    "strataS",
+    "z value"
+  ]
+
+p_S <-
+  coef_table[
+    "strataS",
+    "Pr(>|z|)"
+  ]
+
+
+# ------------------------------------------------------------
+# Ar vs G
+# ------------------------------------------------------------
+
+estimate_Ar <-
+  coef_table[
+    "strataAr",
+    "Estimate"
+  ]
+
+SE_Ar <-
+  coef_table[
+    "strataAr",
+    "Std. Error"
+  ]
+
+z_Ar <-
+  coef_table[
+    "strataAr",
+    "z value"
+  ]
+
+p_Ar <-
+  coef_table[
+    "strataAr",
+    "Pr(>|z|)"
+  ]
+
+
+# ============================================================
+# 9. GLOBAL LRT / AIC
+# ============================================================
+
+LRT_chisq <-
+  lrt_strata$Chisq[2]
+
+LRT_p <-
+  lrt_strata$`Pr(>Chisq)`[2]
+
+AIC_null <-
+  AIC(
+    model_strata_null
+  )
+
+AIC_model <-
+  AIC(
+    model_strata
+  )
+
+delta_AIC <-
+  AIC_null - AIC_model
+
+
+# ============================================================
+# 10. ODDS RATIOS + 95% CI
+# ============================================================
+
+results_strata <- data.frame(
+  
+  comparison = c(
+    "S vs G",
+    "Ar vs G"
+  ),
+  
+  n_species = nobs(
+    model_strata
+  ),
+  
+  estimate = c(
+    estimate_S,
+    estimate_Ar
+  ),
+  
+  SE = c(
+    SE_S,
+    SE_Ar
+  ),
+  
+  z = c(
+    z_S,
+    z_Ar
+  ),
+  
+  p_coefficient = c(
+    p_S,
+    p_Ar
+  ),
+  
+  CI_low = c(
+    estimate_S - 1.96 * SE_S,
+    estimate_Ar - 1.96 * SE_Ar
+  ),
+  
+  CI_high = c(
+    estimate_S + 1.96 * SE_S,
+    estimate_Ar + 1.96 * SE_Ar
+  )
+)
+
+
+# Odds ratios
+
+results_strata$OR <-
+  exp(
+    results_strata$estimate
+  )
+
+results_strata$OR_low <-
+  exp(
+    results_strata$CI_low
+  )
+
+results_strata$OR_high <-
+  exp(
+    results_strata$CI_high
+  )
+
+
+# Global LRT and AIC
+
+results_strata$LRT_chisq <-
+  LRT_chisq
+
+results_strata$LRT_p <-
+  LRT_p
+
+results_strata$AIC_null <-
+  AIC_null
+
+results_strata$AIC_model <-
+  AIC_model
+
+results_strata$delta_AIC <-
+  delta_AIC
+
+
+# ============================================================
+# 11. FDR CORRECTION FOR MODEL COEFFICIENTS
+# ============================================================
+
+results_strata$p_coefficient_FDR <-
+  p.adjust(
+    results_strata$p_coefficient,
+    method = "BH"
+  )
+
+
+# ============================================================
+# 12. DISPLAY MODEL RESULTS
+# ============================================================
+
+cat(
+  "\n================ MODEL RESULTS ================\n"
+)
+
+print(
+  results_strata,
+  row.names = FALSE
+)
+
+
+# ============================================================
+# 13. ESTIMATED PREVALENCE BY STRATUM
+# ============================================================
+
+emm_strata <- emmeans(
+  
+  model_strata,
+  
+  ~ strata,
+  
+  type = "response"
+)
+
+
+cat(
+  "\n================ ESTIMATED PREVALENCE ================\n"
+)
+
+print(
+  emm_strata
+)
+
+
+# ============================================================
+# 14. ALL PAIRWISE COMPARISONS
+# ============================================================
+
+pairwise_strata <- pairs(
+  
+  emm_strata,
+  
+  adjust = "tukey"
+)
+
+
+cat(
+  "\n================ PAIRWISE COMPARISONS ================\n"
+)
+
+print(
+  pairwise_strata
+)
+
+
+# ============================================================
+# 15. PAIRWISE RESULTS + 95% CI + FDR
+# ============================================================
+
+pairwise_results <- as.data.frame(
+  
+  summary(
+    pairwise_strata,
+    infer = c(
+      TRUE,
+      TRUE
+    )
+  )
+)
+
+
+# Additional BH correction
+
+pairwise_results$p_FDR <-
+  p.adjust(
+    pairwise_results$p.value,
+    method = "BH"
+  )
+
+
+cat(
+  "\n================ PAIRWISE RESULTS ================\n"
+)
+
+print(
+  pairwise_results,
+  row.names = FALSE
+)
+
+
+# ============================================================
+# 16. PREDICTED PREVALENCE
+# ============================================================
+
+newdata_strata <- data.frame(
+  
+  strata = factor(
+    
+    c(
+      "G",
+      "S",
+      "Ar"
+    ),
+    
+    levels = c(
+      "G",
+      "S",
+      "Ar"
+    )
+  )
+)
+
+
+# Predictions on response scale
+
+newdata_strata$predicted <-
+  predict(
+    
+    model_strata,
+    
+    newdata = newdata_strata,
+    
+    type = "response"
+  )
+
+
+# ============================================================
+# 17. 95% CI FOR PREDICTIONS
+# ============================================================
+
+pred_link <-
+  predict(
+    
+    model_strata,
+    
+    newdata = newdata_strata,
+    
+    type = "link",
+    
+    se.fit = TRUE
+  )
+
+
+newdata_strata$CI_low <-
+  plogis(
+    
+    pred_link$fit -
+      1.96 *
+      pred_link$se.fit
+  )
+
+
+newdata_strata$CI_high <-
+  plogis(
+    
+    pred_link$fit +
+      1.96 *
+      pred_link$se.fit
+  )
+
+
+cat(
+  "\n================ PREDICTED PREVALENCE ================\n"
+)
+
+print(
+  newdata_strata
+)
+
+
+# ============================================================
+# 18. OBSERVED SPECIES-LEVEL PREVALENCE
+# ============================================================
+
+plot_data_strata <- data_strata %>%
+  
+  mutate(
+    
+    strata = factor(
+      
+      strata,
+      
+      levels = c(
+        "G",
+        "S",
+        "Ar"
+      )
+    )
+  )
+```
+Results — foraging stratum: 
+Haemoplasma prevalence did not differ significantly among foraging strata (beta-binomial GLM: LRT χ²₂ = 0.917, p = 0.632; ΔAIC = +3.08 relative to the null model). Estimated prevalence was 18.0% (95% CI: 9.3–31.9%) for ground-foraging species, 21.9% (7.4–49.7%) for scansorial species, and 28.2% (13.6–49.6%) for arboreal species.
+Pairwise comparisons likewise provided no evidence for differences between Ground vs Scansorial (OR = 0.78, Tukey-adjusted p = 0.942), Ground vs Arboreal (OR = 0.56, p = 0.594), or Scansorial vs Arboreal (OR = 0.71, p = 0.903).
+
+Interpretation: 
+Overall, foraging stratum was not associated with haemoplasma prevalence. Although prevalence showed a descriptive increase from ground (18%) to scansorial (22%) and arboreal species (28%), the confidence intervals were broad and strongly overlapping, particularly for the smaller scansorial group (n = 6 species). The higher prevalence observed among arboreal species should therefore not be interpreted as evidence of an ecological effect of foraging stratum.
+```
+# ============================================================
+# 19. GRAPH
+# ============================================================
+
+p_strata <- ggplot(
+  
+  plot_data_strata,
+  
+  aes(
+    x = strata,
+    y = prevalence
+  )
+  
+) +
+  
+  # Observed species-level prevalence
+  geom_jitter(
+    
+    width = 0.08,
+    
+    height = 0,
+    
+    alpha = 0.5,
+    
+    size = 2
+  ) +
+  
+  # Predicted prevalence
+  geom_point(
+    
+    data = newdata_strata,
+    
+    aes(
+      x = strata,
+      y = predicted
+    ),
+    
+    inherit.aes = FALSE,
+    
+    size = 3
+  ) +
+  
+  # 95% CI
+  geom_errorbar(
+    
+    data = newdata_strata,
+    
+    aes(
+      x = strata,
+      ymin = CI_low,
+      ymax = CI_high
+    ),
+    
+    inherit.aes = FALSE,
+    
+    width = 0.08
+  ) +
+  
+  scale_x_discrete(
+    
+    labels = c(
+      
+      "G" = "Ground",
+      
+      "S" = "Scansorial",
+      
+      "Ar" = "Arboreal"
+    )
+  ) +
+  
+  scale_y_continuous(
+    
+    limits = c(
+      0,
+      1
+    ),
+    
+    labels = scales::percent
+  ) +
+  
+  labs(
+    
+    x = "Foraging stratum",
+    
+    y = "Haemoplasma prevalence"
+  ) +
+  
+  theme_classic() +
+  
+  theme(
+    
+    axis.text.x =
+      element_text(
+        size = 11
+      ),
+    
+    axis.title =
+      element_text(
+        size = 12
+      )
+  )
+
+
+# ============================================================
+# 20. DISPLAY FIGURE
+# ============================================================
+
+print(
+  p_strata
+)
+
+
+# ============================================================
+# 21. SAVE FIGURE
+# ============================================================
+
+ggsave(
+  
+  "haemoplasma_prevalence_strata.png",
+  
+  p_strata,
+  
+  width = 6,
+  
+  height = 5,
+  
+  dpi = 300
+)
+```
+
+# ============================================================
+# 3. PREPARE DATASETS FOR EACH ACTIVITY VARIABLE
+# ============================================================
+
+data_nocturnal <- species_data_activity %>%
+  filter(
+    !is.na(activitynocturnal)
+  )
+
+data_crepuscular <- species_data_activity %>%
+  filter(
+    !is.na(activitycrepuscular)
+  )
+
+data_diurnal <- species_data_activity %>%
+  filter(
+    !is.na(activitydiurnal)
+  )
+
+
+cat(
+  "\n================ SPECIES USED ================\n"
+)
+
+cat(
+  "Nocturnal =",
+  nrow(data_nocturnal),
+  "\n"
+)
+
+cat(
+  "Crepuscular =",
+  nrow(data_crepuscular),
+  "\n"
+)
+
+cat(
+  "Diurnal =",
+  nrow(data_diurnal),
+  "\n"
+)
+
+
+# ============================================================
+# 4. NULL MODELS
+#
+# IMPORTANT:
+# Each null model is fitted to exactly the same species
+# as its corresponding activity model.
+# ============================================================
+
+model_null_nocturnal <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_nocturnal,
+
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+model_null_crepuscular <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_crepuscular,
+
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+model_null_diurnal <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_diurnal,
+
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+# ============================================================
+# 5. ACTIVITY MODELS
+# ============================================================
+
+model_nocturnal <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ activitynocturnal,
+
+  data = data_nocturnal,
+
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+model_crepuscular <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ activitycrepuscular,
+
+  data = data_crepuscular,
+
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+model_diurnal <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ activitydiurnal,
+
+  data = data_diurnal,
+
+  family = betabinomial(
+    link = "logit"
+  )
+)
+
+
+# ============================================================
+# 6. LIKELIHOOD-RATIO TESTS
+# ============================================================
+
+lrt_nocturnal <- anova(
+  model_null_nocturnal,
+  model_nocturnal
+)
+
+
+lrt_crepuscular <- anova(
+  model_null_crepuscular,
+  model_crepuscular
+)
+
+
+lrt_diurnal <- anova(
+  model_null_diurnal,
+  model_diurnal
+)
+
+
+cat(
+  "\n================ NOCTURNAL LRT ================\n"
+)
+
+print(
+  lrt_nocturnal
+)
+
+
+cat(
+  "\n================ CREPUSCULAR LRT ================\n"
+)
+
+print(
+  lrt_crepuscular
+)
+
+
+cat(
+  "\n================ DIURNAL LRT ================\n"
+)
+
+print(
+  lrt_diurnal
+)
+
+
+# ============================================================
+# 7. AIC
+# ============================================================
+
+cat(
+  "\n================ AIC ================\n"
+)
+
+print(
+  AIC(
+    model_null_nocturnal,
+    model_nocturnal
+  )
+)
+
+print(
+  AIC(
+    model_null_crepuscular,
+    model_crepuscular
+  )
+)
+
+print(
+  AIC(
+    model_null_diurnal,
+    model_diurnal
+  )
+)
+
+
+# ============================================================
+# 8. MODEL SUMMARIES
+# ============================================================
+
+cat(
+  "\n================ NOCTURNAL MODEL ================\n"
+)
+
+print(
+  summary(
+    model_nocturnal
+  )
+)
+
+
+cat(
+  "\n================ CREPUSCULAR MODEL ================\n"
+)
+
+print(
+  summary(
+    model_crepuscular
+  )
+)
+
+
+cat(
+  "\n================ DIURNAL MODEL ================\n"
+)
+
+print(
+  summary(
+    model_diurnal
+  )
+)
+
+
+# ============================================================
+# 9. FUNCTION TO EXTRACT RESULTS
+# ============================================================
+
+extract_activity_results <- function(
+
+  model,
+  null_model,
+  variable,
+  lrt
+
+) {
+
+
+  coef_table <-
+    summary(
+      model
+    )$coefficients$cond
+
+
+  # ----------------------------------------------------------
+  # Extract binary predictor
+  # ----------------------------------------------------------
+
+  predictor_row <-
+    setdiff(
+      rownames(coef_table),
+      "(Intercept)"
+    )[1]
+
+
+  estimate <-
+    coef_table[
+      predictor_row,
+      "Estimate"
+    ]
+
+
+  SE <-
+    coef_table[
+      predictor_row,
+      "Std. Error"
+    ]
+
+
+  z <-
+    coef_table[
+      predictor_row,
+      "z value"
+    ]
+
+
+  p <-
+    coef_table[
+      predictor_row,
+      "Pr(>|z|)"
+    ]
+
+
+  # ----------------------------------------------------------
+  # LRT
+  # ----------------------------------------------------------
+
+  LRT_chisq <-
+    lrt$Chisq[2]
+
+
+  LRT_p <-
+    lrt$`Pr(>Chisq)`[2]
+
+
+  # ----------------------------------------------------------
+  # AIC
+  # ----------------------------------------------------------
+
+  AIC_null <-
+    AIC(
+      null_model
+    )
+
+
+  AIC_model <-
+    AIC(
+      model
+    )
+
+
+  delta_AIC <-
+    AIC_null -
+    AIC_model
+
+
+  # ----------------------------------------------------------
+  # 95% CI on log-odds scale
+  # ----------------------------------------------------------
+
+  CI_low <-
+    estimate -
+    1.96 * SE
+
+
+  CI_high <-
+    estimate +
+    1.96 * SE
+
+
+  # ----------------------------------------------------------
+  # Odds ratio
+  # ----------------------------------------------------------
+
+  OR <-
+    exp(
+      estimate
+    )
+
+
+  OR_low <-
+    exp(
+      CI_low
+    )
+
+
+  OR_high <-
+    exp(
+      CI_high
+    )
+
+
+  # ----------------------------------------------------------
+  # Return results
+  # ----------------------------------------------------------
+
+  data.frame(
+
+    variable =
+      variable,
+
+    coefficient =
+      predictor_row,
+
+    n_species =
+      nobs(model),
+
+    estimate =
+      estimate,
+
+    SE =
+      SE,
+
+    z =
+      z,
+
+    p_coefficient =
+      p,
+
+    LRT_chisq =
+      LRT_chisq,
+
+    LRT_p =
+      LRT_p,
+
+    AIC_null =
+      AIC_null,
+
+    AIC_model =
+      AIC_model,
+
+    delta_AIC =
+      delta_AIC,
+
+    CI_low =
+      CI_low,
+
+    CI_high =
+      CI_high,
+
+    OR =
+      OR,
+
+    OR_low =
+      OR_low,
+
+    OR_high =
+      OR_high
+
+  )
+
+}
+
+
+# ============================================================
+# 10. COMBINE RESULTS
+# ============================================================
+
+results_activity <-
+
+  bind_rows(
+
+    extract_activity_results(
+
+      model_nocturnal,
+
+      model_null_nocturnal,
+
+      "activitynocturnal",
+
+      lrt_nocturnal
+
+    ),
+
+    extract_activity_results(
+
+      model_crepuscular,
+
+      model_null_crepuscular,
+
+      "activitycrepuscular",
+
+      lrt_crepuscular
+
+    ),
+
+    extract_activity_results(
+
+      model_diurnal,
+
+      model_null_diurnal,
+
+      "activitydiurnal",
+
+      lrt_diurnal
+
+    )
+
+  )
+
+
+# ============================================================
+# 11. FDR CORRECTION
+# ============================================================
+
+# Three global LRTs
+
+results_activity$LRT_p_FDR <-
+
+  p.adjust(
+
+    results_activity$LRT_p,
+
+    method = "BH"
+
+  )
+
+
+# Three coefficient tests
+
+results_activity$p_coefficient_FDR <-
+
+  p.adjust(
+
+    results_activity$p_coefficient,
+
+    method = "BH"
+
+  )
+
+
+# ============================================================
+# 12. FINAL RESULTS
+# ============================================================
+
+cat(
+  "\n================ FINAL ACTIVITY RESULTS ================\n"
+)
+
+print(
+  results_activity,
+  row.names = FALSE
+)
+
+```
+Results:
+No association was detected between haemoplasma prevalence and foraging activity. Separate beta-binomial models showed no effect of nocturnal (OR = 0.79, 95% CI: 0.09–6.83, LRT p = 0.835), crepuscular (OR = 0.80, 95% CI: 0.23–2.74, LRT p = 0.720), or diurnal activity (OR = 0.80, 95% CI: 0.23–2.74, LRT p = 0.720). All associations remained non-significant after FDR correction (pFDR = 0.835), and activity models had higher AIC than null models.
+
+Interpretation: Temporal foraging activity does not explain interspecific variation in haemoplasma prevalence.
+```
+
+# ============================================================
+# SPECIES-LEVEL HAEMOPLASMA PREVALENCE
+# ~ LIFE-HISTORY TRAITS
+#
+# Traits:
+# bodymass       = Mean adult body mass (g)
+# longevity      = Mean longevity (years)
+# femalematurity = Mean age at female maturity (days)
+# littersize     = Mean litter size (offspring/litter)
+#
+# Beta-binomial GLM + LRT + AIC + FDR
+#
+# Each trait is tested separately.
+# Continuous predictors are standardized (1 SD increase).
+# No (1 | species): one observation per species.
+# ============================================================
+
+library(dplyr)
+library(glmmTMB)
+
+
+# ============================================================
+# 1. PREPARE SPECIES-LEVEL DATA
+# ============================================================
+
+species_data_lifehistory <- data_hemoplasma_stat %>%
+
+  group_by(species) %>%
+
+  summarise(
+
+    n = n(),
+
+    n_positive = sum(
+      hemoplasma == 1,
+      na.rm = TRUE
+    ),
+
+    prevalence = n_positive / n,
+
+    .groups = "drop"
+
+  ) %>%
+
+  left_join(
+
+    data_mammal_traits %>%
+
+      select(
+        species,
+        bodymass,
+        longevity,
+        femalematurity,
+        littersize
+      ),
+
+    by = "species"
+
+  )
+
+
+# ============================================================
+# 2. STANDARDIZE CONTINUOUS TRAITS
+# ============================================================
+
+species_data_lifehistory <- species_data_lifehistory %>%
+
+  mutate(
+
+    bodymass_z =
+      as.numeric(
+        scale(bodymass)
+      ),
+
+    longevity_z =
+      as.numeric(
+        scale(longevity)
+      ),
+
+    femalematurity_z =
+      as.numeric(
+        scale(femalematurity)
+      ),
+
+    littersize_z =
+      as.numeric(
+        scale(littersize)
+      )
+
+  )
+
+
+# ============================================================
+# 3. CHECK DATA
+# ============================================================
+
+cat(
+  "\n================ DATA CHECK ================\n"
+)
+
+cat(
+  "Number of species =",
+  nrow(species_data_lifehistory),
+  "\n"
+)
+
+print(
+
+  colSums(
+    is.na(
+      species_data_lifehistory[
+        ,
+        c(
+          "bodymass",
+          "longevity",
+          "femalematurity",
+          "littersize"
+        )
+      ]
+    )
+  )
+
+)
+
+
+# ============================================================
+# 4. DATASETS FOR EACH TRAIT
+# ============================================================
+
+data_bodymass <- species_data_lifehistory %>%
+  filter(!is.na(bodymass_z))
+
+data_longevity <- species_data_lifehistory %>%
+  filter(!is.na(longevity_z))
+
+data_femalematurity <- species_data_lifehistory %>%
+  filter(!is.na(femalematurity_z))
+
+data_littersize <- species_data_lifehistory %>%
+  filter(!is.na(littersize_z))
+
+
+cat(
+  "\n================ SPECIES USED ================\n"
+)
+
+cat(
+  "Body mass =",
+  nrow(data_bodymass),
+  "\n"
+)
+
+cat(
+  "Longevity =",
+  nrow(data_longevity),
+  "\n"
+)
+
+cat(
+  "Female maturity =",
+  nrow(data_femalematurity),
+  "\n"
+)
+
+cat(
+  "Litter size =",
+  nrow(data_littersize),
+  "\n"
+)
+
+
+# ============================================================
+# 5. NULL MODELS
+# ============================================================
+
+model_null_bodymass <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_bodymass,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+model_null_longevity <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_longevity,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+model_null_femalematurity <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_femalematurity,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+model_null_littersize <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ 1,
+
+  data = data_littersize,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+# ============================================================
+# 6. TRAIT MODELS
+# ============================================================
+
+model_bodymass <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ bodymass_z,
+
+  data = data_bodymass,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+model_longevity <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ longevity_z,
+
+  data = data_longevity,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+model_femalematurity <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ femalematurity_z,
+
+  data = data_femalematurity,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+model_littersize <- glmmTMB(
+
+  cbind(
+    n_positive,
+    n - n_positive
+  ) ~ littersize_z,
+
+  data = data_littersize,
+
+  family = betabinomial(
+    link = "logit"
+  )
+
+)
+
+
+# ============================================================
+# 7. LIKELIHOOD-RATIO TESTS
+# ============================================================
+
+lrt_bodymass <- anova(
+  model_null_bodymass,
+  model_bodymass
+)
+
+lrt_longevity <- anova(
+  model_null_longevity,
+  model_longevity
+)
+
+lrt_femalematurity <- anova(
+  model_null_femalematurity,
+  model_femalematurity
+)
+
+lrt_littersize <- anova(
+  model_null_littersize,
+  model_littersize
+)
+
+
+# ============================================================
+# 8. FUNCTION TO EXTRACT RESULTS
+# ============================================================
+
+extract_lifehistory_results <- function(
+
+  model,
+  null_model,
+  variable,
+  lrt
+
+) {
+
+  coef_table <-
+    summary(
+      model
+    )$coefficients$cond
+
+
+  predictor_row <-
+    setdiff(
+      rownames(coef_table),
+      "(Intercept)"
+    )[1]
+
+
+  estimate <-
+    coef_table[
+      predictor_row,
+      "Estimate"
+    ]
+
+
+  SE <-
+    coef_table[
+      predictor_row,
+      "Std. Error"
+    ]
+
+
+  z <-
+    coef_table[
+      predictor_row,
+      "z value"
+    ]
+
+
+  p <-
+    coef_table[
+      predictor_row,
+      "Pr(>|z|)"
+    ]
+
+
+  LRT_chisq <-
+    lrt$Chisq[2]
+
+
+  LRT_p <-
+    lrt$`Pr(>Chisq)`[2]
+
+
+  AIC_null <-
+    AIC(
+      null_model
+    )
+
+
+  AIC_model <-
+    AIC(
+      model
+    )
+
+
+  delta_AIC <-
+    AIC_null -
+    AIC_model
+
+
+  CI_low <-
+    estimate -
+    1.96 * SE
+
+
+  CI_high <-
+    estimate +
+    1.96 * SE
+
+
+  data.frame(
+
+    variable =
+      variable,
+
+    n_species =
+      nobs(model),
+
+    estimate =
+      estimate,
+
+    SE =
+      SE,
+
+    z =
+      z,
+
+    p_coefficient =
+      p,
+
+    LRT_chisq =
+      LRT_chisq,
+
+    LRT_p =
+      LRT_p,
+
+    AIC_null =
+      AIC_null,
+
+    AIC_model =
+      AIC_model,
+
+    delta_AIC =
+      delta_AIC,
+
+    CI_low =
+      CI_low,
+
+    CI_high =
+      CI_high
+
+  )
+
+}
+
+
+# ============================================================
+# 9. COMBINE RESULTS
+# ============================================================
+
+results_lifehistory <-
+
+  bind_rows(
+
+    extract_lifehistory_results(
+      model_bodymass,
+      model_null_bodymass,
+      "bodymass",
+      lrt_bodymass
+    ),
+
+    extract_lifehistory_results(
+      model_longevity,
+      model_null_longevity,
+      "longevity",
+      lrt_longevity
+    ),
+
+    extract_lifehistory_results(
+      model_femalematurity,
+      model_null_femalematurity,
+      "femalematurity",
+      lrt_femalematurity
+    ),
+
+    extract_lifehistory_results(
+      model_littersize,
+      model_null_littersize,
+      "littersize",
+      lrt_littersize
+    )
+
+  )
+
+
+# ============================================================
+# 10. FDR CORRECTION
+# ============================================================
+
+results_lifehistory$LRT_p_FDR <-
+
+  p.adjust(
+    results_lifehistory$LRT_p,
+    method = "BH"
+  )
+
+
+results_lifehistory$p_coefficient_FDR <-
+
+  p.adjust(
+    results_lifehistory$p_coefficient,
+    method = "BH"
+  )
+
+
+# ============================================================
+# 11. DISPLAY RESULTS
+# ============================================================
+
+cat(
+  "\n================ LIFE-HISTORY RESULTS ================\n"
+)
+
+print(
+  results_lifehistory,
+  row.names = FALSE
+)
+```
+Results : 
+No significant association was detected between haemoplasma prevalence and any of the four life-history traits (all FDR-adjusted LRT p > 0.34).
+- Body mass: no association (LRT p = 0.754; ΔAIC = −1.90).
+- Longevity: positive but non-significant trend (β = 0.41; LRT p = 0.175; ΔAIC = −0.16).
+- Female maturity: positive but non-significant trend (β = 0.50; LRT p = 0.159; ΔAIC ≈ 0).
+- Litter size: no association (LRT p = 0.547; ΔAIC = −1.64).
+
+Interpretation: 
+Haemoplasma prevalence was not significantly related to body mass, longevity, age at female maturity, or litter size.
+```
+
+
+
+
+
+
+
+
 
 
 
