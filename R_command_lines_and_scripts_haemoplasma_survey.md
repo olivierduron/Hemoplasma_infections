@@ -6,10 +6,10 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 -> For the epidemiological survey dataset ([here](data_hemoplasma_stat.csv)), each row corresponds to one individual (n = 626) and includes the following variables : 
 - `species` : Species identity (44 wild mammal species)
 - `order` : Taxonomic order
-- `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = Uninfected; 1 = Infected)
-- `sex` : Sex of the individual (M = Male; F = Female)
-- `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = Uninfected; 1 = Infected)
-- `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = Uninfected; 1 = Infected)
+- `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = uninfected; 1 = infected)
+- `sex` : Sex of the individual (M = male; F = female)
+- `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (*Anaplasma*, *Ehrlichia* and *Allocryptoplasma*) (0 = uninfected; 1 = infected)
+- `apicomplexa` : Infection status with piroplasmids (*Babesia* and *Theileria*) and haemogregarines (*Hepatozoon* and *Hemolivia*) (0 = uninfected; 1 = infected)
 
 -> For the life trait dataset ([here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv)), each row corresponds to one species (n = 44) and includes the following variables :
 -  `species` : Species identity (44 wild mammal species)
@@ -17,9 +17,9 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 -  `dietvet` : Percentage of the diet consisting of vertebrates (from 0 to 100%)
 -  `dietplant` : Percentage of the diet consisting of plants (fruits, leaves, seeds, nectar, etc; from 0 to 100%)
 -  `strata` : Foraging stratum category (G = Ground level, including aquatic foraging; S = Scansorial; Ar = Arboreal)
--  `activitynocturnal` : Foraging activity at night (0 = No; 1 = Yes)
--  `activitycrepuscular` : Foraging activity at at twilight (0 = No; 1 = Yes)
--  `activitydiurnal` : Foraging activity at day (0 = No; 1 = Yes)
+-  `activitynocturnal` : Foraging activity at night (0 = no; 1 = yes)
+-  `activitycrepuscular` : Foraging activity at at twilight (0 = no; 1 = yes)
+-  `activitydiurnal` : Foraging activity at day (0 = no; 1 = yes)
 -  `bodymass` : Mean adult body mass (grammes)
 -  `longevity` : Mean longevity (years)
 -  `femalematurity` : Mean age at maturity for females (days)
@@ -39,9 +39,9 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 - [Step 11. Impact of _Anaplasma_ infections on general health condition](#step-11-impact-of-anaplasma-infections-on-general-health-condition)
 - [Step 12. Impact of _Anaplasma_ infections on female reproductive status](#step-12-impact-of-anaplasma-infections-on-female-reproductive-status)
 
-## Step 1. Data retrieval
+## Step 1. Data retrieval and preparation
 
-The epidemiological dataset is available in the GitHub repository [here](data_hemoplasma_stat.csv)
+Retrieve and examine the epidemiological dataset :
 ```
 data_hemoplasma_stat <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv")
 data_hemoplasma_stat
@@ -50,20 +50,28 @@ get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
 lapply(data_hemoplasma_stat, get_modalities)
 ```
 
-## Step 2. Data preparation
+Retrieve and examine the life trait dataset :
+```
+data_mammal_traits <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_mammal_traits.csv")
+data_mammal_traits
+str(data_mammal_traits)
+get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
+lapply(data_mammal_traits, get_modalities)
+```
 
 Convert categorical variables :
 ```
 data_hemoplasma_stat$species        <- as.factor(data_hemoplasma_stat$species)
 data_hemoplasma_stat$order           <- as.factor(data_hemoplasma_stat$order)
-data_hemoplasma_stat$hemoplasma      <- as.factor(data_hemoplasma_stat$hemoplasma)
 data_hemoplasma_stat$sex   <- as.factor(data_hemoplasma_stat$sex)
-data_hemoplasma_stat$strata   <- as.factor(data_hemoplasma_stat$strata)
-data_hemoplasma_stat$activity   <- as.factor(data_hemoplasma_stat$activity)
-data_hemoplasma_stat$diet   <- as.factor(data_hemoplasma_stat$diet)
-data_hemoplasma_stat$sociality   <- as.factor(data_hemoplasma_stat$sociality)
+data_hemoplasma_stat$hemoplasma      <- as.factor(data_hemoplasma_stat$hemoplasma)
 data_hemoplasma_stat$anaplasmataceae      <- as.factor(data_hemoplasma_stat$anaplasmataceae)
 data_hemoplasma_stat$apicomplexa         <- as.factor(data_hemoplasma_stat$apicomplexa)
+data_mammal_traits$species        <- as.factor(data_mammal_traits$species)
+data_mammal_traits$strata        <- as.factor(data_mammal_traits$strata)
+data_mammal_traits$activitynocturnal        <- as.factor(data_mammal_traits$activitynocturnal)
+data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$activitydiurnal)
+data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
 Load required libraries : 
@@ -90,8 +98,9 @@ library(brms)
 library(patchwork)
 ```
 
-## Step 3. Species-level summary
+## Step 2. `species`-level summary for `hemoplasma`
 
+Calculate `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method)  :
 ```
 species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -171,59 +180,160 @@ Results :
 44 Tamandua_tetradactyla             3          0          3     0      0        0.561
 ```
 
-### Visualization
+Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1): 
 ```
+species_order <- c(
+  "Alouatta_macconnelli",
+  "Saguinus_midas",
+  "Sapajus_apella",
+  "Saimiri_sciureus",
+  "Pithecia_pithecia",
+  "Bradypus_tridactylus",
+  "Choloepus_didactylus",
+  "Cyclopes_didactylus",
+  "Tamandua_tetradactyla",
+  "Cabassous_unicinctus",
+  "Dasypus_novemcinctus",
+  "Hydrochoerus_hydrochaeris",
+  "Holochilus_sciureus",
+  "Hylaeamys_megacephalus",
+  "Hylaeamys_yunganus",
+  "Neacomys_dubosti",
+  "Neacomys_paracou",
+  "Nectomys_rattus",
+  "Oecomys_auyantepui",
+  "Oecomys_bicolor",
+  "Oligoryzomys_fulvescens",
+  "Makalata_didelphoides",
+  "Mesomys_hispidus",
+  "Proechimys_cuvieri",
+  "Proechimys_guyannensis",
+  "Coendou_melanurus",
+  "Coendou_prehensilis",
+  "Mus_musculus",
+  "Rattus_rattus",
+  "Sciurus_aestuans",
+  "Leopardus_wiedii",
+  "Puma_yagouaroundi",
+  "Eira_barbara",
+  "Galictis_vittata",
+  "Lontra_longicaudis",
+  "Potos_flavus",
+  "Caluromys_philander",
+  "Didelphis_marsupialis",
+  "Marmosa_lepida",
+  "Marmosa_murina",
+  "Marmosops_parvidens",
+  "Metachirus_nudicaudatus",
+  "Micoureus_demerarae",
+  "Philander_opossum"
+)
+
 plot_data <- species_summary %>%
+  
   mutate(
-    species_label = gsub("_", " ", as.character(species)),
-    CI_width = ci_high - ci_low
-  ) %>%
-  arrange(
-    desc(prevalence),
-    CI_width,
-    species_label
-  ) %>%
-  mutate(
+    
+    # Replace underscores by spaces for display
+    species_label = gsub(
+      "_",
+      " ",
+      as.character(species)
+    ),
+    
+    # Set desired species order
     species_label = factor(
       species_label,
-      levels = rev(species_label)
+      levels = gsub(
+        "_",
+        " ",
+        species_order
+      )
     )
   )
 
-ggplot(
+p_species_prevalence <- ggplot(
+  
   plot_data,
+  
   aes(
     x = prevalence * 100,
     y = species_label
   )
 ) +
-  geom_errorbarh(
+
+  geom_segment(
+    
     aes(
-      xmin = ci_low * 100,
-      xmax = ci_high * 100
+      x = ci_low * 100,
+      xend = ci_high * 100,
+      y = species_label,
+      yend = species_label
     ),
-    height = 0.15
+    
+    linewidth = 0.7
   ) +
-  geom_point(size = 3) +
+
+  geom_point(
+    
+    size = 4
+  ) +
+
   scale_x_continuous(
-    limits = c(0, 100),
-    breaks = seq(0, 100, 20),
-    labels = function(x) paste0(x, "%")
+    
+    limits = c(
+      0,
+      100
+    ),
+    
+    breaks = seq(
+      0,
+      100,
+      20
+    ),
+    
+    labels = function(x) {
+      paste0(
+        x,
+        "%"
+      )
+    }
   ) +
+
   labs(
-    x = "Hemoplasma prevalence",
+    
+    x = "Haemoplasma prevalence",
+    
     y = NULL
   ) +
+ 
   theme_classic() +
+  
   theme(
-    axis.text.y = element_text(size = 10),
-    axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11),
-    panel.grid.major.x = element_line(
-      linewidth = 0.3,
-      colour = "grey85"
-    )
+    
+    axis.text.y =
+      element_text(
+        size = 10
+      ),
+    
+    axis.text.x =
+      element_text(
+        size = 10
+      ),
+    
+    axis.title.x =
+      element_text(
+        size = 11
+      ),
+    
+    panel.grid.major.x =
+      element_line(
+        linewidth = 0.3,
+        colour = "grey85"
+      )
   )
+print(
+  p_species_prevalence
+)
 ```
 
 ### Spearman correlation test
