@@ -78,6 +78,7 @@ library(bayestestR)
 library(posterior)
 library(rotl)
 library(ape)
+library(glmmTMB)
 library(picante)
 library(phytools)
 library(MCMCglmm)
@@ -1886,26 +1887,1587 @@ p
 ```
 
 ### Step 9. `hemoplasma` infection prevalence and mammal trait-based analyses
-Data retrieval and convert categorical variables. The life trait dataset  is available in the GitHub repository [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv).
+
+## Data retrieval and convert categorical variables. 
+
+The life trait dataset is available in the GitHub repository [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv).
 ```
-data_mammal_traits <- read.csv2("[https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv)")
+data_mammal_traits <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_mammal_traits.csv")
 data_mammal_traits
-data_mammal_traits$species        <- as.factor(mammal_traits$species)
-data_mammal_traits$dietinv        <- as.factor(mammal_traits$dietinv)
-data_mammal_traits$dietvet        <- as.factor(mammal_traits$dietvet)
-data_mammal_traits$dietplant        <- as.factor(mammal_traits$dietplant)
-data_mammal_traits$strata        <- as.factor(mammal_traits$strata)
-data_mammal_traits$strataG        <- as.factor(mammal_traits$strataG)
-data_mammal_traits$strataAr        <- as.factor(mammal_traits$strataAr)
-data_mammal_traits$activitynocturnal        <- as.factor(mammal_traits$activitynocturnal)
-data_mammal_traits$activitycrepuscular        <- as.factor(mammal_traits$activitydiurnal)
-data_mammal_traits$activitydiurnal        <- as.factor(mammal_traits$activitydiurnal)
-data_mammal_traits$bodymass        <- as.factor(mammal_traits$bodymass)
-data_mammal_traits$longevity        <- as.factor(mammal_traits$longevity)
-data_mammal_traits$femalematurity        <- as.factor(mammal_traits$femalematurity)
-data_mammal_traits$littersize        <- as.factor(mammal_traits$littersize)
+data_mammal_traits$species        <- as.factor(data_mammal_traits$species)
+data_mammal_traits$strata        <- as.factor(data_mammal_traits$strata)
+data_mammal_traits$strataG        <- as.factor(data_mammal_traits$strataG)
+data_mammal_traits$strataAr        <- as.factor(data_mammal_traits$strataAr)
+data_mammal_traits$activitynocturnal        <- as.factor(data_mammal_traits$activitynocturnal)
+data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$activitydiurnal)
+data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
+# ============================================================
+# SPECIES-LEVEL HAEMOPLASMA PREVALENCE ~ DIET
+# BETA-BINOMIAL GLMM
+# LRT + AIC + FDR + THREE-PANEL FIGURE
+# ============================================================
+
+library(dplyr)
+library(ggplot2)
+library(glmmTMB)
+library(patchwork)
+
+
+# ============================================================
+# 1. Species-level dataset
+# ============================================================
+
+species_data <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, dietinv, dietvet, dietplant),
+    by = "species"
+  )
+
+
+# ============================================================
+# 2. Remove missing values
+# ============================================================
+
+data_dietinv <- species_data %>%
+  filter(!is.na(dietinv))
+
+data_dietvet <- species_data %>%
+  filter(!is.na(dietvet))
+
+data_dietplant <- species_data %>%
+  filter(!is.na(dietplant))
+
+
+# ============================================================
+# 3. BETA-BINOMIAL MODELS
+# ============================================================
+
+# ------------------------------------------------------------
+# DIETINV
+# ------------------------------------------------------------
+
+model_dietinv_null <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_dietinv,
+  family = betabinomial(link = "logit")
+)
+
+model_dietinv <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ dietinv,
+  data = data_dietinv,
+  family = betabinomial(link = "logit")
+)
+
+
+# ------------------------------------------------------------
+# DIETVET
+# ------------------------------------------------------------
+
+model_dietvet_null <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_dietvet,
+  family = betabinomial(link = "logit")
+)
+
+model_dietvet <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ dietvet,
+  data = data_dietvet,
+  family = betabinomial(link = "logit")
+)
+
+
+# ------------------------------------------------------------
+# DIETPLANT
+# ------------------------------------------------------------
+
+model_dietplant_null <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_dietplant,
+  family = betabinomial(link = "logit")
+)
+
+model_dietplant <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ dietplant,
+  data = data_dietplant,
+  family = betabinomial(link = "logit")
+)
+
+
+# ============================================================
+# 4. LIKELIHOOD-RATIO TESTS
+# ============================================================
+
+lrt_dietinv <- anova(
+  model_dietinv_null,
+  model_dietinv
+)
+
+lrt_dietvet <- anova(
+  model_dietvet_null,
+  model_dietvet
+)
+
+lrt_dietplant <- anova(
+  model_dietplant_null,
+  model_dietplant
+)
+
+print(lrt_dietinv)
+print(lrt_dietvet)
+print(lrt_dietplant)
+
+
+# ============================================================
+# 5. AIC
+# ============================================================
+
+AIC(model_dietinv_null, model_dietinv)
+
+AIC(model_dietvet_null, model_dietvet)
+
+AIC(model_dietplant_null, model_dietplant)
+
+
+# ============================================================
+# 6. Model summaries
+# ============================================================
+
+summary(model_dietinv)
+
+summary(model_dietvet)
+
+summary(model_dietplant)
+
+
+# ============================================================
+# 7. Extract statistical results
+# ============================================================
+
+# Function to extract coefficient information
+
+extract_beta_results <- function(model, null_model, variable, lrt) {
+
+  coef_table <- summary(model)$coefficients$cond
+
+  estimate <- coef_table[variable, "Estimate"]
+
+  SE <- coef_table[variable, "Std. Error"]
+
+  z <- coef_table[variable, "z value"]
+
+  p <- coef_table[variable, "Pr(>|z|)"]
+
+  # LRT p-value
+  LRT_p <- lrt$`Pr(>Chisq)`[2]
+
+  # LRT statistic
+  LRT_chisq <- lrt$Chisq[2]
+
+  # AIC
+  AIC_null <- AIC(null_model)
+  AIC_model <- AIC(model)
+
+  data.frame(
+    variable = variable,
+    n_species = nobs(model),
+    estimate = estimate,
+    SE = SE,
+    z = z,
+    p_coefficient = p,
+    LRT_chisq = LRT_chisq,
+    LRT_p = LRT_p,
+    AIC_null = AIC_null,
+    AIC_model = AIC_model,
+    delta_AIC = AIC_null - AIC_model,
+    CI_low = estimate - 1.96 * SE,
+    CI_high = estimate + 1.96 * SE,
+    OR = exp(estimate),
+    OR_low = exp(estimate - 1.96 * SE),
+    OR_high = exp(estimate + 1.96 * SE)
+  )
+}
+
+
+# Extract results
+
+results_diet <- bind_rows(
+
+  extract_beta_results(
+    model_dietinv,
+    model_dietinv_null,
+    "dietinv",
+    lrt_dietinv
+  ),
+
+  extract_beta_results(
+    model_dietvet,
+    model_dietvet_null,
+    "dietvet",
+    lrt_dietvet
+  ),
+
+  extract_beta_results(
+    model_dietplant,
+    model_dietplant_null,
+    "dietplant",
+    lrt_dietplant
+  )
+)
+
+
+# ============================================================
+# 8. FDR correction
+# ============================================================
+
+results_diet$LRT_p_FDR <-
+  p.adjust(
+    results_diet$LRT_p,
+    method = "BH"
+  )
+
+results_diet$p_coefficient_FDR <-
+  p.adjust(
+    results_diet$p_coefficient,
+    method = "BH"
+  )
+
+
+# ============================================================
+# 9. Display final results
+# ============================================================
+
+print(results_diet)
+```
+
+Results : 
+Species-level haemoplasma prevalence was tested against three dietary variables using beta-binomial models, accounting for overdispersion in the number of infected individuals among species.
+- Invertebrate consumption (dietinv): no association with haemoplasma prevalence (LRT: χ² = 0.36, p = 0.550; β = 0.0051, p = 0.543; ΔAIC = −1.64). The dietary model was not supported over the null model.
+- Vertebrate consumption (dietvet): no significant association (LRT: χ² = 2.03, p = 0.155; β = 0.0138, p = 0.147; ΔAIC = +0.03). The slight positive effect was not supported after FDR correction (p_FDR = 0.232).
+- Plant consumption (dietplant): no significant association (LRT: χ² = 2.19, p = 0.139; β = −0.0102, p = 0.135; ΔAIC = +0.19). The negative trend was not significant after FDR correction (p_FDR = 0.232).
+After Benjamini–Hochberg correction for the three dietary tests, none of the dietary variables was significantly associated with haemoplasma prevalence (all LRT p_FDR ≥ 0.232).
+
+Interpretation : 
+These results provide no evidence that species-level haemoplasma prevalence is associated with dietary composition, whether considering the proportion of invertebrates, vertebrates, or plants in the diet. Although vertebrate consumption showed a weak positive trend and plant consumption a weak negative trend, neither was statistically supported.
+
+Visualisation
+```
+# ============================================================
+# 10. PREPARE DATA FOR PLOTTING
+# ============================================================
+
+# Function for predictions and 95% CI
+
+get_predictions <- function(model, data, variable, label) {
+
+  x <- seq(
+    min(data[[variable]], na.rm = TRUE),
+    max(data[[variable]], na.rm = TRUE),
+    length.out = 100
+  )
+
+  newdata <- data.frame(x)
+  names(newdata) <- variable
+
+  # Prediction on link scale
+  pred <- predict(
+    model,
+    newdata = newdata,
+    type = "link",
+    se.fit = TRUE
+  )
+
+  newdata$fit <- plogis(pred$fit)
+
+  newdata$lower <- plogis(
+    pred$fit - 1.96 * pred$se.fit
+  )
+
+  newdata$upper <- plogis(
+    pred$fit + 1.96 * pred$se.fit
+  )
+
+  newdata$variable <- label
+
+  return(newdata)
+}
+
+
+# Predictions
+
+pred_dietinv <- get_predictions(
+  model_dietinv,
+  data_dietinv,
+  "dietinv",
+  "Invertebrates"
+)
+
+pred_dietvet <- get_predictions(
+  model_dietvet,
+  data_dietvet,
+  "dietvet",
+  "Vertebrates"
+)
+
+pred_dietplant <- get_predictions(
+  model_dietplant,
+  data_dietplant,
+  "dietplant",
+  "Plants"
+)
+
+
+# ============================================================
+# 11. OBSERVED DATA
+# ============================================================
+
+plot_data <- bind_rows(
+
+  data_dietinv %>%
+    mutate(
+      diet = dietinv,
+      variable = "Invertebrates"
+    ),
+
+  data_dietvet %>%
+    mutate(
+      diet = dietvet,
+      variable = "Vertebrates"
+    ),
+
+  data_dietplant %>%
+    mutate(
+      diet = dietplant,
+      variable = "Plants"
+    )
+)
+
+
+pred_data <- bind_rows(
+
+  pred_dietinv %>%
+    mutate(diet = dietinv),
+
+  pred_dietvet %>%
+    mutate(diet = dietvet),
+
+  pred_dietplant %>%
+    mutate(diet = dietplant)
+)
+
+
+# ============================================================
+# 12. THREE-PANEL FIGURE
+# ============================================================
+
+figure_diet <- ggplot(
+  plot_data,
+  aes(x = diet, y = prevalence)
+) +
+
+  # 95% CI
+  geom_ribbon(
+    data = pred_data,
+    aes(
+      x = diet,
+      ymin = lower,
+      ymax = upper
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.20
+  ) +
+
+  # Predicted relationship
+  geom_line(
+    data = pred_data,
+    aes(
+      x = diet,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1
+  ) +
+
+  # Observed prevalence
+  geom_point(
+    aes(size = n),
+    alpha = 0.70
+  ) +
+
+  facet_wrap(
+    ~ variable,
+    nrow = 1,
+    scales = "free_x"
+  ) +
+
+  scale_y_continuous(
+    limits = c(0, 1),
+    labels = scales::percent
+  ) +
+
+  labs(
+    x = "Diet composition (%)",
+    y = "Haemoplasma prevalence",
+    size = "Number tested"
+  ) +
+
+  theme_classic() +
+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+
+
+print(figure_diet)
+
+
+# ============================================================
+# 13. SAVE FIGURE
+# ============================================================
+
+ggsave(
+  "haemoplasma_prevalence_diet_beta_binomial.png",
+  figure_diet,
+  width = 11,
+  height = 4.5,
+  dpi = 300
+)
+
+```
+
+
+# ============================================================
+# SPECIES-LEVEL HAEMOPLASMA PREVALENCE
+# ~ FORAGING STRATA
+# Beta-binomial GLM + LRT + AIC + FDR + predictions
+# ============================================================
+
+
+library(dplyr)
+library(glmmTMB)
+library(ggplot2)
+
+
+# ============================================================
+# 1. PREPARE SPECIES-LEVEL DATA
+# ============================================================
+
+species_data_strata <-
+  
+  data_hemoplasma_stat %>%
+  
+  group_by(species) %>%
+  
+  summarise(
+    
+    n = n(),
+    
+    n_positive =
+      sum(
+        hemoplasma == 1,
+        na.rm = TRUE
+      ),
+    
+    prevalence =
+      n_positive / n,
+    
+    .groups = "drop"
+  ) %>%
+  
+  left_join(
+    
+    data_mammal_traits %>%
+      
+      select(
+        species,
+        strataAr,
+        strataG
+      ),
+    
+    by = "species"
+  )
+
+
+# ------------------------------------------------------------
+# Number of species
+# ------------------------------------------------------------
+
+cat(
+  "\nNumber of species =",
+  nrow(species_data_strata),
+  "\n"
+)
+
+
+# ------------------------------------------------------------
+# Missing values
+# ------------------------------------------------------------
+
+cat(
+  "\nMissing values:\n"
+)
+
+print(
+  colSums(
+    is.na(
+      species_data_strata[
+        ,
+        c(
+          "strataAr",
+          "strataG"
+        )
+      ]
+    )
+  )
+)
+
+
+# ============================================================
+# 2. DATASETS FOR EACH VARIABLE
+# ============================================================
+
+data_strataAr <-
+  
+  species_data_strata %>%
+  
+  filter(
+    !is.na(strataAr)
+  )
+
+
+data_strataG <-
+  
+  species_data_strata %>%
+  
+  filter(
+    !is.na(strataG)
+  )
+
+
+cat(
+  "\nSpecies used for strataAr =",
+  nrow(data_strataAr),
+  "\n"
+)
+
+cat(
+  "Species used for strataG  =",
+  nrow(data_strataG),
+  "\n"
+)
+
+
+# ============================================================
+# 3. CHECK FACTOR LEVELS
+# ============================================================
+
+cat(
+  "\n================ STRATA AR LEVELS ================\n"
+)
+
+print(
+  levels(
+    data_strataAr$strataAr
+  )
+)
+
+print(
+  table(
+    data_strataAr$strataAr
+  )
+)
+
+
+cat(
+  "\n================ STRATA G LEVELS ================\n"
+)
+
+print(
+  levels(
+    data_strataG$strataG
+  )
+)
+
+print(
+  table(
+    data_strataG$strataG
+  )
+)
+
+
+# Expected:
+#
+# strataAr:
+# 0 = 20 species
+# 1 = 20 species
+#
+# strataG:
+# 0 = 14 species
+# 1 = 26 species
+
+
+# ============================================================
+# 4. NULL MODELS
+# ============================================================
+
+model_strataAr_null <-
+  
+  glmmTMB(
+    
+    cbind(
+      n_positive,
+      n - n_positive
+    ) ~ 1,
+    
+    data = data_strataAr,
+    
+    family =
+      betabinomial(
+        link = "logit"
+      )
+  )
+
+
+model_strataG_null <-
+  
+  glmmTMB(
+    
+    cbind(
+      n_positive,
+      n - n_positive
+    ) ~ 1,
+    
+    data = data_strataG,
+    
+    family =
+      betabinomial(
+        link = "logit"
+      )
+  )
+
+
+# ============================================================
+# 5. FULL MODELS
+# ============================================================
+
+model_strataAr <-
+  
+  glmmTMB(
+    
+    cbind(
+      n_positive,
+      n - n_positive
+    ) ~ strataAr,
+    
+    data = data_strataAr,
+    
+    family =
+      betabinomial(
+        link = "logit"
+      )
+  )
+
+
+model_strataG <-
+  
+  glmmTMB(
+    
+    cbind(
+      n_positive,
+      n - n_positive
+    ) ~ strataG,
+    
+    data = data_strataG,
+    
+    family =
+      betabinomial(
+        link = "logit"
+      )
+  )
+
+
+# ============================================================
+# 6. LIKELIHOOD-RATIO TESTS
+# ============================================================
+
+lrt_strataAr <-
+  
+  anova(
+    model_strataAr_null,
+    model_strataAr
+  )
+
+
+lrt_strataG <-
+  
+  anova(
+    model_strataG_null,
+    model_strataG
+  )
+
+
+cat(
+  "\n================ STRATA AR LRT ================\n"
+)
+
+print(
+  lrt_strataAr
+)
+
+
+cat(
+  "\n================ STRATA G LRT ================\n"
+)
+
+print(
+  lrt_strataG
+)
+
+
+# ============================================================
+# 7. AIC
+# ============================================================
+
+cat(
+  "\n================ AIC STRATA AR ================\n"
+)
+
+print(
+  AIC(
+    model_strataAr_null,
+    model_strataAr
+  )
+)
+
+
+cat(
+  "\n================ AIC STRATA G ================\n"
+)
+
+print(
+  AIC(
+    model_strataG_null,
+    model_strataG
+  )
+)
+
+
+# ============================================================
+# 8. MODEL SUMMARIES
+# ============================================================
+
+cat(
+  "\n================ STRATA AR ================\n"
+)
+
+print(
+  summary(
+    model_strataAr
+  )
+)
+
+
+cat(
+  "\n================ STRATA G ================\n"
+)
+
+print(
+  summary(
+    model_strataG
+  )
+)
+
+
+# ============================================================
+# 9. EXTRACT RESULTS
+# ============================================================
+
+extract_strata_results <-
+  
+  function(
+    model,
+    null_model,
+    variable,
+    lrt
+  ) {
+    
+    
+    # --------------------------------------------------------
+    # Coefficient table
+    # --------------------------------------------------------
+    
+    coef_table <-
+      summary(model)$coefficients$cond
+    
+    
+    # --------------------------------------------------------
+    # Find predictor coefficient automatically
+    #
+    # For factor predictors:
+    # strataAr -> strataAr1
+    # strataG  -> strataG1
+    # --------------------------------------------------------
+    
+    coefficient_name <-
+      
+      setdiff(
+        rownames(coef_table),
+        "(Intercept)"
+      )[1]
+    
+    
+    coef_row <-
+      
+      coef_table[
+        coefficient_name,
+        ,
+        drop = FALSE
+      ]
+    
+    
+    # --------------------------------------------------------
+    # Coefficient statistics
+    # --------------------------------------------------------
+    
+    estimate <-
+      coef_row[
+        1,
+        "Estimate"
+      ]
+    
+    
+    SE <-
+      coef_row[
+        1,
+        "Std. Error"
+      ]
+    
+    
+    z <-
+      coef_row[
+        1,
+        "z value"
+      ]
+    
+    
+    p <-
+      coef_row[
+        1,
+        "Pr(>|z|)"
+      ]
+    
+    
+    # --------------------------------------------------------
+    # Likelihood-ratio test
+    # --------------------------------------------------------
+    
+    LRT_chisq <-
+      lrt$Chisq[2]
+    
+    
+    LRT_p <-
+      lrt$`Pr(>Chisq)`[2]
+    
+    
+    # --------------------------------------------------------
+    # AIC
+    # --------------------------------------------------------
+    
+    AIC_null <-
+      AIC(
+        null_model
+      )
+    
+    
+    AIC_model <-
+      AIC(
+        model
+      )
+    
+    
+    # --------------------------------------------------------
+    # 95% CI
+    # --------------------------------------------------------
+    
+    CI_low <-
+      estimate -
+      1.96 * SE
+    
+    
+    CI_high <-
+      estimate +
+      1.96 * SE
+    
+    
+    # --------------------------------------------------------
+    # Odds ratio
+    # --------------------------------------------------------
+    
+    OR <-
+      exp(
+        estimate
+      )
+    
+    
+    OR_low <-
+      exp(
+        CI_low
+      )
+    
+    
+    OR_high <-
+      exp(
+        CI_high
+      )
+    
+    
+    # --------------------------------------------------------
+    # Output
+    # --------------------------------------------------------
+    
+    data.frame(
+      
+      variable =
+        variable,
+      
+      coefficient =
+        coefficient_name,
+      
+      n_species =
+        nobs(model),
+      
+      estimate =
+        estimate,
+      
+      SE =
+        SE,
+      
+      z =
+        z,
+      
+      p_coefficient =
+        p,
+      
+      LRT_chisq =
+        LRT_chisq,
+      
+      LRT_p =
+        LRT_p,
+      
+      AIC_null =
+        AIC_null,
+      
+      AIC_model =
+        AIC_model,
+      
+      delta_AIC =
+        AIC_null -
+        AIC_model,
+      
+      CI_low =
+        CI_low,
+      
+      CI_high =
+        CI_high,
+      
+      OR =
+        OR,
+      
+      OR_low =
+        OR_low,
+      
+      OR_high =
+        OR_high
+    )
+  }
+
+
+# ============================================================
+# 10. COMBINE RESULTS
+# ============================================================
+
+results_strata <-
+  
+  bind_rows(
+    
+    extract_strata_results(
+      
+      model_strataAr,
+      
+      model_strataAr_null,
+      
+      "strataAr",
+      
+      lrt_strataAr
+    ),
+    
+    
+    extract_strata_results(
+      
+      model_strataG,
+      
+      model_strataG_null,
+      
+      "strataG",
+      
+      lrt_strataG
+    )
+  )
+
+
+# ============================================================
+# 11. FDR CORRECTION
+# ============================================================
+
+results_strata$LRT_p_FDR <-
+  
+  p.adjust(
+    results_strata$LRT_p,
+    method = "BH"
+  )
+
+
+results_strata$p_coefficient_FDR <-
+  
+  p.adjust(
+    results_strata$p_coefficient,
+    method = "BH"
+  )
+
+
+# ============================================================
+# 12. FINAL RESULTS
+# ============================================================
+
+cat(
+  "\n================ FINAL STRATA RESULTS ================\n"
+)
+
+print(
+  results_strata,
+  row.names = FALSE
+)
+```
+```
+Results: 
+Neither arboreal foraging nor ground-level foraging was associated with haemoplasma prevalence. Arboreal foraging showed no significant effect (LRT: χ² = 0.73, p = 0.393; OR = 1.58, 95% CI: 0.56–4.45), nor did ground-level foraging (LRT: χ² = 0.81, p = 0.368; OR = 0.59, 95% CI: 0.19–1.81). Neither model improved on the null model (ΔAIC = −1.27 and −1.19, respectively).
+
+Interpretation: 
+Foraging stratum was not associated with haemoplasma prevalence among the 40 species with available trait data.
+```
+```
+# ============================================================
+# 13. PREDICTION FUNCTION
+# ============================================================
+
+get_predictions_binary <-
+  
+  function(
+    model,
+    data,
+    variable,
+    label
+  ) {
+    
+    
+    # --------------------------------------------------------
+    # Preserve factor levels used by the model
+    # --------------------------------------------------------
+    
+    factor_levels <-
+      levels(
+        data[[variable]]
+      )
+    
+    
+    # --------------------------------------------------------
+    # Prediction dataset
+    # --------------------------------------------------------
+    
+    newdata <-
+      
+      data.frame(
+        
+        x =
+          factor(
+            factor_levels,
+            levels = factor_levels
+          )
+      )
+    
+    
+    names(newdata)[1] <-
+      variable
+    
+    
+    # --------------------------------------------------------
+    # Predictions on response scale
+    # --------------------------------------------------------
+    
+    pred <-
+      
+      predict(
+        
+        model,
+        
+        newdata =
+          newdata,
+        
+        type = "response",
+        
+        se.fit = TRUE
+      )
+    
+    
+    newdata$predicted <-
+      as.numeric(
+        pred$fit
+      )
+    
+    
+    newdata$SE <-
+      as.numeric(
+        pred$se.fit
+      )
+    
+    
+    # --------------------------------------------------------
+    # 95% CI on logit scale
+    # --------------------------------------------------------
+    
+    newdata$CI_low <-
+      
+      plogis(
+        
+        qlogis(
+          newdata$predicted
+        ) -
+          1.96 *
+          newdata$SE
+      )
+    
+    
+    newdata$CI_high <-
+      
+      plogis(
+        
+        qlogis(
+          newdata$predicted
+        ) +
+          1.96 *
+          newdata$SE
+      )
+    
+    
+    # --------------------------------------------------------
+    # Numeric x for plotting
+    # --------------------------------------------------------
+    
+    newdata$x <-
+      
+      as.numeric(
+        as.character(
+          newdata[[variable]]
+        )
+      )
+    
+    
+    # --------------------------------------------------------
+    # Label
+    # --------------------------------------------------------
+    
+    newdata$variable <-
+      label
+    
+    
+    newdata
+  }
+
+
+# ============================================================
+# 14. PREDICTIONS
+# ============================================================
+
+pred_strataAr <-
+  
+  get_predictions_binary(
+    
+    model_strataAr,
+    
+    data_strataAr,
+    
+    "strataAr",
+    
+    "Arboreal foraging"
+  )
+
+
+pred_strataG <-
+  
+  get_predictions_binary(
+    
+    model_strataG,
+    
+    data_strataG,
+    
+    "strataG",
+    
+    "Ground-level foraging"
+  )
+
+
+# Combine predictions
+
+pred_strata <-
+  
+  bind_rows(
+    
+    pred_strataAr,
+    
+    pred_strataG
+  )
+
+
+cat(
+  "\n================ PREDICTIONS ================\n"
+)
+
+print(
+  pred_strata
+)
+
+
+# ============================================================
+# 15. OBSERVED SPECIES-LEVEL PREVALENCE
+# ============================================================
+
+# ------------------------------------------------------------
+# STRATA AR
+# ------------------------------------------------------------
+
+plot_data_strataAr <-
+  
+  data_strataAr %>%
+  
+  mutate(
+    
+    variable =
+      "Arboreal foraging",
+    
+    x =
+      as.numeric(
+        as.character(
+          strataAr
+        )
+      ),
+    
+    group =
+      factor(
+        x,
+        levels = c(0, 1),
+        labels = c(
+          "Non-arboreal",
+          "Arboreal"
+        )
+      )
+  ) %>%
+  
+  select(
+    species,
+    n,
+    n_positive,
+    prevalence,
+    x,
+    group,
+    variable
+  )
+
+
+# ------------------------------------------------------------
+# STRATA G
+# ------------------------------------------------------------
+
+plot_data_strataG <-
+  
+  data_strataG %>%
+  
+  mutate(
+    
+    variable =
+      "Ground-level foraging",
+    
+    x =
+      as.numeric(
+        as.character(
+          strataG
+        )
+      ),
+    
+    group =
+      factor(
+        x,
+        levels = c(0, 1),
+        labels = c(
+          "Non-ground",
+          "Ground-level"
+        )
+      )
+  ) %>%
+  
+  select(
+    species,
+    n,
+    n_positive,
+    prevalence,
+    x,
+    group,
+    variable
+  )
+
+
+# ------------------------------------------------------------
+# Combine observed data
+# ------------------------------------------------------------
+
+plot_data_strata <-
+  
+  bind_rows(
+    
+    plot_data_strataAr,
+    
+    plot_data_strataG
+  )
+
+
+cat(
+  "\nNumber of observed species-level data points =",
+  nrow(plot_data_strata),
+  "\n"
+)
+
+
+# ============================================================
+# 16. PREPARE PREDICTION LABELS
+# ============================================================
+
+pred_strata <-
+  
+  pred_strata %>%
+  
+  mutate(
+    
+    group =
+      
+      case_when(
+        
+        variable ==
+          "Arboreal foraging" &
+          x == 0 ~
+          "Non-arboreal",
+        
+        variable ==
+          "Arboreal foraging" &
+          x == 1 ~
+          "Arboreal",
+        
+        variable ==
+          "Ground-level foraging" &
+          x == 0 ~
+          "Non-ground",
+        
+        variable ==
+          "Ground-level foraging" &
+          x == 1 ~
+          "Ground-level"
+      )
+  )
+
+
+# ============================================================
+# 17. GRAPH
+# ============================================================
+
+p_strata <-
+  
+  ggplot() +
+  
+  
+  # --------------------------------------------------------
+  # Observed species-level prevalence
+  # --------------------------------------------------------
+  
+  geom_jitter(
+    
+    data =
+      plot_data_strata,
+    
+    aes(
+      x = group,
+      y = prevalence
+    ),
+    
+    width = 0.08,
+    
+    height = 0,
+    
+    alpha = 0.5,
+    
+    size = 2
+  ) +
+  
+  
+  # --------------------------------------------------------
+  # Model-predicted prevalence
+  # --------------------------------------------------------
+  
+  geom_point(
+    
+    data =
+      pred_strata,
+    
+    aes(
+      x = group,
+      y = predicted
+    ),
+    
+    size = 3
+  ) +
+  
+  
+  # --------------------------------------------------------
+  # 95% CI
+  # --------------------------------------------------------
+  
+  geom_errorbar(
+    
+    data =
+      pred_strata,
+    
+    aes(
+      x = group,
+      ymin = CI_low,
+      ymax = CI_high
+    ),
+    
+    width = 0.08
+  ) +
+  
+  
+  # --------------------------------------------------------
+  # Separate panels
+  # --------------------------------------------------------
+  
+  facet_wrap(
+    
+    ~ variable,
+    
+    nrow = 1,
+    
+    scales = "free_x"
+  ) +
+  
+  
+  # --------------------------------------------------------
+  # Y axis
+  # --------------------------------------------------------
+  
+  scale_y_continuous(
+    
+    limits = c(0, 1),
+    
+    labels =
+      scales::percent
+  ) +
+  
+  
+  # --------------------------------------------------------
+  # Labels
+  # --------------------------------------------------------
+  
+  labs(
+    
+    x =
+      "Foraging stratum",
+    
+    y =
+      "Haemoplasma prevalence"
+  ) +
+  
+  
+  # --------------------------------------------------------
+  # Theme
+  # --------------------------------------------------------
+  
+  theme_classic() +
+  
+  theme(
+    
+    strip.background =
+      element_blank(),
+    
+    strip.text =
+      element_text(
+        face = "bold"
+      ),
+    
+    axis.text.x =
+      element_text(
+        angle = 0,
+        hjust = 0.5
+      )
+  )
+
+
+# ============================================================
+# 18. DISPLAY FIGURE
+# ============================================================
+
+print(
+  p_strata
+)
+
+
+# ============================================================
+# 19. SAVE FIGURE
+# ============================================================
+
+ggsave(
+  
+  "haemoplasma_prevalence_strata.png",
+  
+  p_strata,
+  
+  width = 8,
+  
+  height = 4,
+  
+  dpi = 300
+)
+
+
+# ============================================================
+# 20. SAVE STATISTICAL RESULTS
+# ============================================================
+
+write.csv(
+  
+  results_strata,
+  
+  "haemoplasma_prevalence_strata_results.csv",
+  
+  row.names = FALSE
+)
+```
 
 
 
