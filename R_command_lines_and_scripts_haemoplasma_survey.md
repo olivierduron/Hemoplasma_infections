@@ -177,7 +177,7 @@ print(species_summary, n = Inf)
 | *Sciurus aestuans* | 1 | 0 | 1 | 0% | 0–79.3% |
 | *Tamandua tetradactyla* | 3 | 0 | 3 | 0% | 0–56.1% |
 
-### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1): 
+### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1) : 
 ```
 species_order <- c(
   "Alouatta_macconnelli",
@@ -372,8 +372,8 @@ ggsave(
 
 ## Step 3. Variation in `hemoplasma` infection status according to the host’s `sex`
 
-### Fit the full GLMM (model 1) :
-Model 1 tests whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`).
+### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) : 
+Fit the full GLMM (model 1) :
 ```
 model_sex_data <- data_hemoplasma_stat %>%
   filter(
@@ -405,14 +405,7 @@ AIC(model1_a, model1_b)
 
 ## Step 4. Variation in `hemoplasma` infection status according to the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
-
-
-
-
-
-
-
-### Data preparation: Create the `pathogens` variable by merging `anaplasmataceae` and `apicomplexa`
+### Data preparation: Create the `pathogens` variable by merging `anaplasmataceae` and `apicomplexa` (0 = uninfected ; 1 = infected by `anaplasmataceae` and/or `apicomplexa`)
 ```
 data_hemoplasma_stat <- data_hemoplasma_stat %>%
   mutate(
@@ -420,335 +413,133 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
       anaplasmataceae == 1 | apicomplexa == 1,
       1, 0
     ),
-    sex = factor(sex),
     species = factor(species)
   )
 ```
 
-### Restrict all candidate models to the same complete-case dataset to ensure that likelihood-ratio tests and AIC comparisons are based on identical observations
-```
-model_data <- data_hemoplasma_stat %>%
-  filter(
-    !is.na(hemoplasma),
-    !is.na(sex),
-    !is.na(pathogens),
-    !is.na(species),
-    !is.na(anaplasmataceae),
-    !is.na(apicomplexa),
-  )
-```
-
-### Fit the full GLMM : model 1
-Model 1 tests whether `hemoplasma` infection probability differs between sexes (`sex`) and infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`).
-```
-model1_a <- glmer(
-  hemoplasma ~ sex * pathogens + (1 | species),
-  data = model_data,
-  family = binomial
-)
-summary(model1_a)
-```
-
-Results are:
-```
-Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
- Family: binomial  ( logit )
-Formula: hemoplasma ~ sex * pathogens + (1 | species)
-   Data: model_data
-
-      AIC       BIC    logLik -2*log(L)  df.resid 
-    311.1     331.0    -150.5     301.1       394 
-
-Scaled residuals: 
-    Min      1Q  Median      3Q     Max 
--3.2444 -0.2722 -0.1376  0.3538  8.0537 
-
-Random effects:
- Groups  Name        Variance Std.Dev.
- species (Intercept) 8.045    2.836   
-Number of obs: 399, groups:  species, 33
-
-Fixed effects:
-               Estimate Std. Error z value Pr(>|z|)    
-(Intercept)     -2.6708     0.8035  -3.324 0.000888 ***
-sexM             0.6537     0.4102   1.594 0.111022    
-pathogens        1.5699     0.6340   2.476 0.013278 *  
-sexM:pathogens  -0.9294     0.7785  -1.194 0.232553    
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-Correlation of Fixed Effects:
-            (Intr) sexM   pthgns
-sexM        -0.372              
-pathogens   -0.163  0.271       
-sexM:pthgns  0.197 -0.513 -0.713
-```
-
-### Test and remove the `sex` × `pathogen` interaction
-
-```
-model1_b <- glmer(
-  hemoplasma ~ sex + pathogens + (1 | species),
-  data = model_data,
-  family = binomial,
-  control = glmerControl(optimizer = "bobyqa")
-)
-
-anova(
-  model1_b,
-  model1_a,
-  test = "Chisq"
-)
-
-AIC(model1_a, model1_b)
-```
-
-Results are:
-```
-Data: model_data
-Models:
-model1_b: hemoplasma ~ sex + pathogens + (1 | species)
-model1_a: hemoplasma ~ sex * pathogens + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
-model1_b    4 310.53 326.48 -151.26    302.53                     
-model1_a    5 311.07 331.02 -150.54    301.07 1.4547  1     0.2278
----
-> AIC(model1_a, model1_b)
-         df      AIC
-model1_a  5 311.0715
-model1_b  4 310.5262
-```
-
-Interpretation: The model including the `sex` × `pathogens` interaction did not provide a better fit than the additive model (likelihood-ratio test: χ² = 1.45, df = 1, p = 0.228). The additive model also had a lower AIC (310.53 vs. 311.07; ΔAIC = 0.55). The interaction was therefore removed, and the additive model was retained for subsequent model simplification.
-
-### Test the `sex` effect
-```
-model1_c <- glmer(
-  hemoplasma ~ pathogens + (1 | species),
-  data = model_data,
-  family = binomial,
-)
-
-anova(
-  model1_b,
-  model1_c,
-  test = "Chisq"
-)
-
-AIC(model1_b, model1_c)
-```
-
-Results are: 
-```
-Data: model_data
-Models:
-model1_c: hemoplasma ~ pathogens + (1 | species)
-model1_b: hemoplasma ~ sex + pathogens + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
-model1_c    3 309.90 321.86 -151.95    303.90                     
-model1_b    4 310.53 326.48 -151.26    302.53 1.3717  1     0.2415
----
-> AIC(model1_b, model1_c)
-         df      AIC
-model1_b  4 310.5262
-model1_c  3 309.8978
-```
-
-Interpretation: Including `sex` did not significantly improve model fit (likelihood-ratio test: χ² = 1.37, df = 1, p = 0.242). The model without `sex` also had a lower AIC (309.90 vs. 310.53; ΔAIC = 0.63). `sex` was therefore removed, and the model including `pathogen` occurrence as the sole fixed effect, with species as a random intercept, was retained for subsequent analysis.
-
-### Test the `pathogens` effect
-```
-model1_d <- glmer(
-  hemoplasma ~ (1 | species),
-  data = model_data,
-  family = binomial,
-)
-
-anova(
-  model1_c,
-  model1_d,
-  test = "Chisq"
-)
-
-AIC(model1_c, model1_d)
-```
-
-Results are: 
-```
-Data: model_data
-Models:
-model1_d: hemoplasma ~ (1 | species)
-model1_c: hemoplasma ~ pathogens + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)   
-model1_d    2 315.06 323.04 -155.53    311.06                        
-model1_c    3 309.90 321.86 -151.95    303.90 7.1671  1   0.007425 **
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
----
-> AIC(model1_c, model1_d)
-         df      AIC
-model1_c  3 309.8978
-model1_d  2 315.0649
-```
-
-Interpretation: Removing `pathogen` occurrence from the model significantly reduced model fit (likelihood-ratio test: χ² = 7.17, df = 1, p = 0.007). The model including `pathogen` occurrence also had a lower AIC (309.90 vs. 315.06; ΔAIC = 5.17), providing substantially stronger support for the model including `pathogen` occurrence. `pathogen` occurrence was therefore retained as a significant predictor in the minimal adequate model.
-
-### Fit the full GLMM : model 2
-Model 2 tests whether `hemoplasma` infection probability differs between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (`1 | species`).
+### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) :
+Fit the full GLMM (model 2) :
 ```
 model2_a <- glmer(
-  hemoplasma ~ anaplasmataceae * apicomplexa + (1 | species),
-  data = model_data,
+  hemoplasma ~ pathogens + (1 | species),
+  data = data_hemoplasma_stat,
   family = binomial
 )
 summary(model2_a)
-```
-
-Results are:
-```
-Generalized linear mixed model fit by maximum likelihood (Laplace Approximation) ['glmerMod']
- Family: binomial  ( logit )
-Formula: hemoplasma ~ anaplasmataceae * apicomplexa + (1 | species)
-   Data: model_data
-
-      AIC       BIC    logLik -2*log(L)  df.resid 
-    307.2     327.2    -148.6     297.2       394 
-
-Scaled residuals: 
-    Min      1Q  Median      3Q     Max 
--2.8827 -0.2545 -0.1437  0.3469  6.9577 
-
-Random effects:
- Groups  Name        Variance Std.Dev.
- species (Intercept) 7.581    2.753   
-Number of obs: 399, groups:  species, 33
-
-Fixed effects:
-                              Estimate Std. Error z value Pr(>|z|)   
-(Intercept)                    -2.2380     0.7242  -3.090   0.0020 **
-anaplasmataceae1                1.1429     0.5426   2.106   0.0352 * 
-apicomplexa1                    0.3152     0.7122   0.443   0.6580   
-anaplasmataceae1:apicomplexa1  17.7390   128.0002   0.139   0.8898   
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-Correlation of Fixed Effects:
-            (Intr) anpls1 apcmp1
-anaplasmtc1 -0.089              
-apicomplex1 -0.038  0.055       
-anplsmtc1:1 -0.001 -0.001 -0.001
-```
-
-### Test and remove the `anaplasmataceae` × `apicomplexa` interaction
-
-```
 model2_b <- glmer(
-  hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
-  data = model_data,
+  hemoplasma ~ 1 + (1 | species),
+  data = data_hemoplasma_stat,
   family = binomial,
-  control = glmerControl(optimizer = "bobyqa")
 )
-
 anova(
-  model2_b,
   model2_a,
+  model2_b,
   test = "Chisq"
 )
-
 AIC(model2_a, model2_b)
 ```
 
-Results are:
+### Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
 ```
-Data: model_data
-Models:
-model2_b: hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species)
-model2_a: hemoplasma ~ anaplasmataceae * apicomplexa + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
-model2_b    4 308.59 324.55 -150.30    300.59                       
-model2_a    5 307.24 327.18 -148.62    297.24 3.3571  1    0.06692 .
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
----
-> AIC(model2_a, model2_b)
-         df      AIC
-model2_a  5 307.2372
-model2_b  4 308.5943
+model_sex_bayes <- brm(
+  hemoplasma ~ sex + (1 | species),
+  data = model_sex_data,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 4,
+  seed = 1234
+)
+# Extract posterior draws
+posterior_sex <- as_draws_df(
+  model_sex_bayes
+)
+# Odds ratio: Male vs Female
+or_sex <- exp(
+  posterior_sex$b_sexM
+)
+or_sex_results <- data.frame(
+    variable = "Sex (M vs F)",
+  
+  OR = median(
+    or_sex
+  ),
+    HDI_low = hdi(
+    or_sex,
+    ci = 0.95
+  )$CI_low,
+  
+  HDI_high = hdi(
+    or_sex,
+    ci = 0.95
+  )$CI_high
+)
+or_sex_results
 ```
 
-Interpretation: The model including the `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit compared with the additive model (likelihood-ratio test: χ² = 3.36, df = 1, p = 0.067). The interaction model had a lower AIC (307.24 vs. 308.59; ΔAIC = 1.36), but not sufficient to support retaining the interaction based on the LRT criterion. The interaction was therefore removed, and the additive model was retained for subsequent model simplification.
+-> Results : `pathogens` was significantly associated with `hemoplasma` infection (GLMM, LRT: χ²₁ = 7.56, p = 0.006). The model including pathogens had a lower AIC than the null model (448.39 vs. 453.95; ΔAIC = 5.56).
 
-### Test the `apicomplexa` effect
+-> Interpretation : Individuals positive for other blood-borne `pathogens` had a higher probability of `hemoplasma` infection. 
+
+### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (`1 | species`) :
+Fit the full GLMM (model 3) :
 ```
-model2_c <- glmer(
+model3_a <- glmer(
+  hemoplasma ~ anaplasmataceae * apicomplexa + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial
+)
+summary(model3_a)
+model3_b <- glmer(
+  hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+  control = glmerControl(optimizer = "bobyqa")
+)
+anova(
+  model3_b,
+  model3_a,
+  test = "Chisq"
+)
+AIC(model3_a, model3_b)
+model3_c <- glmer(
   hemoplasma ~ anaplasmataceae + (1 | species),
-  data = model_data,
+  data = data_hemoplasma_stat,
   family = binomial,
 )
-
 anova(
-  model2_b,
-  model2_c,
+  model3_b,
+  model3_c,
   test = "Chisq"
 )
-
-AIC(model2_b, model2_c)
-```
-
-Results are: 
-```
-Data: model_data
-Models:
-model2_c: hemoplasma ~ anaplasmataceae + (1 | species)
-model2_b: hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)
-model2_c    3 308.12 320.09 -151.06    302.12                     
-model2_b    4 308.59 324.55 -150.30    300.59 1.5256  1     0.2168
----
-> AIC(model2_b, model2_c)
-         df      AIC
-model2_b  4 308.5943
-model2_c  3 308.1199
-```
-
-Interpretation: Including `apicomplexa` did not significantly improve model fit compared with the model containing `anaplasmataceae` alone (likelihood-ratio test: χ² = 1.53, df = 1, p = 0.217). The model without `apicomplexa` also had a slightly lower AIC (308.12 vs. 308.59; ΔAIC = 0.47). `apicomplexa` infection was therefore removed, and the model including `anaplasmataceae` as the sole fixed-effect predictor, with species as a random intercept, was retained for subsequent model simplification.
-
-### Test the `anaplasmataceae` effect
-```
-model2_d <- glmer(
+AIC(model3_b, model3_c)
+model3_d <- glmer(
   hemoplasma ~ (1 | species),
-  data = model_data,
+  data = data_hemoplasma_stat,
   family = binomial,
 )
-
 anova(
-  model2_c,
-  model2_d,
+  model3_c,
+  model3_d,
   test = "Chisq"
 )
-
-AIC(model2_c, model2_d)
+AIC(model3_c, model3_d)
 ```
+-> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was not retained. Adding `apicomplexa` to the additive model did not significantly improve model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, `anaplasmataceae` significantly improved model fit compared with the null model (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01).
 
-Results are: 
-```
-Data: model_data
-Models:
-model2_d: hemoplasma ~ (1 | species)
-model2_c: hemoplasma ~ anaplasmataceae + (1 | species)
-         npar    AIC    BIC  logLik -2*log(L) Chisq Df Pr(>Chisq)   
-model2_d    2 315.06 323.04 -155.53    311.06                       
-model2_c    3 308.12 320.09 -151.06    302.12 8.945  1   0.002782 **
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
----
-> AIC(model2_c, model2_d)
-         df      AIC
-model2_c  3 308.1199
-model2_d  2 315.0649
-```
+-> Interpretation: `anaplasmataceae` was associated with `hemoplasma` infection, whereas there was no clear evidence for an independent effect of `apicomplexa` or an interaction between the two pathogen groups.
 
-Interpretation: Removing `anaplasmataceae` significantly reduced model fit (likelihood-ratio test: χ² = 8.95, df = 1, p = 0.003). The model including `anaplasmataceae` also had a substantially lower AIC (308.12 vs. 315.06; ΔAIC = 6.94), providing strong support for retaining this predictor. `anaplasmataceae` infection was therefore retained as a significant predictor in the minimal adequate model.
+
+
+
+
+
+
+
+
+
+
 
 ### Odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
 ```
