@@ -41,7 +41,7 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 
 ## Step 1. Data retrieval and preparation
 
-Retrieve and examine the epidemiological dataset :
+### Retrieve and examine the epidemiological dataset :
 ```
 data_hemoplasma_stat <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv")
 data_hemoplasma_stat
@@ -50,7 +50,7 @@ get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
 lapply(data_hemoplasma_stat, get_modalities)
 ```
 
-Retrieve and examine the life trait dataset :
+### Retrieve and examine the life trait dataset :
 ```
 data_mammal_traits <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_mammal_traits.csv")
 data_mammal_traits
@@ -59,7 +59,7 @@ get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
 lapply(data_mammal_traits, get_modalities)
 ```
 
-Convert categorical variables :
+### Convert categorical variables :
 ```
 data_hemoplasma_stat$species        <- as.factor(data_hemoplasma_stat$species)
 data_hemoplasma_stat$order           <- as.factor(data_hemoplasma_stat$order)
@@ -74,7 +74,7 @@ data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$ac
 data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
-Load required libraries : 
+### Load required libraries : 
 ```
 library(binom)
 library(dplyr)
@@ -100,7 +100,7 @@ library(patchwork)
 
 ## Step 2. `species`-level summary for `hemoplasma`
 
-Calculate `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method)  :
+### Calculate `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method)  :
 ```
 species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -177,7 +177,7 @@ print(species_summary, n = Inf)
 | *Sciurus aestuans* | 1 | 0 | 1 | 0% | 0–79.3% |
 | *Tamandua tetradactyla* | 3 | 0 | 3 | 0% | 0–56.1% |
 
-Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1): 
+### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1): 
 ```
 species_order <- c(
   "Alouatta_macconnelli",
@@ -323,7 +323,7 @@ Spearman's ρ = 0.334, p = 0.027.
 -> Interpretation: 
 A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
 
-Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) : 
+### Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) : 
 ```
 plot_data <- species_summary %>%
   filter(
