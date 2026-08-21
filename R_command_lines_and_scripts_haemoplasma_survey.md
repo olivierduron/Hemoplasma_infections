@@ -307,7 +307,7 @@ print(
 )
 ```
 
-Test for the association between `hemoplasma` prevalence and sample size per `species` (Spearman correlation test) :
+### Test for the association between `hemoplasma` prevalence and sample size per `species` (Spearman correlation test) :
 ```
 cor.test(
   species_summary$n_sampled,
@@ -320,7 +320,7 @@ cor.test(
 -> Results :
 Spearman's ρ = 0.334, p = 0.027.
 
--> Interpretation: 
+-> Interpretation : 
 A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
 
 ### Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) : 
@@ -370,6 +370,40 @@ ggsave(
 )
 ```
 
+## Step 3. Variation in `hemoplasma` infection status according to the host’s `sex`
+
+### Fit the full GLMM (model 1) :
+Model 1 tests whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`).
+```
+model_sex_data <- data_hemoplasma_stat %>%
+  filter(
+    !is.na(sex),
+  )
+model1_a <- glmer(
+  hemoplasma ~ sex + (1 | species),
+  data = model_sex_data,
+  family = binomial
+)
+summary(model1_a)
+model1_b <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  data = model_sex_data,
+  family = binomial,
+)
+anova(
+  model1_a,
+  model1_b,
+  test = "Chisq"
+)
+AIC(model1_a, model1_b)
+```
+
+-> Results : `sex` was not significantly associated with `hemoplasma` infection status (LRT: χ²₁ = 2.33, p = 0.127). The model including `sex` had a slightly lower AIC than the null model (314.73 vs. 315.06; ΔAIC = 0.33).
+
+-> Interpretation : There was no strong evidence for a `sex` effect on `hemoplasma` infection probability. 
+
+
+## Step 4. Variation in `hemoplasma` infection status according to the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
 
 
@@ -377,7 +411,6 @@ ggsave(
 
 
 
-## Step 4. Variation in hemoplasma infection status according to the host’s `sex` and the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
 ### Data preparation: Create the `pathogens` variable by merging `anaplasmataceae` and `apicomplexa`
 ```
