@@ -226,7 +226,7 @@ species_order <- c(
   "Philander_opossum"
 )
 plot_data <- species_summary %>%
-   mutate(
+  mutate(
     species_label = gsub(
       "_",
       " ",
@@ -234,10 +234,12 @@ plot_data <- species_summary %>%
     ),
     species_label = factor(
       species_label,
-      levels = gsub(
-        "_",
-        " ",
-        species_order
+      levels = rev(
+        gsub(
+          "_",
+          " ",
+          species_order
+        )
       )
     )
   )
@@ -248,7 +250,7 @@ p_species_prevalence <- ggplot(
     y = species_label
   )
 ) +
-  geom_segment( 
+  geom_segment(
     aes(
       x = ci_low * 100,
       xend = ci_high * 100,
@@ -258,52 +260,54 @@ p_species_prevalence <- ggplot(
     linewidth = 0.7
   ) +
   geom_point(
-    size = 4
+    shape = 21,
+    fill = "white",
+    size = 5,
+    stroke = 0.8
   ) +
-  scale_x_continuous( 
-    limits = c(
-      0,
-      100
-    ),
-    breaks = seq(
-      0,
-      100,
-      20
-    ),    
+  scale_x_continuous(
+    limits = c(0, 100),
+    breaks = seq(0, 100, 20),
     labels = function(x) {
-      paste0(
-        x,
-        "%"
-      )
+      paste0(x, "%")
     }
   ) +
-
   labs(
     x = "Haemoplasma prevalence",
     y = NULL
   ) +
   theme_classic() +
-  theme(  
-    axis.text.y =
-      element_text(
-        size = 10
-      ),
-    axis.text.x =
-      element_text(
-        size = 10
-      ), 
-    axis.title.x =
-      element_text(
-        size = 11
-      ), 
-    panel.grid.major.x =
-      element_line(
-        linewidth = 0.3,
-        colour = "grey85"
-      )
+  theme(
+    axis.text.y = element_text(
+      size = 10,
+      margin = margin(r = 8)
+    ),
+    axis.text.x = element_text(
+      size = 10
+    ),
+    axis.title.x = element_text(
+      size = 11
+    ),
+    panel.grid.major.x = element_line(
+      linewidth = 0.3,
+      colour = "grey85"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
   )
 print(
   p_species_prevalence
+)
+ggsave(
+  filename = "species_haemoplasma_prevalence.png",
+  plot = p_species_prevalence,
+  width = 7,
+  height = 12,
+  units = "in",
+  dpi = 300
 )
 ```
 
@@ -789,11 +793,12 @@ ggplot(
     axis.title.x = element_text(size = 11)
   )
 ggsave(
-  filename = "OR_hemoplasma_pathogens.pdf",
+  filename = "OR_hemoplasma_pathogens.png",
   plot = last_plot(),
   width = 7,
   height = 4.5,
-  units = "in"
+  units = "in",
+  dpi = 300
 )
 ```
 
