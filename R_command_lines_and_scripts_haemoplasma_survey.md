@@ -129,11 +129,8 @@ species_summary <- data_hemoplasma_stat %>%
 print(species_summary, n = Inf)
 ```
 
-Results : 
-```
-# A tibble: 44 × 7
+-> Results : 
    species                   n_sampled n_positive n_negative prevalence  ci_low ci_high
-   <fct>                         <int>      <dbl>      <dbl>      <dbl>   <dbl>   <dbl>
  1 Alouatta_macconnelli             22         20          2     0.909  0.722    0.975 
  2 Bradypus_tridactylus            108          4        104     0.0370 0.0145   0.0914
  3 Cabassous_unicinctus              2          0          2     0      0        0.658 
@@ -228,19 +225,13 @@ species_order <- c(
   "Micoureus_demerarae",
   "Philander_opossum"
 )
-
 plot_data <- species_summary %>%
-  
-  mutate(
-    
-    # Replace underscores by spaces for display
+   mutate(
     species_label = gsub(
       "_",
       " ",
       as.character(species)
     ),
-    
-    # Set desired species order
     species_label = factor(
       species_label,
       levels = gsub(
@@ -250,47 +241,35 @@ plot_data <- species_summary %>%
       )
     )
   )
-
 p_species_prevalence <- ggplot(
-  
   plot_data,
-  
   aes(
     x = prevalence * 100,
     y = species_label
   )
 ) +
-
-  geom_segment(
-    
+  geom_segment( 
     aes(
       x = ci_low * 100,
       xend = ci_high * 100,
       y = species_label,
       yend = species_label
     ),
-    
     linewidth = 0.7
   ) +
-
   geom_point(
-    
     size = 4
   ) +
-
-  scale_x_continuous(
-    
+  scale_x_continuous( 
     limits = c(
       0,
       100
     ),
-    
     breaks = seq(
       0,
       100,
       20
-    ),
-    
+    ),    
     labels = function(x) {
       paste0(
         x,
@@ -300,31 +279,23 @@ p_species_prevalence <- ggplot(
   ) +
 
   labs(
-    
     x = "Haemoplasma prevalence",
-    
     y = NULL
   ) +
- 
   theme_classic() +
-  
-  theme(
-    
+  theme(  
     axis.text.y =
       element_text(
         size = 10
       ),
-    
     axis.text.x =
       element_text(
         size = 10
-      ),
-    
+      ), 
     axis.title.x =
       element_text(
         size = 11
-      ),
-    
+      ), 
     panel.grid.major.x =
       element_line(
         linewidth = 0.3,
@@ -346,10 +317,10 @@ cor.test(
 )
 ```
 
-Results :
+-> Results :
 Spearman's ρ = 0.334, p = 0.027.
 
-Interpretation: 
+-> Interpretation: 
 A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
 
 Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) : 
@@ -363,7 +334,6 @@ plot_data <- species_summary %>%
   mutate(
     log_n = log10(n_sampled)
   )
-
 p <- ggplot(
   plot_data,
   aes(x = log_n, y = prevalence)
@@ -399,6 +369,13 @@ ggsave(
   dpi = 300
 )
 ```
+
+
+
+
+
+
+
 
 ## Step 4. Variation in hemoplasma infection status according to the host’s `sex` and the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
