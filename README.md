@@ -8,7 +8,7 @@ We used data from two main sources:
 
 -> The epidemiological survey dataset for mammals is available [here](data_hemoplasma_stat.csv).
 
--> The life trait dataset for mammals (extracted and adapted from the Amniote Life History and EltonTraits databases) is available [here] ([data_mammal_traits.csv](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv)).
+-> The life trait dataset for mammals (extracted and adapted from the Amniote Life History and EltonTraits databases) is available [here]([data_mammal_traits.csv](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv)).
 
 -> The epidemiological survey R command lines and scripts are available [here](R_command_lines_and_scripts_haemoplasma_survey.md).
 
