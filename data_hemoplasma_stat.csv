@@ -485,9 +485,9 @@ Proechimys_guyannensis;Rodentia;M;0;0;0;Ground;Nocturnal;Omnivore;Solitary
 Proechimys_guyannensis;Rodentia;M;0;0;0;Ground;Nocturnal;Omnivore;Solitary
 Proechimys_guyannensis;Rodentia;M;0;0;0;Ground;Nocturnal;Omnivore;Solitary
 Coendou_melanurus;Rodentia;F;0;0;0;Canopy;Nocturnal;Phytophage;Solitary
-Coendou_sp;Rodentia;NA;1;0;0;Canopy;Nocturnal;Phytophage;Solitary
-Coendou_sp;Rodentia;NA;0;0;0;Canopy;Nocturnal;Phytophage;Solitary
-Coendou_sp;Rodentia;NA;0;0;1;Canopy;Nocturnal;Phytophage;Solitary
+Coendou_prehensilis;Rodentia;NA;1;0;0;Canopy;Nocturnal;Phytophage;Solitary
+Coendou_prehensilis;Rodentia;NA;0;0;0;Canopy;Nocturnal;Phytophage;Solitary
+Coendou_prehensilis;Rodentia;NA;0;0;1;Canopy;Nocturnal;Phytophage;Solitary
 Mus_musculus;Rodentia;NA;0;0;0;Ground;Nocturnal;Omnivore;Group
 Mus_musculus;Rodentia;NA;0;0;0;Ground;Nocturnal;Omnivore;Group
 Mus_musculus;Rodentia;NA;0;0;0;Ground;Nocturnal;Omnivore;Group
@@ -542,7 +542,7 @@ Rattus_rattus;Rodentia;NA;0;0;0;Mixed;Nocturnal;Omnivore;Group
 Rattus_rattus;Rodentia;NA;0;0;0;Mixed;Nocturnal;Omnivore;Group
 Rattus_rattus;Rodentia;NA;0;0;0;Mixed;Nocturnal;Omnivore;Group
 Sciurus_aestuans;Rodentia;NA;0;0;0;Canopy;Diurnal;Phytophage;Solitary
-Felis_wiedii;Carnivora;M;0;0;1;Canopy;Nocturnal;Carnivore;Solitary
+Leopardus_wiedii;Carnivora;M;0;0;1;Canopy;Nocturnal;Carnivore;Solitary
 Puma_yagouaroundi;Carnivora;NA;0;0;0;Ground;Diurnal;Carnivore;Solitary
 Puma_yagouaroundi;Carnivora;M;0;0;0;Ground;Diurnal;Carnivore;Solitary
 Puma_yagouaroundi;Carnivora;M;0;0;0;Ground;Diurnal;Carnivore;Solitary
@@ -622,6 +622,6 @@ Saguinus_midas;Primates;M;1;0;0;Canopy;Diurnal;Omnivore;Group
 Saguinus_midas;Primates;M;1;0;0;Canopy;Diurnal;Omnivore;Group
 Saguinus_midas;Primates;F;1;0;0;Canopy;Diurnal;Omnivore;Group
 Saguinus_midas;Primates;M;1;0;0;Canopy;Diurnal;Omnivore;Group
-Cebus_apella;Primates;NA;0;0;0;Canopy;Diurnal;Omnivore;Group
+Sapajus_apella;Primates;NA;0;0;0;Canopy;Diurnal;Omnivore;Group
 Saimiri_sciureus;Primates;NA;0;0;0;Canopy;Diurnal;Phytophage;Group
 Pithecia_pithecia;Primates;F;0;0;0;Canopy;Diurnal;Phytophage;Group
