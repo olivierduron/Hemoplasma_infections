@@ -1,4 +1,4 @@
-species;dietinv;dietvet;dietplant;strata;stataAr;strataG;activitynocturnal;activitycrepuscular;activitydiurnal;bodymass;longevity;femalematurity;littersize
+species;dietinv;dietvet;dietplant;strata;strataAr;strataG;activitynocturnal;activitycrepuscular;activitydiurnal;bodymass;longevity;femalematurity;littersize
 Caluromys_philander;20;10;70;Ar;1;0;1;1;0;229.25;7.616666667;309.26;4.34
 Didelphis_marsupialis;20;60;20;S;1;1;1;0;0;1091.16;4;178;6.2
 Marmosa_lepida;40;30;30;Ar;1;0;1;0;0;14;NA;NA;5
