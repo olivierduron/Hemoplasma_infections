@@ -523,7 +523,7 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
     ),
     species = factor(species)
   )
-data_hemoplasma_stat$pathogens      <- as.factor(data_hemoplasma_stat$pathogens, levels = c(0, 1))
+data_hemoplasma_stat$pathogens      <- as.factor(data_hemoplasma_stat$pathogens)
 ```
 
 ### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) :
