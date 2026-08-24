@@ -914,195 +914,155 @@ ggsave(
 
 A FINIR PREVALENCE DEUX ESP7CES EXTREMES: 
 ```
+library(dplyr)
+library(ggplot2)
+
 # ============================================================
-# Espèces
+# Données
 # ============================================================
 
 species_select <- c(
-  "Bradypus_tridactylus",
-  "Didelphis_marsupialis"
+  "Didelphis_marsupialis",
+  "Bradypus_tridactylus"
 )
 
-# ============================================================
-# Préparation des données
-# ============================================================
-
-data_selected <- data_hemoplasma_stat %>%
-  filter(species %in% species_select) %>%
-  mutate(
-    Hemoplasma = as.numeric(hemoplasma),
-    Pathogens = factor(
-      pathogens,
-      levels = c(0, 1),
-      labels = c("Pathogens -", "Pathogens +")
-    )
-  )
-
-# ============================================================
-# Prévalence + IC95% Wilson
-# ============================================================
-
-prevalence_results <- data_selected %>%
-  group_by(species, Pathogens) %>%
+plot_data <- data_hemoplasma_stat %>%
+  filter(
+    species %in% species_select,
+    !is.na(hemoplasma),
+    !is.na(pathogens)
+  ) %>%
+  group_by(species, pathogens) %>%
   summarise(
-    n_positive = sum(Hemoplasma == 1, na.rm = TRUE),
-    N = sum(!is.na(Hemoplasma)),
-    prevalence = n_positive / N,
+    n_positive = sum(hemoplasma == 1),
+    n_total = n(),
+    prevalence = n_positive / n_total,
     .groups = "drop"
   ) %>%
-  rowwise() %>%
   mutate(
-    wilson = list(
-      prop.test(
-        n_positive,
-        N,
-        correct = FALSE
-      )
-    )
-  ) %>%
-  mutate(
-    CI_low = wilson$conf.int[1],
-    CI_high = wilson$conf.int[2]
-  ) %>%
-  ungroup() %>%
-  mutate(
+    # --------------------------------------------------------
+    # IC95% Wilson
+    # --------------------------------------------------------
+    z = qnorm(0.975),
+    denominator = 1 + z^2 / n_total,
+    center = (
+      prevalence +
+        z^2 / (2 * n_total)
+    ) / denominator,
+    half_width = (
+      z *
+        sqrt(
+          prevalence * (1 - prevalence) / n_total +
+            z^2 / (4 * n_total^2)
+        )
+    ) / denominator,
+    
+    CI_low = center - half_width,
+    CI_high = center + half_width,
+    
+    # Pourcentage
     prevalence_percent = prevalence * 100,
     CI_low_percent = CI_low * 100,
-    CI_high_percent = CI_high * 100
-  ) %>%
-  select(
-    species,
-    Pathogens,
-    n_positive,
-    N,
-    prevalence_percent,
-    CI_low_percent,
-    CI_high_percent
+    CI_high_percent = CI_high * 100,
+    
+    # Labels
+    species_label = case_when(
+      species == "Didelphis_marsupialis" ~ "Didelphis marsupialis",
+      species == "Bradypus_tridactylus" ~ "Bradypus tridactylus"
+    ),
+    
+    pathogens_label = ifelse(
+      pathogens == 0,
+      "Pathogens 0",
+      "Pathogens 1"
+    )
   )
 
 # ============================================================
-# Tests de Fisher
+# Ordre exact souhaité sur l'axe Y
 # ============================================================
 
-fisher_results <- lapply(
-  species_select,
-  function(sp) {
-
-    dat <- data_selected %>%
-      filter(species == sp)
-
-    tab <- table(
-      dat$Hemoplasma,
-      dat$Pathogens
+plot_data <- plot_data %>%
+  mutate(
+    group = factor(
+      paste(species_label, pathogens_label),
+      levels = c(
+        "Didelphis marsupialis Pathogens 0",
+        "Didelphis marsupialis Pathogens 1",
+        "Bradypus tridactylus Pathogens 0",
+        "Bradypus tridactylus Pathogens 1"
+      )
     )
+  )
 
-    cat("\n========================================\n")
-    cat(sp, "\n")
-    cat("========================================\n")
-    print(tab)
-
-    fisher <- fisher.test(tab)
-
-    cat("\nFisher's exact test:\n")
-    print(fisher)
-
-    data.frame(
-      species = sp,
-      OR = unname(fisher$estimate),
-      CI_low = fisher$conf.int[1],
-      CI_high = fisher$conf.int[2],
-      p_value = fisher$p.value
+# Vérifier les valeurs
+print(
+  plot_data %>%
+    select(
+      species_label,
+      pathogens_label,
+      n_positive,
+      n_total,
+      prevalence_percent,
+      CI_low_percent,
+      CI_high_percent
     )
-  }
 )
 
-fisher_summary <- bind_rows(fisher_results)
-
-cat("\n\n========================================\n")
-cat("SUMMARY OF FISHER TESTS\n")
-cat("========================================\n")
-
-print(fisher_summary)
-
-
 # ============================================================
-# Graphique
+# Forest plot
 # ============================================================
 
 p <- ggplot(
-  prevalence_results,
+  plot_data,
   aes(
-    x = species,
-    y = prevalence_percent,
-    group = Pathogens
+    x = prevalence_percent,
+    y = group
   )
 ) +
-
-  # IC95% Wilson
+  
+  # IC95% Wilson : barre verticale
   geom_errorbar(
     aes(
-      ymin = CI_low_percent,
-      ymax = CI_high_percent
+      xmin = CI_low_percent,
+      xmax = CI_high_percent
     ),
-    width = 0,
+    orientation = "y",
+    width = 0.0,
     linewidth = 1
   ) +
-
-  # Cercle noir, centre blanc
+  
+  # Cercle blanc à contour noir
   geom_point(
     shape = 21,
     size = 12,
     fill = "white",
     colour = "black",
-    stroke = 1.2,
-    position = position_dodge(width = 0.45)
+    stroke = 1.2
   ) +
-
-  # Séparer légèrement les Pathogens - et +
-  facet_wrap(
-    ~ Pathogens,
-    nrow = 1
+  
+  scale_x_continuous(
+    limits = c(0, 100),
+    breaks = seq(0, 100, by = 20),
+    expand = expansion(mult = c(0.02, 0.03))
   ) +
-
-  scale_y_continuous(
-    limits = c(0, 105),
-    breaks = seq(0, 100, 20),
-    expand = expansion(
-      mult = c(0, 0.03)
-    )
-  ) +
-
-  scale_x_discrete(
-    labels = c(
-      "Bradypus_tridactylus" = "Bradypus tridactylus",
-      "Didelphis_marsupialis" = "Didelphis marsupialis"
-    )
-  ) +
-
+  
   labs(
-    x = NULL,
-    y = "Hemoplasma prevalence (%)"
+    x = "Hemoplasma prevalence (%)",
+    y = NULL
   ) +
-
+  
   theme_classic() +
-
+  
   theme(
-    axis.text.x = element_text(
-      size = 10,
-      face = "italic"
-    ),
     axis.text.y = element_text(
+      size = 11
+    ),
+    axis.text.x = element_text(
       size = 10
     ),
-    axis.title.y = element_text(
+    axis.title.x = element_text(
       size = 11
-    ),
-    strip.text = element_text(
-      size = 11
-    ),
-    panel.spacing = unit(
-      1.5,
-      "lines"
     )
   )
 
@@ -1113,10 +1073,10 @@ print(p)
 # ============================================================
 
 ggsave(
-  filename = "Hemoplasma_prevalence_Pathogens_Bradypus_Didelphis.png",
+  filename = "Hemoplasma_prevalence_Pathogens_Wilson.png",
   plot = p,
   width = 7,
-  height = 4.2,
+  height = 4.5,
   units = "in",
   dpi = 300
 )
