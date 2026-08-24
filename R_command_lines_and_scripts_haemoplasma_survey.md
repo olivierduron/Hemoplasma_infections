@@ -547,7 +547,7 @@ anova(
 AIC(model2_a, model2_b)
 ```
 
-Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `pathogens` on `hemoplasma` infection
 ```
 model_pathogens_bayes <- brm(
   hemoplasma ~ pathogens + (1 | species),
