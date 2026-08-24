@@ -523,7 +523,7 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
     ),
     species = factor(species)
   )
-data_hemoplasma_stat$pathogens      <- as.factor(data_hemoplasma_stat$pathogens)
+data_hemoplasma_stat$pathogens <- as.factor(data_hemoplasma_stat$pathogens)
 ```
 
 ### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) :
@@ -564,7 +564,7 @@ posterior_pathogens <- as_draws_df(
   model_pathogens_bayes
 )
 or_pathogens <- exp(
-  posterior_pathogens$b_pathogens
+  posterior_pathogens$b_pathogens1
 )
 or_pathogens_results <- data.frame(
     variable = "Pathogens (1 vs 0)",
@@ -649,12 +649,12 @@ posterior_model3 <- as_draws_df(
   model3_bayes
 )
 or_anaplasmataceae <- exp(
-  posterior_model3$b_anaplasmataceae
+  posterior_model3$b_anaplasmataceae1
 )
 
 # Odds ratio for Apicomplexa
 or_apicomplexa <- exp(
-  posterior_model3$b_apicomplexa
+  posterior_model3$b_apicomplexa1
 )
 or_model3_results <- data.frame(
   variable = c(
@@ -689,68 +689,65 @@ or_model3_results <- data.frame(
 or_model3_results
 ```
 
--> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was not retained. Adding `apicomplexa` to the additive model did not significantly improve model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, `anaplasmataceae` significantly improved model fit compared with the null model (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (OR = 3.09, 95% HDI: 0.85–7.24), than `apicomplexa` (OR = 2.93, 95% HDI: 0.50–8.72).
+-> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was therefore not retained. Adding `apicomplexa` to the model containing `anaplasmataceae` provided only weak evidence for an improvement in model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, adding `anaplasmataceae` to the null model significantly improved model fit (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (median OR = 3.09, 95% HDI: 0.85–7.24), although the HDI included 1. The corresponding effect of `apicomplexa` was also positive but highly uncertain (median OR = 2.93, 95% HDI: 0.50–8.72).
 
-Interpretation: The frequentist model comparison provided evidence that anaplasmataceae contributed to explaining variation in hemoplasma infection probability. However, the Bayesian estimate was uncertain, with the 95% HDI for the odds ratio including 1. Thus, the Bayesian analysis does not provide strong evidence for a non-zero effect of anaplasmataceae. Similarly, there was no clear evidence for an independent effect of apicomplexa, and no evidence that the effect of one pathogen depended on the presence of the other.
-
--> Interpretation : `anaplasmataceae` was associated with higher odds of `hemoplasma` infection, with the 95% HDI excluding 1. In contrast, there was no clear evidence for an independent effect of `apicomplexa`, as its 95% HDI included 1, nor for an interaction between `anaplasmataceae` and `apicomplexa`.
+-> Interpretation : Overall, `anaplasmataceae` contributed to explaining variation in `hemoplasma` infection probability, whereas there was only weak evidence for an additional contribution of `apicomplexa`. However, the Bayesian estimates were uncertain, with the 95% HDIs for both odds ratios including 1. 
 
 ### Sensitivity analysis : 
-A leave-one-species-out analysis was further performed to assess whether the association between `anaplasmataceae` and `hemoplasma` infection was driven by any single `species`.
+A leave-one-species-out analysis was further performed to assess whether the association between `pathogens` and `hemoplasma` infection was driven by any single `species`.
 ```
 species_list <- unique(
   data_hemoplasma_stat$species
 )
-leave_one_species <- lapply(  
-  species_list,  
+leave_one_species <- lapply(
+  species_list,
   function(sp) {    
     data_tmp <- data_hemoplasma_stat %>%
-      filter(
-        species != sp
-      )    
+      filter(species != sp)    
     model_full <- glmer(
-      hemoplasma ~ anaplasmataceae + (1 | species),
+      hemoplasma ~ pathogens + (1 | species),
       data = data_tmp,
       family = binomial,
       control = glmerControl(
         optimizer = "bobyqa"
-      )    )    
+      )
+    )    
     model_null <- glmer(
       hemoplasma ~ 1 + (1 | species),
       data = data_tmp,
       family = binomial,
       control = glmerControl(
         optimizer = "bobyqa"
-      )    )    
+      )
+    )    
     coef_model <- summary(
       model_full
     )$coefficients[
-      "anaplasmataceae",
-      ]    
+      "pathogens1",
+    ]    
     lrt <- anova(
       model_full,
       model_null,
       test = "Chisq"
     )    
-    data.frame(      
-      excluded_species = sp,      
-      estimate = coef_model["Estimate"],      
-      SE = coef_model["Std. Error"],      
-      z = coef_model["z value"],      
+    data.frame(
+      excluded_species = sp,
+      estimate = coef_model["Estimate"],
+      SE = coef_model["Std. Error"],
+      z = coef_model["z value"],
       p_value = coef_model["Pr(>|z|)"],
-            OR = exp(
+      OR = exp(
         coef_model["Estimate"]
       ),
-            LRT_chisq = lrt$Chisq[2],
-            LRT_p = lrt$`Pr(>Chisq)`[2],
-      
+      LRT_chisq = lrt$Chisq[2],
+      LRT_p = lrt$`Pr(>Chisq)`[2],
       AIC_full = AIC(
         model_full
       ),
-           AIC_null = AIC(
+      AIC_null = AIC(
         model_null
       ),
-           delta_AIC = AIC(
+      delta_AIC = AIC(
         model_null
       ) - AIC(
         model_full
@@ -762,21 +759,64 @@ leave_one_species_results <- bind_rows(
   leave_one_species
 )
 leave_one_species_results
-leave_one_species_results %>%
-  arrange(
-    p_value
-  )
-leave_one_species_results %>%
-  arrange(
-    desc(OR)
-  )
 ```
 
--> Results: Leave-one-species-out analyses showed a consistently positive association between `hemoplasma` and `anaplasmataceae`, with ORs ranging from 2.35 to 5.05. The association remained significant in 42/44 species-exclusion models (Wald p < 0.05; LRT p < 0.05), with highly similar estimates in most cases (OR ≈ 3.1–3.4). The strongest effect, with increased statistical support, was observed when Bradypus tridactylus was excluded (OR = 5.05, LRT p = 0.0013). In contrast, excluding Dasypus novemcinctus or Choloepus didactylus resulted in loss of statistical significance, although the estimated effects remained positive (OR = 2.35 and 2.95, respectively).
+-> Table of the leave-one-species-out sensitivity analysis :
+```
+| Excluded species | Estimate | SE | z | p-value | OR | LRT χ² | LRT p | AIC full | AIC null | ΔAIC |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| *Caluromys philander* | 1.028 | 0.386 | 2.660 | 0.008 | 2.795 | 7.511 | 0.006 | 447.314 | 452.825 | 5.511 |
+| *Didelphis marsupialis* | 0.735 | 0.427 | 1.722 | 0.085 | 2.084 | 3.056 | 0.080 | 377.008 | 378.064 | 1.056 |
+| *Marmosa lepida* | 1.039 | 0.387 | 2.685 | 0.007 | 2.828 | 7.662 | 0.006 | 444.964 | 450.627 | 5.662 |
+| *Marmosa murina* | 1.036 | 0.388 | 2.670 | 0.008 | 2.817 | 7.579 | 0.006 | 428.465 | 434.045 | 5.579 |
+| *Marmosops parvidens* | 1.028 | 0.386 | 2.660 | 0.008 | 2.795 | 7.511 | 0.006 | 447.314 | 452.825 | 5.511 |
+| *Metachirus nudicaudatus* | 1.028 | 0.386 | 2.660 | 0.008 | 2.795 | 7.511 | 0.006 | 447.314 | 452.825 | 5.511 |
+| *Micoureus demerarae* | 1.035 | 0.388 | 2.669 | 0.008 | 2.815 | 7.571 | 0.006 | 433.727 | 439.298 | 5.571 |
+| *Philander opossum* | 1.143 | 0.399 | 2.865 | 0.004 | 3.135 | 8.840 | 0.003 | 415.227 | 422.067 | 6.840 |
+| *Bradypus tridactylus* | 1.283 | 0.420 | 3.056 | 0.002 | 3.609 | 10.123 | 0.001 | 408.205 | 416.327 | 8.123 |
+| *Choloepus didactylus* | 1.033 | 0.543 | 1.905 | 0.057 | 2.811 | 3.861 | 0.049 | 355.046 | 356.906 | 1.861 |
+| *Cyclopes didactylus* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+| *Tamandua tetradactyla* | 1.029 | 0.387 | 2.661 | 0.008 | 2.797 | 7.519 | 0.006 | 447.576 | 453.095 | 5.519 |
+| *Cabassous unicinctus* | 1.029 | 0.387 | 2.662 | 0.008 | 2.799 | 7.525 | 0.006 | 447.753 | 453.278 | 5.525 |
+| *Dasypus novemcinctus* | 0.861 | 0.399 | 2.157 | 0.031 | 2.366 | 4.872 | 0.027 | 428.330 | 431.202 | 2.872 |
+| *Hydrochoerus hydrochaeris* | 1.052 | 0.389 | 2.704 | 0.007 | 2.864 | 7.787 | 0.005 | 447.491 | 453.278 | 5.787 |
+| *Holochilus sciureus* | 1.036 | 0.388 | 2.670 | 0.008 | 2.817 | 7.580 | 0.006 | 441.417 | 446.997 | 5.580 |
+| *Hylaeamys megacephalus* | 1.025 | 0.386 | 2.657 | 0.008 | 2.788 | 7.492 | 0.006 | 446.598 | 452.090 | 5.492 |
+| *Hylaeamys yunganus* | 1.026 | 0.386 | 2.658 | 0.008 | 2.791 | 7.499 | 0.006 | 446.888 | 452.387 | 5.499 |
+| *Neacomys dubosti* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+| *Neacomys paracou* | 1.027 | 0.386 | 2.659 | 0.008 | 2.792 | 7.503 | 0.006 | 447.034 | 452.537 | 5.503 |
+| *Nectomys rattus* | 1.039 | 0.388 | 2.679 | 0.007 | 2.825 | 7.629 | 0.006 | 439.885 | 445.515 | 5.629 |
+| *Oecomys auyantepui* | 1.033 | 0.388 | 2.665 | 0.008 | 2.809 | 7.546 | 0.006 | 438.896 | 444.442 | 5.546 |
+| *Oecomys bicolor* | 1.025 | 0.386 | 2.657 | 0.008 | 2.788 | 7.491 | 0.006 | 446.549 | 452.040 | 5.490 |
+| *Oligoryzomys fulvescens* | 1.035 | 0.388 | 2.669 | 0.008 | 2.815 | 7.570 | 0.006 | 440.700 | 446.270 | 5.569 |
+| *Makalata didelphoides* | 1.027 | 0.386 | 2.659 | 0.008 | 2.792 | 7.503 | 0.006 | 447.034 | 452.537 | 5.503 |
+| *Mesomys hispidus* | 1.026 | 0.386 | 2.657 | 0.008 | 2.789 | 7.495 | 0.006 | 446.704 | 452.198 | 5.495 |
+| *Proechimys cuvieri* | 1.035 | 0.388 | 2.668 | 0.008 | 2.815 | 7.568 | 0.006 | 433.228 | 438.796 | 5.568 |
+| *Proechimys guyannensis* | 1.032 | 0.387 | 2.664 | 0.008 | 2.807 | 7.540 | 0.006 | 438.392 | 443.932 | 5.540 |
+| *Coendou melanurus* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+| *Coendou prehensilis* | 1.096 | 0.394 | 2.782 | 0.005 | 2.991 | 8.298 | 0.004 | 441.807 | 448.105 | 6.298 |
+| *Mus musculus* | 1.023 | 0.385 | 2.655 | 0.008 | 2.782 | 7.476 | 0.006 | 445.911 | 451.387 | 5.476 |
+| *Rattus rattus* | 1.035 | 0.388 | 2.668 | 0.008 | 2.814 | 7.566 | 0.006 | 433.000 | 438.566 | 5.566 |
+| *Sciurus aestuans* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+| *Leopardus wiedii* | 1.058 | 0.389 | 2.719 | 0.007 | 2.881 | 7.878 | 0.005 | 447.651 | 453.529 | 5.878 |
+| *Puma yagouaroundi* | 1.028 | 0.386 | 2.660 | 0.008 | 2.795 | 7.511 | 0.006 | 447.314 | 452.825 | 5.511 |
+| *Eira barbara* | 1.046 | 0.389 | 2.689 | 0.007 | 2.845 | 7.699 | 0.006 | 447.249 | 452.948 | 5.699 |
+| *Galictis vittata* | 1.004 | 0.389 | 2.580 | 0.010 | 2.730 | 7.048 | 0.008 | 440.708 | 445.756 | 5.048 |
+| *Lontra longicaudis* | 1.039 | 0.387 | 2.685 | 0.007 | 2.828 | 7.662 | 0.006 | 444.965 | 450.627 | 5.662 |
+| *Potos flavus* | 1.038 | 0.388 | 2.677 | 0.007 | 2.823 | 7.617 | 0.006 | 443.389 | 449.005 | 5.617 |
+| *Alouatta macconnelli* | 1.042 | 0.386 | 2.702 | 0.007 | 2.836 | 7.752 | 0.005 | 428.508 | 434.260 | 5.752 |
+| *Saguinus midas* | 1.045 | 0.382 | 2.737 | 0.006 | 2.842 | 7.930 | 0.005 | 436.904 | 442.834 | 5.930 |
+| *Sapajus apella* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+| *Saimiri sciureus* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+| *Pithecia pithecia* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
+```
 
--> Interpretation: The association between `hemoplasma` and `anaplasmataceae` is generally robust to the exclusion of individual species and is not driven by a single species. Bradypus tridactylus tends to attenuate the effect, whereas exclusion of Dasypus novemcinctus or Choloepus didactylus reduces statistical support. Overall, the direction and magnitude of the association remain broadly consistent across sensitivity analyses.
+-> Results: Leave-one-species-out analyses showed a consistently positive association between `hemoplasma` and `pathogens`, with odds ratios ranging from 2.08 to 3.61. The association remained supported by likelihood-ratio tests in 42/44 species-exclusion models (LRT *p* < 0.05), with highly similar estimates in most cases (OR ≈ 2.8–2.9). The strongest association was observed when *Bradypus tridactylus* was excluded (OR = 3.61, LRT *p* = 0.0015), whereas excluding *Didelphis marsupialis* reduced statistical support (OR = 2.08, LRT *p* = 0.080). 
 
-### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae`
+-> Interpretation: The positive association between `hemoplasma` and `pathogens` was generally robust to the exclusion of individual host `species` and was not driven by a single mammal `species`. Excluding *Bradypus tridactylus* strengthened the estimated association, indicating that this `species` tends to attenuate the overall effect. 
+
+
+### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae` : 
 ```
 or_results <- data.frame(
   variable = c(
@@ -816,7 +856,7 @@ plot_or <- or_results %>%
       ))
     )
   )
-ggplot(
+p <- ggplot(
   plot_or,
   aes(
     x = OR,
@@ -838,7 +878,11 @@ ggplot(
     linewidth = 1
   ) +
   geom_point(
-    size = 12
+    shape = 21,
+    size = 12,
+    fill = "white",
+    colour = "black",
+    stroke = 1.2
   ) +
   scale_x_continuous(
     limits = c(0, 12),
@@ -854,18 +898,16 @@ ggplot(
     axis.text.x = element_text(size = 10),
     axis.title.x = element_text(size = 11)
   )
+print(p)
 ggsave(
   filename = "OR_hemoplasma_pathogens.png",
-  plot = last_plot(),
+  plot = p,
   width = 7,
   height = 4.5,
   units = "in",
   dpi = 300
 )
 ```
-
-
-
 
 
 
