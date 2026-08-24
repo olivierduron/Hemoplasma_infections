@@ -912,6 +912,216 @@ ggsave(
 
 
 
+A FINIR PREVALENCE DEUX ESP7CES EXTREMES: 
+```
+# ============================================================
+# Espèces
+# ============================================================
+
+species_select <- c(
+  "Bradypus_tridactylus",
+  "Didelphis_marsupialis"
+)
+
+# ============================================================
+# Préparation des données
+# ============================================================
+
+data_selected <- data_hemoplasma_stat %>%
+  filter(species %in% species_select) %>%
+  mutate(
+    Hemoplasma = as.numeric(hemoplasma),
+    Pathogens = factor(
+      pathogens,
+      levels = c(0, 1),
+      labels = c("Pathogens -", "Pathogens +")
+    )
+  )
+
+# ============================================================
+# Prévalence + IC95% Wilson
+# ============================================================
+
+prevalence_results <- data_selected %>%
+  group_by(species, Pathogens) %>%
+  summarise(
+    n_positive = sum(Hemoplasma == 1, na.rm = TRUE),
+    N = sum(!is.na(Hemoplasma)),
+    prevalence = n_positive / N,
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    wilson = list(
+      prop.test(
+        n_positive,
+        N,
+        correct = FALSE
+      )
+    )
+  ) %>%
+  mutate(
+    CI_low = wilson$conf.int[1],
+    CI_high = wilson$conf.int[2]
+  ) %>%
+  ungroup() %>%
+  mutate(
+    prevalence_percent = prevalence * 100,
+    CI_low_percent = CI_low * 100,
+    CI_high_percent = CI_high * 100
+  ) %>%
+  select(
+    species,
+    Pathogens,
+    n_positive,
+    N,
+    prevalence_percent,
+    CI_low_percent,
+    CI_high_percent
+  )
+
+# ============================================================
+# Tests de Fisher
+# ============================================================
+
+fisher_results <- lapply(
+  species_select,
+  function(sp) {
+
+    dat <- data_selected %>%
+      filter(species == sp)
+
+    tab <- table(
+      dat$Hemoplasma,
+      dat$Pathogens
+    )
+
+    cat("\n========================================\n")
+    cat(sp, "\n")
+    cat("========================================\n")
+    print(tab)
+
+    fisher <- fisher.test(tab)
+
+    cat("\nFisher's exact test:\n")
+    print(fisher)
+
+    data.frame(
+      species = sp,
+      OR = unname(fisher$estimate),
+      CI_low = fisher$conf.int[1],
+      CI_high = fisher$conf.int[2],
+      p_value = fisher$p.value
+    )
+  }
+)
+
+fisher_summary <- bind_rows(fisher_results)
+
+cat("\n\n========================================\n")
+cat("SUMMARY OF FISHER TESTS\n")
+cat("========================================\n")
+
+print(fisher_summary)
+
+
+# ============================================================
+# Graphique
+# ============================================================
+
+p <- ggplot(
+  prevalence_results,
+  aes(
+    x = species,
+    y = prevalence_percent,
+    group = Pathogens
+  )
+) +
+
+  # IC95% Wilson
+  geom_errorbar(
+    aes(
+      ymin = CI_low_percent,
+      ymax = CI_high_percent
+    ),
+    width = 0,
+    linewidth = 1
+  ) +
+
+  # Cercle noir, centre blanc
+  geom_point(
+    shape = 21,
+    size = 12,
+    fill = "white",
+    colour = "black",
+    stroke = 1.2,
+    position = position_dodge(width = 0.45)
+  ) +
+
+  # Séparer légèrement les Pathogens - et +
+  facet_wrap(
+    ~ Pathogens,
+    nrow = 1
+  ) +
+
+  scale_y_continuous(
+    limits = c(0, 105),
+    breaks = seq(0, 100, 20),
+    expand = expansion(
+      mult = c(0, 0.03)
+    )
+  ) +
+
+  scale_x_discrete(
+    labels = c(
+      "Bradypus_tridactylus" = "Bradypus tridactylus",
+      "Didelphis_marsupialis" = "Didelphis marsupialis"
+    )
+  ) +
+
+  labs(
+    x = NULL,
+    y = "Hemoplasma prevalence (%)"
+  ) +
+
+  theme_classic() +
+
+  theme(
+    axis.text.x = element_text(
+      size = 10,
+      face = "italic"
+    ),
+    axis.text.y = element_text(
+      size = 10
+    ),
+    axis.title.y = element_text(
+      size = 11
+    ),
+    strip.text = element_text(
+      size = 11
+    ),
+    panel.spacing = unit(
+      1.5,
+      "lines"
+    )
+  )
+
+print(p)
+
+# ============================================================
+# Sauvegarde
+# ============================================================
+
+ggsave(
+  filename = "Hemoplasma_prevalence_Pathogens_Bradypus_Didelphis.png",
+  plot = p,
+  width = 7,
+  height = 4.2,
+  units = "in",
+  dpi = 300
+)
+```
+
 
 
 
