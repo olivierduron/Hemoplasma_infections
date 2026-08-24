@@ -634,7 +634,7 @@ AIC(model3_c, model3_d)
 
 Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection
 ```
-model_pathogens_bayes <- brm(
+model3_bayes <- brm(
   hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
   data = data_hemoplasma_stat,
   family = bernoulli(link = "logit"),
@@ -644,34 +644,22 @@ model_pathogens_bayes <- brm(
   cores = 1,
   seed = 1234
 )
-model_anaplasmataceae_bayes <- brm(
-  hemoplasma ~ anaplasmataceae + (1 | species),
-  data = data_hemoplasma_stat,
-  family = bernoulli(link = "logit"),
-  chains = 4,
-  iter = 4000,
-  warmup = 2000,
-  cores = 1,
-  seed = 1234
-)
-posterior_pathogens <- as_draws_df(
-  model_pathogens_bayes
-)
-posterior_anaplasmataceae <- as_draws_df(
-  model_anaplasmataceae_bayes
+posterior_model3 <- as_draws_df(
+  model3_bayes
 )
 or_anaplasmataceae <- exp(
-  posterior_anaplasmataceae$b_anaplasmataceae
+  posterior_model3$b_anaplasmataceae1
 )
+# Odds ratio for Apicomplexa
 or_apicomplexa <- exp(
-  posterior_pathogens$b_apicomplexa
+  posterior_model3$b_apicomplexa1
 )
-or_pathogens_results <- data.frame(
-    variable = c(
+or_model3_results <- data.frame(
+  variable = c(
     "Anaplasmataceae (1 vs 0)",
     "Apicomplexa (1 vs 0)"
   ),
-    OR = c(
+  OR = c(
     median(or_anaplasmataceae),
     median(or_apicomplexa)
   ),
@@ -684,22 +672,24 @@ or_pathogens_results <- data.frame(
       or_apicomplexa,
       ci = 0.95
     )$CI_low
-  ),  
+  ),
   HDI_high = c(
     hdi(
       or_anaplasmataceae,
       ci = 0.95
-    )$CI_high,    
+    )$CI_high,
     hdi(
       or_apicomplexa,
       ci = 0.95
     )$CI_high
   )
 )
-or_pathogens_results
+or_model3_results
 ```
 
--> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was not retained. Adding `apicomplexa` to the additive model did not significantly improve model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, `anaplasmataceae` significantly improved model fit compared with the null model (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (OR = 3.38, 95% HDI: 1.07–7.96), whereas the estimated effect of `apicomplexa` was not supported (OR = 2.93, 95% HDI: 0.50–8.72).
+-> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was not retained. Adding `apicomplexa` to the additive model did not significantly improve model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, `anaplasmataceae` significantly improved model fit compared with the null model (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (OR = 3.09, 95% HDI: 0.85–7.24), than `apicomplexa` (OR = 2.93, 95% HDI: 0.50–8.72).
+
+Interpretation: The frequentist model comparison provided evidence that anaplasmataceae contributed to explaining variation in hemoplasma infection probability. However, the Bayesian estimate was uncertain, with the 95% HDI for the odds ratio including 1. Thus, the Bayesian analysis does not provide strong evidence for a non-zero effect of anaplasmataceae. Similarly, there was no clear evidence for an independent effect of apicomplexa, and no evidence that the effect of one pathogen depended on the presence of the other.
 
 -> Interpretation : `anaplasmataceae` was associated with higher odds of `hemoplasma` infection, with the 95% HDI excluding 1. In contrast, there was no clear evidence for an independent effect of `apicomplexa`, as its 95% HDI included 1, nor for an interaction between `anaplasmataceae` and `apicomplexa`.
 
