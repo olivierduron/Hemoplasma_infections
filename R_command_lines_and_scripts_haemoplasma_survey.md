@@ -523,6 +523,7 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
     ),
     species = factor(species)
   )
+data_hemoplasma_stat$pathogens      <- as.factor(data_hemoplasma_stat$pathogens, levels = c(0, 1))
 ```
 
 ### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) :
@@ -648,11 +649,12 @@ posterior_model3 <- as_draws_df(
   model3_bayes
 )
 or_anaplasmataceae <- exp(
-  posterior_model3$b_anaplasmataceae1
+  posterior_model3$b_anaplasmataceae
 )
+
 # Odds ratio for Apicomplexa
 or_apicomplexa <- exp(
-  posterior_model3$b_apicomplexa1
+  posterior_model3$b_apicomplexa
 )
 or_model3_results <- data.frame(
   variable = c(
@@ -861,6 +863,18 @@ ggsave(
   dpi = 300
 )
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
