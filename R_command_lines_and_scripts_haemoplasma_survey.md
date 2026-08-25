@@ -762,7 +762,6 @@ leave_one_species_results
 ```
 
 -> Table of the leave-one-species-out sensitivity analysis :
-```
 | Excluded species | Estimate | SE | z | p-value | OR | LRT χ² | LRT p | AIC full | AIC null | ΔAIC |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | *Caluromys philander* | 1.028 | 0.386 | 2.660 | 0.008 | 2.795 | 7.511 | 0.006 | 447.314 | 452.825 | 5.511 |
@@ -809,7 +808,6 @@ leave_one_species_results
 | *Sapajus apella* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
 | *Saimiri sciureus* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
 | *Pithecia pithecia* | 1.030 | 0.387 | 2.664 | 0.008 | 2.801 | 7.536 | 0.006 | 447.993 | 453.529 | 5.536 |
-```
 
 -> Results: Leave-one-species-out analyses showed a consistently positive association between `hemoplasma` and `pathogens`, with odds ratios ranging from 2.08 to 3.61. The association remained supported by likelihood-ratio tests in 42/44 species-exclusion models (LRT *p* < 0.05), with highly similar estimates in most cases (OR ≈ 2.8–2.9). The strongest association was observed when *Bradypus tridactylus* was excluded (OR = 3.61, LRT *p* = 0.0015), whereas excluding *Didelphis marsupialis* reduced statistical support (OR = 2.08, LRT *p* = 0.080). 
 
@@ -1059,7 +1057,7 @@ ggsave(
 )
 ```
 
-### Fisher's exact test for association between `hemoplasma` and `pathogens` in *Bradypus_tridactylus* and *Didelphis marsupialis* :
+### Fisher's exact test for association between `hemoplasma` and `pathogens` in *Bradypus tridactylus* and *Didelphis marsupialis* :
 ```
 species_select <- c(
   "Bradypus_tridactylus",
