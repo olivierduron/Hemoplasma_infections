@@ -1095,8 +1095,8 @@ for (sp in species_select) {
 *Bradypus tridactylus* : No significant association between `pathogens` status and `haemoplasma` infection (Fisher’s exact test, OR = 0.56, 95% CI: 0.04–7.95, p = 0.619).
 *Didelphis marsupialis* : `haemoplasma` infection was significantly associated with `pathogens` positivity (OR = 10.26, 95% CI: 1.15–499.19, p = 0.019), with `haemoplasma`-positive individuals ~10-fold more likely to be `pathogens`-positive.
 
-### Step 5. `hemoplasma` prevalence by mammalian `order`
-## Observed `hemoplasma` prevalence and 95% Wilson CI by `order`
+## Step 5. `hemoplasma` prevalence by mammalian `order`
+### Observed `hemoplasma` prevalence and 95% Wilson CI by `order`
 ```
 order_prevalence <- data_hemoplasma_stat %>%
   group_by(order) %>%
@@ -1138,7 +1138,7 @@ order_prevalence
 | Primates | 66 | 61 | 92.4% | 83.5–96.7% |
 | Rodentia | 201 | 11 | 5.47% | 3.08–9.53% |
 
-## Visualization of `hemoplasma` prevalence and 95% Wilson CI by mammalian `order`
+### Visualization of `hemoplasma` prevalence and 95% Wilson CI by mammalian `order`
 ```
 order_prevalence <- data_hemoplasma_stat %>%
   group_by(order) %>%
@@ -1255,7 +1255,7 @@ ggsave(
 )
 ```
 
-## Test whether `hemoplasma` infection probability differs between mammalian `order` :
+### Test whether `hemoplasma` infection probability differs between mammalian `order` :
 Fit the full GLMM (model 4) :
 ```
 model4_a <- glmer(
@@ -1287,7 +1287,7 @@ model4_b,
 )
 ```
 
-## Post-hoc pairwise comparisons (odds ratios)
+### Post-hoc pairwise comparisons (odds ratios)
 ```
 order_emmeans <- emmeans(
   model_order,
@@ -1343,7 +1343,7 @@ Mammalian `order` significantly improved model fit compared with the null model 
 -> Interpretation : 
 `haemoplasma` prevalence significantly varied among mammalian `order`, with the strongest contrast being the markedly higher prevalence in Primates compared with Rodentia.
 
-## Visualization of odds ratios for mammalian `order` : 
+### Visualization of odds ratios for mammalian `order` : 
 ```
 order_OR_results <- summary(
   order_OR,
