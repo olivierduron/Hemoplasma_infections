@@ -342,7 +342,7 @@ p_species_prevalence <- ggplot(
     )
   ) +
   labs(
-    x = "Haemoplasma prevalence",
+    x = "Hemoplasma prevalence",
     y = NULL
   ) +
   theme_classic() +
@@ -372,7 +372,7 @@ print(
   p_species_prevalence
 )
 ggsave(
-  filename = "species_haemoplasma_prevalence.png",
+  filename = "species_Hemoplasma_prevalence.png",
   plot = p_species_prevalence,
   width = 7,
   height = 12,
@@ -909,23 +909,12 @@ ggsave(
 )
 ```
 
-
-
-
-A FINIR PREVALENCE DEUX ESP7CES EXTREMES: 
+### Visualization of `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) in *Bradypus_tridactylus* and *Didelphis marsupialis* according to `pathogens` (`anaplasmataceae` + `apicomplexa`) infection status :
 ```
-library(dplyr)
-library(ggplot2)
-
-# ============================================================
-# Données
-# ============================================================
-
 species_select <- c(
   "Didelphis_marsupialis",
   "Bradypus_tridactylus"
 )
-
 plot_data <- data_hemoplasma_stat %>%
   filter(
     species %in% species_select,
@@ -939,68 +928,57 @@ plot_data <- data_hemoplasma_stat %>%
     prevalence = n_positive / n_total,
     .groups = "drop"
   ) %>%
-  mutate(
-    # --------------------------------------------------------
-    # IC95% Wilson
-    # --------------------------------------------------------
-    z = qnorm(0.975),
-    denominator = 1 + z^2 / n_total,
+  mutate(    
+    z = qnorm(0.975),    
+    denominator = 1 + z^2 / n_total,    
     center = (
       prevalence +
         z^2 / (2 * n_total)
-    ) / denominator,
+    ) / denominator,    
     half_width = (
       z *
         sqrt(
           prevalence * (1 - prevalence) / n_total +
             z^2 / (4 * n_total^2)
         )
-    ) / denominator,
-    
+    ) / denominator,    
     CI_low = center - half_width,
-    CI_high = center + half_width,
-    
-    # Pourcentage
+    CI_high = center + half_width,    
     prevalence_percent = prevalence * 100,
     CI_low_percent = CI_low * 100,
     CI_high_percent = CI_high * 100,
-    
-    # Labels
     species_label = case_when(
       species == "Didelphis_marsupialis" ~ "Didelphis marsupialis",
       species == "Bradypus_tridactylus" ~ "Bradypus tridactylus"
     ),
-    
     pathogens_label = ifelse(
       pathogens == 0,
       "Pathogens 0",
       "Pathogens 1"
+    ),
+    group = case_when(
+      species == "Bradypus_tridactylus" ~ "Xenarthrans",
+      species == "Didelphis_marsupialis" ~ "Didelphids"
     )
   )
-
-# ============================================================
-# Ordre exact souhaité sur l'axe Y
-# ============================================================
-
 plot_data <- plot_data %>%
   mutate(
-    group = factor(
+    group_y = factor(
       paste(species_label, pathogens_label),
       levels = c(
-        "Didelphis marsupialis Pathogens 0",
         "Didelphis marsupialis Pathogens 1",
-        "Bradypus tridactylus Pathogens 0",
-        "Bradypus tridactylus Pathogens 1"
+        "Didelphis marsupialis Pathogens 0",
+        "Bradypus tridactylus Pathogens 1",
+        "Bradypus tridactylus Pathogens 0"
       )
     )
   )
-
-# Vérifier les valeurs
 print(
   plot_data %>%
     select(
       species_label,
       pathogens_label,
+      group,
       n_positive,
       n_total,
       prevalence_percent,
@@ -1008,72 +986,71 @@ print(
       CI_high_percent
     )
 )
-
-# ============================================================
-# Forest plot
-# ============================================================
-
 p <- ggplot(
   plot_data,
   aes(
     x = prevalence_percent,
-    y = group
+    y = group_y,
+    colour = group
   )
 ) +
-  
-  # IC95% Wilson : barre verticale
   geom_errorbar(
     aes(
       xmin = CI_low_percent,
       xmax = CI_high_percent
     ),
     orientation = "y",
-    width = 0.0,
+    width = 0,
     linewidth = 1
   ) +
-  
-  # Cercle blanc à contour noir
   geom_point(
     shape = 21,
-    size = 12,
     fill = "white",
-    colour = "black",
+    size = 12,
     stroke = 1.2
   ) +
-  
+  scale_colour_manual(
+    values = c(
+      "Primates" = "#264478",
+      "Xenarthrans" = "#C65911",
+      "Armadillos" = "#666666",
+      "Rodents" = "#D6A500",
+      "Carnivores" = "#375623",
+      "Didelphids" = "#4472C4"
+    )
+  ) +  
   scale_x_continuous(
     limits = c(0, 100),
     breaks = seq(0, 100, by = 20),
-    expand = expansion(mult = c(0.02, 0.03))
-  ) +
-  
+    expand = expansion(
+      mult = c(0.02, 0.03)
+    )
+  ) +  
   labs(
     x = "Hemoplasma prevalence (%)",
     y = NULL
-  ) +
-  
-  theme_classic() +
-  
+  ) +  
+  theme_classic() +  
   theme(
     axis.text.y = element_text(
       size = 11
-    ),
+    ),    
     axis.text.x = element_text(
       size = 10
-    ),
+    ),    
     axis.title.x = element_text(
       size = 11
-    )
+    ),    
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    ),    
+    legend.position = "none"
   )
-
 print(p)
-
-# ============================================================
-# Sauvegarde
-# ============================================================
-
 ggsave(
-  filename = "Hemoplasma_prevalence_Pathogens_Wilson.png",
+  filename = "Hemoplasma_prevalence_Pathogens_Wilson_coloured.png",
   plot = p,
   width = 7,
   height = 4.5,
@@ -1082,7 +1059,42 @@ ggsave(
 )
 ```
 
+### Fisher's exact test for association between `hemoplasma` and `pathogens` in *Bradypus_tridactylus* and *Didelphis marsupialis* :
+```
+species_select <- c(
+  "Bradypus_tridactylus",
+  "Didelphis_marsupialis"
+)
+for (sp in species_select) {  
+  cat("\n========================================\n")
+  cat(sp, "\n")
+  cat("========================================\n")  
+  data_sp <- data_hemoplasma_stat %>%
+    filter(
+      species == sp,
+      !is.na(hemoplasma),
+      !is.na(pathogens)
+    )
+    tab <- table(
+    Hemoplasma = data_sp$hemoplasma,
+    Pathogens = data_sp$pathogens
+  )  
+  print(tab)  
+   fisher_result <- fisher.test(tab)  
+  print(fisher_result)  
+  cat(
+    "\nOdds ratio = ",
+    round(fisher_result$estimate, 3),
+    "\nP-value = ",
+    signif(fisher_result$p.value, 4),
+    "\n"
+  )
+}
+```
 
+-> Results and interpretation : 
+*Bradypus tridactylus* : No significant association between `pathogens` status and `haemoplasma` infection (Fisher’s exact test, OR = 0.56, 95% CI: 0.04–7.95, p = 0.619).
+*Didelphis marsupialis* : `haemoplasma` infection was significantly associated with pathogen positivity (OR = 10.26, 95% CI: 1.15–499.19, p = 0.019), with `haemoplasma`-positive individuals ~10-fold more likely to be `pathogens`-positive.
 
 
 
@@ -2022,7 +2034,7 @@ data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activi
 ```
 
 # ============================================================
-# SPECIES-LEVEL HAEMOPLASMA PREVALENCE ~ DIET
+# SPECIES-LEVEL Hemoplasma PREVALENCE ~ DIET
 # BETA-BINOMIAL GLMM
 # LRT + AIC + FDR + THREE-PANEL FIGURE
 # ============================================================
@@ -2268,14 +2280,14 @@ print(results_diet)
 ```
 
 Results : 
-Species-level haemoplasma prevalence was tested against three dietary variables using beta-binomial models, accounting for overdispersion in the number of infected individuals among species.
-- Invertebrate consumption (dietinv): no association with haemoplasma prevalence (LRT: χ² = 0.36, p = 0.550; β = 0.0051, p = 0.543; ΔAIC = −1.64). The dietary model was not supported over the null model.
+Species-level Hemoplasma prevalence was tested against three dietary variables using beta-binomial models, accounting for overdispersion in the number of infected individuals among species.
+- Invertebrate consumption (dietinv): no association with Hemoplasma prevalence (LRT: χ² = 0.36, p = 0.550; β = 0.0051, p = 0.543; ΔAIC = −1.64). The dietary model was not supported over the null model.
 - Vertebrate consumption (dietvet): no significant association (LRT: χ² = 2.03, p = 0.155; β = 0.0138, p = 0.147; ΔAIC = +0.03). The slight positive effect was not supported after FDR correction (p_FDR = 0.232).
 - Plant consumption (dietplant): no significant association (LRT: χ² = 2.19, p = 0.139; β = −0.0102, p = 0.135; ΔAIC = +0.19). The negative trend was not significant after FDR correction (p_FDR = 0.232).
-After Benjamini–Hochberg correction for the three dietary tests, none of the dietary variables was significantly associated with haemoplasma prevalence (all LRT p_FDR ≥ 0.232).
+After Benjamini–Hochberg correction for the three dietary tests, none of the dietary variables was significantly associated with Hemoplasma prevalence (all LRT p_FDR ≥ 0.232).
 
 Interpretation : 
-These results provide no evidence that species-level haemoplasma prevalence is associated with dietary composition, whether considering the proportion of invertebrates, vertebrates, or plants in the diet. Although vertebrate consumption showed a weak positive trend and plant consumption a weak negative trend, neither was statistically supported.
+These results provide no evidence that species-level Hemoplasma prevalence is associated with dietary composition, whether considering the proportion of invertebrates, vertebrates, or plants in the diet. Although vertebrate consumption showed a weak positive trend and plant consumption a weak negative trend, neither was statistically supported.
 
 Visualisation
 ```
@@ -2434,7 +2446,7 @@ figure_diet <- ggplot(
 
   labs(
     x = "Diet composition (%)",
-    y = "Haemoplasma prevalence",
+    y = "Hemoplasma prevalence",
     size = "Number tested"
   ) +
 
@@ -2454,7 +2466,7 @@ print(figure_diet)
 # ============================================================
 
 ggsave(
-  "haemoplasma_prevalence_diet_beta_binomial.png",
+  "Hemoplasma_prevalence_diet_beta_binomial.png",
   figure_diet,
   width = 11,
   height = 4.5,
@@ -2465,7 +2477,7 @@ ggsave(
 
 
 # ============================================================
-# SPECIES-LEVEL HAEMOPLASMA PREVALENCE
+# SPECIES-LEVEL Hemoplasma PREVALENCE
 # ~ FORAGING STRATA
 # Beta-binomial GLM + LRT + AIC + FDR + predictions
 # ============================================================
@@ -3077,10 +3089,10 @@ print(
 ```
 ```
 Results: 
-Neither arboreal foraging nor ground-level foraging was associated with haemoplasma prevalence. Arboreal foraging showed no significant effect (LRT: χ² = 0.73, p = 0.393; OR = 1.58, 95% CI: 0.56–4.45), nor did ground-level foraging (LRT: χ² = 0.81, p = 0.368; OR = 0.59, 95% CI: 0.19–1.81). Neither model improved on the null model (ΔAIC = −1.27 and −1.19, respectively).
+Neither arboreal foraging nor ground-level foraging was associated with Hemoplasma prevalence. Arboreal foraging showed no significant effect (LRT: χ² = 0.73, p = 0.393; OR = 1.58, 95% CI: 0.56–4.45), nor did ground-level foraging (LRT: χ² = 0.81, p = 0.368; OR = 0.59, 95% CI: 0.19–1.81). Neither model improved on the null model (ΔAIC = −1.27 and −1.19, respectively).
 
 Interpretation: 
-Foraging stratum was not associated with haemoplasma prevalence among the 40 species with available trait data.
+Foraging stratum was not associated with Hemoplasma prevalence among the 40 species with available trait data.
 ```
 ```
 # ============================================================
@@ -3517,7 +3529,7 @@ p_strata <-
       "Foraging stratum",
     
     y =
-      "Haemoplasma prevalence"
+      "Hemoplasma prevalence"
   ) +
   
   
@@ -3560,7 +3572,7 @@ print(
 
 ggsave(
   
-  "haemoplasma_prevalence_strata.png",
+  "Hemoplasma_prevalence_strata.png",
   
   p_strata,
   
@@ -3580,7 +3592,7 @@ write.csv(
   
   results_strata,
   
-  "haemoplasma_prevalence_strata_results.csv",
+  "Hemoplasma_prevalence_strata_results.csv",
   
   row.names = FALSE
 )
@@ -3588,7 +3600,7 @@ write.csv(
 
 #ALTERNATIVE AVEC JUSTE STRATA:
 # ============================================================
-# SPECIES-LEVEL HAEMOPLASMA PREVALENCE ~ FORAGING STRATUM
+# SPECIES-LEVEL Hemoplasma PREVALENCE ~ FORAGING STRATUM
 # Beta-binomial GLM + LRT + AIC + pairwise comparisons
 # + FDR + predictions + figure
 #
@@ -4156,11 +4168,11 @@ plot_data_strata <- data_strata %>%
   )
 ```
 Results — foraging stratum: 
-Haemoplasma prevalence did not differ significantly among foraging strata (beta-binomial GLM: LRT χ²₂ = 0.917, p = 0.632; ΔAIC = +3.08 relative to the null model). Estimated prevalence was 18.0% (95% CI: 9.3–31.9%) for ground-foraging species, 21.9% (7.4–49.7%) for scansorial species, and 28.2% (13.6–49.6%) for arboreal species.
+Hemoplasma prevalence did not differ significantly among foraging strata (beta-binomial GLM: LRT χ²₂ = 0.917, p = 0.632; ΔAIC = +3.08 relative to the null model). Estimated prevalence was 18.0% (95% CI: 9.3–31.9%) for ground-foraging species, 21.9% (7.4–49.7%) for scansorial species, and 28.2% (13.6–49.6%) for arboreal species.
 Pairwise comparisons likewise provided no evidence for differences between Ground vs Scansorial (OR = 0.78, Tukey-adjusted p = 0.942), Ground vs Arboreal (OR = 0.56, p = 0.594), or Scansorial vs Arboreal (OR = 0.71, p = 0.903).
 
 Interpretation: 
-Overall, foraging stratum was not associated with haemoplasma prevalence. Although prevalence showed a descriptive increase from ground (18%) to scansorial (22%) and arboreal species (28%), the confidence intervals were broad and strongly overlapping, particularly for the smaller scansorial group (n = 6 species). The higher prevalence observed among arboreal species should therefore not be interpreted as evidence of an ecological effect of foraging stratum.
+Overall, foraging stratum was not associated with Hemoplasma prevalence. Although prevalence showed a descriptive increase from ground (18%) to scansorial (22%) and arboreal species (28%), the confidence intervals were broad and strongly overlapping, particularly for the smaller scansorial group (n = 6 species). The higher prevalence observed among arboreal species should therefore not be interpreted as evidence of an ecological effect of foraging stratum.
 ```
 # ============================================================
 # 19. GRAPH
@@ -4246,7 +4258,7 @@ p_strata <- ggplot(
     
     x = "Foraging stratum",
     
-    y = "Haemoplasma prevalence"
+    y = "Hemoplasma prevalence"
   ) +
   
   theme_classic() +
@@ -4280,7 +4292,7 @@ print(
 
 ggsave(
   
-  "haemoplasma_prevalence_strata.png",
+  "Hemoplasma_prevalence_strata.png",
   
   p_strata,
   
@@ -4835,13 +4847,13 @@ print(
 
 ```
 Results:
-No association was detected between haemoplasma prevalence and foraging activity. Separate beta-binomial models showed no effect of nocturnal (OR = 0.79, 95% CI: 0.09–6.83, LRT p = 0.835), crepuscular (OR = 0.80, 95% CI: 0.23–2.74, LRT p = 0.720), or diurnal activity (OR = 0.80, 95% CI: 0.23–2.74, LRT p = 0.720). All associations remained non-significant after FDR correction (pFDR = 0.835), and activity models had higher AIC than null models.
+No association was detected between Hemoplasma prevalence and foraging activity. Separate beta-binomial models showed no effect of nocturnal (OR = 0.79, 95% CI: 0.09–6.83, LRT p = 0.835), crepuscular (OR = 0.80, 95% CI: 0.23–2.74, LRT p = 0.720), or diurnal activity (OR = 0.80, 95% CI: 0.23–2.74, LRT p = 0.720). All associations remained non-significant after FDR correction (pFDR = 0.835), and activity models had higher AIC than null models.
 
-Interpretation: Temporal foraging activity does not explain interspecific variation in haemoplasma prevalence.
+Interpretation: Temporal foraging activity does not explain interspecific variation in Hemoplasma prevalence.
 ```
 
 # ============================================================
-# SPECIES-LEVEL HAEMOPLASMA PREVALENCE
+# SPECIES-LEVEL Hemoplasma PREVALENCE
 # ~ LIFE-HISTORY TRAITS
 #
 # Traits:
@@ -5380,14 +5392,14 @@ print(
 )
 ```
 Results : 
-No significant association was detected between haemoplasma prevalence and any of the four life-history traits (all FDR-adjusted LRT p > 0.34).
+No significant association was detected between Hemoplasma prevalence and any of the four life-history traits (all FDR-adjusted LRT p > 0.34).
 - Body mass: no association (LRT p = 0.754; ΔAIC = −1.90).
 - Longevity: positive but non-significant trend (β = 0.41; LRT p = 0.175; ΔAIC = −0.16).
 - Female maturity: positive but non-significant trend (β = 0.50; LRT p = 0.159; ΔAIC ≈ 0).
 - Litter size: no association (LRT p = 0.547; ΔAIC = −1.64).
 
 Interpretation: 
-Haemoplasma prevalence was not significantly related to body mass, longevity, age at female maturity, or litter size.
+Hemoplasma prevalence was not significantly related to body mass, longevity, age at female maturity, or litter size.
 ```
 
 
