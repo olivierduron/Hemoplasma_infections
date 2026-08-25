@@ -1094,10 +1094,157 @@ for (sp in species_select) {
 *Bradypus tridactylus* : No significant association between `pathogens` status and `haemoplasma` infection (Fisher’s exact test, OR = 0.56, 95% CI: 0.04–7.95, p = 0.619).
 *Didelphis marsupialis* : `haemoplasma` infection was significantly associated with `pathogens` positivity (OR = 10.26, 95% CI: 1.15–499.19, p = 0.019), with `haemoplasma`-positive individuals ~10-fold more likely to be `pathogens`-positive.
 
+### Step 5. `hemoplasma` prevalence by mammalian `order`
+## Observed prevalence and 95% Wilson CI by `order`
+```
+order_prevalence <- data_hemoplasma_stat %>%
+  group_by(order) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    prevalence = n_positive / n_sampled,
+    CI_low = binom.confint(
+      n_positive,
+      n_sampled,
+      method = "wilson"
+    )$lower,
+    CI_high = binom.confint(
+      n_positive,
+      n_sampled,
+      method = "wilson"
+    )$upper
+  ) %>%
+  ungroup() %>%
+  mutate(
+    prevalence_percent = prevalence * 100,
+    CI_low_percent = CI_low * 100,
+    CI_high_percent = CI_high * 100
+  )
+order_prevalence
+```
+
+-> Results :
+| Order | N sampled | N positive | Prevalence | 95% CI (Wilson) |
+|---|---:|---:|---:|---:|
+| Carnivora | 17 | 5 | 29.4% | 13.3–53.1% |
+| Cingulata | 17 | 5 | 29.4% | 13.3–53.1% |
+| Didelphimorphia | 123 | 39 | 31.7% | 24.1–40.4% |
+| Pilosa | 202 | 76 | 37.6% | 31.2–44.5% |
+| Primates | 66 | 61 | 92.4% | 83.5–96.7% |
+| Rodentia | 201 | 11 | 5.47% | 3.08–9.53% |
+
+## GLMM testing the effect of mammalian `order`
+```
+model_order <- glmer(
+  hemoplasma ~ order + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+  control = glmerControl(
+    optimizer = "bobyqa"
+  )
+)
+summary(model_order)
+model_order_null <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+  control = glmerControl(
+    optimizer = "bobyqa"
+  )
+)
+order_test <- anova(
+  model_order_null,
+  model_order,
+  test = "Chisq"
+)
+order_test
+AIC(
+  model_order_null,
+  model_order
+)
+```
+
+Results are:
+```
+Data: data_hemoplasma_stat
+Models:
+model_order_null: hemoplasma ~ 1 + (1 | species)
+model_order: hemoplasma ~ order + (1 | species)
+                 npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
+model_order_null    2 453.95 462.83 -224.97    449.95                       
+model_order         7 452.52 483.60 -219.26    438.52 11.426  5    0.04355 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+---
+> AIC(
++   model_order_null,
++   model_order
++ )
+                 df      AIC
+model_order_null  2 453.9505
+model_order       7 452.5242
+```
+
+Interpretation: Hemoplasma infection probability differed among mammalian orders (GLMM, likelihood-ratio test: χ²₅ = 11.43, p = 0.044; ΔAIC = 1.43), although the improvement in model fit was modest.
 
 
+## Post-hoc pairwise comparisons (odds ratios)
+```
+order_emmeans <- emmeans(
+  model_order,
+  ~ order
+)
+order_OR <- pairs(
+  order_emmeans,
+  adjust = "tukey"
+)
+order_OR
+order_OR_results <- summary(
+  order_OR,
+  infer = TRUE
+) %>%
+  as.data.frame() %>%
+  mutate(
+    OR = exp(estimate),
+    CI_low = exp(asymp.LCL),
+    CI_high = exp(asymp.UCL)
+  ) %>%
+  select(
+    contrast,
+    OR,
+    CI_low,
+    CI_high,
+    p.value
+  )
+order_OR_results
+```
 
+Results are: 
+```
+                      contrast          OR       CI_low     CI_high     p.value
+1        Carnivora / Cingulata  1.64568553 0.0097803566  276.910237 0.999781286
+2  Carnivora / Didelphimorphia  1.68480227 0.0498315840   56.963043 0.998297197
+3           Carnivora / Pilosa  1.73031002 0.0277156411  108.024662 0.999002034
+4         Carnivora / Primates  0.09942907 0.0015067896    6.561061 0.618377988
+5         Carnivora / Rodentia  9.64033829 0.3582351226  259.427724 0.364879022
+6  Cingulata / Didelphimorphia  1.02376927 0.0091349909  114.735035 1.000000000
+7           Cingulata / Pilosa  1.05142203 0.0059761555  184.983187 0.999999998
+8         Cingulata / Primates  0.06041802 0.0003319356   10.997126 0.640349199
+9         Cingulata / Rodentia  5.85794680 0.0629637391  545.004811 0.876917680
+10    Didelphimorphia / Pilosa  1.02701074 0.0275811172   38.241781 0.999999999
+11  Didelphimorphia / Primates  0.05901527 0.0014915853    2.334967 0.241032395
+12  Didelphimorphia / Rodentia  5.72194048 0.4180120223   78.324548 0.402198511
+13           Pilosa / Primates  0.05746315 0.0008410547    3.926039 0.385397146
+14           Pilosa / Rodentia  5.57145146 0.1921761003  161.524099 0.693822202
+15         Primates / Rodentia 96.95694286 3.1685032997 2966.905154 0.001927086
 
+```
+
+Interpretation: After Tukey correction, only Primates and Rodentia differed significantly, with `hemoplasma` infection showing substantially higher odds in Rodentia than in Primates (OR = 96.96, 95% CI: 3.17–2966.91, p = 0.0019). All other pairwise comparisons were non-significant after correction.
 
 
 
@@ -1412,160 +1559,7 @@ ggsave(
 )
 ```
 
-### Step 6. `hemoplasma` prevalence by mammalian `order`
-## Observed prevalence and 95% Wilson CI by `order`
-```
-order_prevalence <- data_hemoplasma_stat %>%
-  group_by(order) %>%
-  summarise(
-    n_sampled = n(),
-    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  rowwise() %>%
-  mutate(
-    prevalence = n_positive / n_sampled,
-    CI_low = binom.confint(
-      n_positive,
-      n_sampled,
-      method = "wilson"
-    )$lower,
-    CI_high = binom.confint(
-      n_positive,
-      n_sampled,
-      method = "wilson"
-    )$upper
-  ) %>%
-  ungroup() %>%
-  mutate(
-    prevalence_percent = prevalence * 100,
-    CI_low_percent = CI_low * 100,
-    CI_high_percent = CI_high * 100
-  )
-order_prevalence
-```
 
-Results are:
-```
-# A tibble: 6 × 9
-  order           n_sampled n_positive prevalence CI_low CI_high prevalence_percent CI_low_percent CI_high_percent
-  <fct>               <int>      <int>      <dbl>  <dbl>   <dbl>              <dbl>          <dbl>           <dbl>
-1 Carnivora              17          5     0.294  0.133   0.531               29.4           13.3            53.1 
-2 Cingulata              17          5     0.294  0.133   0.531               29.4           13.3            53.1 
-3 Didelphimorphia       123         39     0.317  0.241   0.404               31.7           24.1            40.4 
-4 Pilosa                202         76     0.376  0.312   0.445               37.6           31.2            44.5 
-5 Primates               66         61     0.924  0.835   0.967               92.4           83.5            96.7 
-6 Rodentia              201         11     0.0547 0.0308  0.0953               5.47           3.08            9.53
-```
-
-## GLMM testing the effect of mammalian `order`
-```
-model_order <- glmer(
-  hemoplasma ~ order + (1 | species),
-  data = data_hemoplasma_stat,
-  family = binomial,
-  control = glmerControl(
-    optimizer = "bobyqa"
-  )
-)
-summary(model_order)
-model_order_null <- glmer(
-  hemoplasma ~ 1 + (1 | species),
-  data = data_hemoplasma_stat,
-  family = binomial,
-  control = glmerControl(
-    optimizer = "bobyqa"
-  )
-)
-order_test <- anova(
-  model_order_null,
-  model_order,
-  test = "Chisq"
-)
-order_test
-AIC(
-  model_order_null,
-  model_order
-)
-```
-
-Results are:
-```
-Data: data_hemoplasma_stat
-Models:
-model_order_null: hemoplasma ~ 1 + (1 | species)
-model_order: hemoplasma ~ order + (1 | species)
-                 npar    AIC    BIC  logLik -2*log(L)  Chisq Df Pr(>Chisq)  
-model_order_null    2 453.95 462.83 -224.97    449.95                       
-model_order         7 452.52 483.60 -219.26    438.52 11.426  5    0.04355 *
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
----
-> AIC(
-+   model_order_null,
-+   model_order
-+ )
-                 df      AIC
-model_order_null  2 453.9505
-model_order       7 452.5242
-```
-
-Interpretation: Hemoplasma infection probability differed among mammalian orders (GLMM, likelihood-ratio test: χ²₅ = 11.43, p = 0.044; ΔAIC = 1.43), although the improvement in model fit was modest.
-
-
-## Post-hoc pairwise comparisons (odds ratios)
-```
-order_emmeans <- emmeans(
-  model_order,
-  ~ order
-)
-order_OR <- pairs(
-  order_emmeans,
-  adjust = "tukey"
-)
-order_OR
-order_OR_results <- summary(
-  order_OR,
-  infer = TRUE
-) %>%
-  as.data.frame() %>%
-  mutate(
-    OR = exp(estimate),
-    CI_low = exp(asymp.LCL),
-    CI_high = exp(asymp.UCL)
-  ) %>%
-  select(
-    contrast,
-    OR,
-    CI_low,
-    CI_high,
-    p.value
-  )
-order_OR_results
-```
-
-Results are: 
-```
-                      contrast          OR       CI_low     CI_high     p.value
-1        Carnivora / Cingulata  1.64568553 0.0097803566  276.910237 0.999781286
-2  Carnivora / Didelphimorphia  1.68480227 0.0498315840   56.963043 0.998297197
-3           Carnivora / Pilosa  1.73031002 0.0277156411  108.024662 0.999002034
-4         Carnivora / Primates  0.09942907 0.0015067896    6.561061 0.618377988
-5         Carnivora / Rodentia  9.64033829 0.3582351226  259.427724 0.364879022
-6  Cingulata / Didelphimorphia  1.02376927 0.0091349909  114.735035 1.000000000
-7           Cingulata / Pilosa  1.05142203 0.0059761555  184.983187 0.999999998
-8         Cingulata / Primates  0.06041802 0.0003319356   10.997126 0.640349199
-9         Cingulata / Rodentia  5.85794680 0.0629637391  545.004811 0.876917680
-10    Didelphimorphia / Pilosa  1.02701074 0.0275811172   38.241781 0.999999999
-11  Didelphimorphia / Primates  0.05901527 0.0014915853    2.334967 0.241032395
-12  Didelphimorphia / Rodentia  5.72194048 0.4180120223   78.324548 0.402198511
-13           Pilosa / Primates  0.05746315 0.0008410547    3.926039 0.385397146
-14           Pilosa / Rodentia  5.57145146 0.1921761003  161.524099 0.693822202
-15         Primates / Rodentia 96.95694286 3.1685032997 2966.905154 0.001927086
-
-```
-
-Interpretation: After Tukey correction, only Primates and Rodentia differed significantly, with `hemoplasma` infection showing substantially higher odds in Rodentia than in Primates (OR = 96.96, 95% CI: 3.17–2966.91, p = 0.0019). All other pairwise comparisons were non-significant after correction.
 
 ## Step 7. Phylogenetic signal of hemoplasma prevalence (Pagel's lambda — 44 mammal species)
 ```
