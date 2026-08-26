@@ -1266,7 +1266,7 @@ model4_a <- glmer(
     optimizer = "bobyqa"
   )
 )
-summary(model_order)
+summary(model4_a)
 model4_b <- glmer(
   hemoplasma ~ 1 + (1 | species),
   data = data_hemoplasma_stat,
@@ -1290,7 +1290,7 @@ model4_b,
 ### Post-hoc pairwise comparisons (odds ratios)
 ```
 order_emmeans <- emmeans(
-  model_order,
+  model4_a,
   ~ order
 )
 order_OR <- pairs(
@@ -1469,46 +1469,7 @@ ggsave(
   dpi = 300
 )
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Step 5. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics
+## Step 6. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics
 ### List of mammalian species
 ```
 mammal_species <- c(
@@ -1558,7 +1519,7 @@ mammal_species <- c(
   "Philander opossum"
 )
 ```
-### Match species names to the Open Tree Taxonomy, extract OTT IDs and check tree coverage
+### Extract the subtree from the Open Tree Taxonomy and add branch lengths using Grafen's method
 ```
 taxon_matches <- tnrs_match_names(
   names = mammal_species,
@@ -1574,9 +1535,7 @@ taxon_matches[, c(
   "number_matches"
 )]
 ott_ids <- ott_id(taxon_matches)
-
 in_tree <- is_in_tree(ott_ids)
-
 taxa_not_in_tree <- taxon_matches[
   !in_tree,
   c(
@@ -1586,9 +1545,7 @@ taxa_not_in_tree <- taxon_matches[
     "ott_id"
   )
 ]
-```
-### Extract the induced subtree and add branch lengths using Grafen's method
-```
+taxa_not_in_tree
 mammal_tree <- tol_induced_subtree(
   ott_ids = ott_ids[in_tree],
   label_format = "name"
@@ -1602,8 +1559,10 @@ mammal_tree_grafen <- compute.brlen(
   mammal_tree,
   method = "Grafen"
 )
-Ntip(mammal_tree_grafen)
-
+mammal_tree_grafen$tip.label[
+  mammal_tree_grafen$tip.label ==
+    "Alouatta_seniculus_macconnelli"
+] <- "Alouatta_macconnelli"
 expected_species <- gsub(
   " ",
   "_",
@@ -1614,9 +1573,12 @@ missing_species <- setdiff(
   mammal_tree_grafen$tip.label
 )
 missing_species
-```
-### Plot and save the phylogeny
-```
+Ntip(mammal_tree_grafen)
+all(expected_species %in% mammal_tree_grafen$tip.label)
+setdiff(
+  mammal_tree_grafen$tip.label,
+  expected_species
+)
 plot(
   mammal_tree_grafen,
   cex = 0.7,
@@ -1696,10 +1658,6 @@ ggplot(
     legend.title = element_text(size = 9),
     legend.text = element_text(size = 8)
   )
-  "pairwise_phylogenetic_distances_heatmap.pdf",
-  width = 10,
-  height = 10
-)
 ggsave(
   "pairwise_phylogenetic_distances_heatmap.png",
   width = 10,
@@ -1708,80 +1666,7 @@ ggsave(
 )
 ```
 
-### Evolutionary distinctiveness of the 44 mammalian species (Equal-splits method)
-```
-evolutionary_distinctiveness <- evol.distinct(
-  mammal_tree_grafen,
-  type = "equal.splits",
-  scale = FALSE,
-  use.branch.lengths = TRUE
-)
-evolutionary_distinctiveness
-colnames(evolutionary_distinctiveness) <- c(
-  "species",
-  "evolutionary_distinctiveness"
-)
-evolutionary_distinctiveness <- evolutionary_distinctiveness %>%
-  mutate(
-    species = gsub(" ", "_", species)
-  )
-print(
-  evolutionary_distinctiveness,
-  n = 44
-)
-nrow(evolutionary_distinctiveness)
-setdiff(
-  mammal_species %>% gsub(" ", "_", .),
-  evolutionary_distinctiveness$species
-)
-write.csv(
-  evolutionary_distinctiveness,
-  file = "evolutionary_distinctiveness_44_mammals.csv",
-  row.names = FALSE
-)
-plot_ed <- evolutionary_distinctiveness %>%
-  mutate(
-    species = reorder(
-      species,
-      evolutionary_distinctiveness
-    )
-  )
-ggplot(
-  plot_ed,
-  aes(
-    x = evolutionary_distinctiveness,
-    y = species
-  )
-) +
-  geom_point(
-    size = 4
-  ) +
-  labs(
-    x = "Evolutionary distinctiveness",
-    y = NULL
-  ) +
-  theme_classic() +
-  theme(
-    axis.text.y = element_text(size = 9),
-    axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11)
-  )
-ggsave(
-  "evolutionary_distinctiveness_44_mammals.pdf",
-  width = 8,
-  height = 10
-)
-ggsave(
-  "evolutionary_distinctiveness_44_mammals.png",
-  width = 8,
-  height = 10,
-  dpi = 300
-)
-```
-
-
-
-## Step 7. Phylogenetic signal of hemoplasma prevalence (Pagel's lambda — 44 mammal species)
+### Test phylogenetic signal of `hemoplasma` prevalence (Pagel's lambda)
 ```
 species_prev <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -1793,14 +1678,6 @@ species_prev <- data_hemoplasma_stat %>%
   ) %>%
   mutate(
     species = as.character(species)
-  )
-species_prev <- species_prev %>%
-  mutate(
-    species = case_when(
-      species == "Alouatta_macconnelli" ~
-        "Alouatta_seniculus_macconnelli",
-      TRUE ~ species
-    )
   )
 cat(
   "Number of species in data:",
@@ -1827,7 +1704,15 @@ print(
   )
 )
 stopifnot(nrow(species_prev) == 44)
-stopifnot(length(mammal_tree_grafen$tip.label) == 44)
+stopifnot(
+  length(mammal_tree_grafen$tip.label) == 44
+)
+stopifnot(
+  setequal(
+    species_prev$species,
+    mammal_tree_grafen$tip.label
+  )
+)
 prevalence <- species_prev$prevalence
 names(prevalence) <- species_prev$species
 prevalence <- prevalence[
@@ -1848,16 +1733,21 @@ pagel_lambda <- phylosig(
 )
 pagel_lambda
 ```
+-> Results : `hemoplasma` prevalence showed no detectable phylogenetic signal across the 44 mammalian `species` (Pagel’s λ = 0.00008, p = 1.00).
 
-Results are:
-```
-Phylogenetic signal lambda : 7.50593e-05 
-logL(lambda) : -12.0333 
-LR(lambda=0) : -0.000669289 
-P-value (based on LR test) : 1 
-```
+-> Interpretation : `hemoplasma` prevalence therefore did not appear to be structured by host phylogenetic relatedness, suggesting that closely related mammalian `species` did not have more similar prevalence than expected under phylogenetic independence.
 
-Interpretation: Hemoplasma prevalence showed no detectable phylogenetic signal across the 44 mammalian species sampled (Pagel’s λ ≈ 0; likelihood-ratio test, p = 1), indicating that prevalence did not systematically covary with host evolutionary relatedness (closely related mammalian species did not exhibit more similar hemoplasma prevalence than expected under a model with no phylogenetic structure).
+
+
+
+
+
+
+
+
+
+
+
 
 ## Step 8. Exhaustive phylogenetic clade screening `hemoplasma` prevalence across 44 mammalian species
 
