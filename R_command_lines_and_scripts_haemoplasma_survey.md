@@ -1837,43 +1837,21 @@ ggsave(
   dpi = 300
 )
 ```
-
-
-
-
-### Step 9. `hemoplasma` infection prevalence and mammal trait-based analyses
-
-## Data retrieval and convert categorical variables. 
-
+## Step 8. `hemoplasma` infection prevalence and mammal trait-based analyses
+### Data retrieval and convert categorical variables 
 The life trait dataset is available in the GitHub repository [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv).
 ```
 data_mammal_traits <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_mammal_traits.csv")
 data_mammal_traits
 data_mammal_traits$species        <- as.factor(data_mammal_traits$species)
 data_mammal_traits$strata        <- as.factor(data_mammal_traits$strata)
-data_mammal_traits$strataG        <- as.factor(data_mammal_traits$strataG)
-data_mammal_traits$strataAr        <- as.factor(data_mammal_traits$strataAr)
 data_mammal_traits$activitynocturnal        <- as.factor(data_mammal_traits$activitynocturnal)
 data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$activitydiurnal)
 data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
-# ============================================================
-# SPECIES-LEVEL Hemoplasma PREVALENCE ~ DIET
-# BETA-BINOMIAL GLMM
-# LRT + AIC + FDR + THREE-PANEL FIGURE
-# ============================================================
-
-library(dplyr)
-library(ggplot2)
-library(glmmTMB)
-library(patchwork)
-
-
-# ============================================================
-# 1. Species-level dataset
-# ============================================================
-
+### Variation in `hemoplasma` infection status according to the host’s diet
+```
 species_data <- data_hemoplasma_stat %>%
   group_by(species) %>%
   summarise(
@@ -1887,163 +1865,70 @@ species_data <- data_hemoplasma_stat %>%
       select(species, dietinv, dietvet, dietplant),
     by = "species"
   )
-
-
-# ============================================================
-# 2. Remove missing values
-# ============================================================
-
 data_dietinv <- species_data %>%
   filter(!is.na(dietinv))
-
 data_dietvet <- species_data %>%
   filter(!is.na(dietvet))
-
 data_dietplant <- species_data %>%
   filter(!is.na(dietplant))
-
-
-# ============================================================
-# 3. BETA-BINOMIAL MODELS
-# ============================================================
-
-# ------------------------------------------------------------
-# DIETINV
-# ------------------------------------------------------------
-
 model_dietinv_null <- glmmTMB(
   cbind(n_positive, n - n_positive) ~ 1,
   data = data_dietinv,
   family = betabinomial(link = "logit")
 )
-
 model_dietinv <- glmmTMB(
   cbind(n_positive, n - n_positive) ~ dietinv,
   data = data_dietinv,
   family = betabinomial(link = "logit")
 )
-
-
-# ------------------------------------------------------------
-# DIETVET
-# ------------------------------------------------------------
-
 model_dietvet_null <- glmmTMB(
   cbind(n_positive, n - n_positive) ~ 1,
   data = data_dietvet,
   family = betabinomial(link = "logit")
 )
-
 model_dietvet <- glmmTMB(
   cbind(n_positive, n - n_positive) ~ dietvet,
   data = data_dietvet,
   family = betabinomial(link = "logit")
 )
-
-
-# ------------------------------------------------------------
-# DIETPLANT
-# ------------------------------------------------------------
-
 model_dietplant_null <- glmmTMB(
   cbind(n_positive, n - n_positive) ~ 1,
   data = data_dietplant,
   family = betabinomial(link = "logit")
 )
-
 model_dietplant <- glmmTMB(
   cbind(n_positive, n - n_positive) ~ dietplant,
   data = data_dietplant,
   family = betabinomial(link = "logit")
 )
-
-
-# ============================================================
-# 4. LIKELIHOOD-RATIO TESTS
-# ============================================================
-
 lrt_dietinv <- anova(
   model_dietinv_null,
   model_dietinv
 )
-
 lrt_dietvet <- anova(
   model_dietvet_null,
   model_dietvet
 )
-
 lrt_dietplant <- anova(
   model_dietplant_null,
   model_dietplant
 )
-
-print(lrt_dietinv)
-print(lrt_dietvet)
-print(lrt_dietplant)
-
-
-# ============================================================
-# 5. AIC
-# ============================================================
-
-AIC(model_dietinv_null, model_dietinv)
-
-AIC(model_dietvet_null, model_dietvet)
-
-AIC(model_dietplant_null, model_dietplant)
-
-
-# ============================================================
-# 6. Model summaries
-# ============================================================
-
-summary(model_dietinv)
-
-summary(model_dietvet)
-
-summary(model_dietplant)
-
-
-# ============================================================
-# 7. Extract statistical results
-# ============================================================
-
-# Function to extract coefficient information
-
 extract_beta_results <- function(model, null_model, variable, lrt) {
-
   coef_table <- summary(model)$coefficients$cond
-
   estimate <- coef_table[variable, "Estimate"]
-
   SE <- coef_table[variable, "Std. Error"]
-
-  z <- coef_table[variable, "z value"]
-
-  p <- coef_table[variable, "Pr(>|z|)"]
-
-  # LRT p-value
-  LRT_p <- lrt$`Pr(>Chisq)`[2]
-
-  # LRT statistic
-  LRT_chisq <- lrt$Chisq[2]
-
-  # AIC
-  AIC_null <- AIC(null_model)
-  AIC_model <- AIC(model)
-
   data.frame(
     variable = variable,
     n_species = nobs(model),
     estimate = estimate,
     SE = SE,
-    z = z,
-    p_coefficient = p,
-    LRT_chisq = LRT_chisq,
-    LRT_p = LRT_p,
-    AIC_null = AIC_null,
-    AIC_model = AIC_model,
-    delta_AIC = AIC_null - AIC_model,
+    z = coef_table[variable, "z value"],
+    p_coefficient = coef_table[variable, "Pr(>|z|)"],
+    LRT_chisq = lrt$Chisq[2],
+    LRT_p = lrt$`Pr(>Chisq)`[2],
+    AIC_null = AIC(null_model),
+    AIC_model = AIC(model),
+    delta_AIC = AIC(null_model) - AIC(model),
     CI_low = estimate - 1.96 * SE,
     CI_high = estimate + 1.96 * SE,
     OR = exp(estimate),
@@ -2051,26 +1936,19 @@ extract_beta_results <- function(model, null_model, variable, lrt) {
     OR_high = exp(estimate + 1.96 * SE)
   )
 }
-
-
-# Extract results
-
 results_diet <- bind_rows(
-
   extract_beta_results(
     model_dietinv,
     model_dietinv_null,
     "dietinv",
     lrt_dietinv
   ),
-
   extract_beta_results(
     model_dietvet,
     model_dietvet_null,
     "dietvet",
     lrt_dietvet
   ),
-
   extract_beta_results(
     model_dietplant,
     model_dietplant_null,
@@ -2078,158 +1956,91 @@ results_diet <- bind_rows(
     lrt_dietplant
   )
 )
-
-
-# ============================================================
-# 8. FDR correction
-# ============================================================
-
-results_diet$LRT_p_FDR <-
-  p.adjust(
-    results_diet$LRT_p,
-    method = "BH"
+results_diet <- results_diet %>%
+  mutate(
+    LRT_p_FDR = p.adjust(LRT_p, method = "BH"),
+    p_coefficient_FDR = p.adjust(p_coefficient, method = "BH")
   )
-
-results_diet$p_coefficient_FDR <-
-  p.adjust(
-    results_diet$p_coefficient,
-    method = "BH"
-  )
-
-
-# ============================================================
-# 9. Display final results
-# ============================================================
-
 print(results_diet)
 ```
 
-Results : 
-Species-level Hemoplasma prevalence was tested against three dietary variables using beta-binomial models, accounting for overdispersion in the number of infected individuals among species.
-- Invertebrate consumption (dietinv): no association with Hemoplasma prevalence (LRT: χ² = 0.36, p = 0.550; β = 0.0051, p = 0.543; ΔAIC = −1.64). The dietary model was not supported over the null model.
-- Vertebrate consumption (dietvet): no significant association (LRT: χ² = 2.03, p = 0.155; β = 0.0138, p = 0.147; ΔAIC = +0.03). The slight positive effect was not supported after FDR correction (p_FDR = 0.232).
-- Plant consumption (dietplant): no significant association (LRT: χ² = 2.19, p = 0.139; β = −0.0102, p = 0.135; ΔAIC = +0.19). The negative trend was not significant after FDR correction (p_FDR = 0.232).
-After Benjamini–Hochberg correction for the three dietary tests, none of the dietary variables was significantly associated with Hemoplasma prevalence (all LRT p_FDR ≥ 0.232).
+-> Results : None of the dietary composition variables was significantly associated with `hemoplasma` prevalence across the 44 mammalian `species` (beta-binomial GLMs, all FDR-adjusted p > 0.52; ΔAIC < 0).
 
-Interpretation : 
-These results provide no evidence that species-level Hemoplasma prevalence is associated with dietary composition, whether considering the proportion of invertebrates, vertebrates, or plants in the diet. Although vertebrate consumption showed a weak positive trend and plant consumption a weak negative trend, neither was statistically supported.
+-> Interpretation : Interspecific variation in `hemoplasma` prevalence was not explained by the proportion of invertebrates, vertebrates, or plants in the host diet.
 
-Visualisation
+### Visualisation of association between `hemoplasma` prevalence and dietary composition variables
 ```
-# ============================================================
-# 10. PREPARE DATA FOR PLOTTING
-# ============================================================
-
-# Function for predictions and 95% CI
-
 get_predictions <- function(model, data, variable, label) {
-
   x <- seq(
     min(data[[variable]], na.rm = TRUE),
     max(data[[variable]], na.rm = TRUE),
     length.out = 100
   )
-
   newdata <- data.frame(x)
   names(newdata) <- variable
-
-  # Prediction on link scale
   pred <- predict(
     model,
     newdata = newdata,
     type = "link",
     se.fit = TRUE
   )
-
   newdata$fit <- plogis(pred$fit)
-
   newdata$lower <- plogis(
     pred$fit - 1.96 * pred$se.fit
   )
-
   newdata$upper <- plogis(
     pred$fit + 1.96 * pred$se.fit
   )
-
   newdata$variable <- label
-
   return(newdata)
 }
-
-
-# Predictions
-
 pred_dietinv <- get_predictions(
   model_dietinv,
   data_dietinv,
   "dietinv",
   "Invertebrates"
 )
-
 pred_dietvet <- get_predictions(
   model_dietvet,
   data_dietvet,
   "dietvet",
   "Vertebrates"
 )
-
 pred_dietplant <- get_predictions(
   model_dietplant,
   data_dietplant,
   "dietplant",
   "Plants"
 )
-
-
-# ============================================================
-# 11. OBSERVED DATA
-# ============================================================
-
 plot_data <- bind_rows(
-
   data_dietinv %>%
     mutate(
       diet = dietinv,
       variable = "Invertebrates"
     ),
-
   data_dietvet %>%
     mutate(
       diet = dietvet,
       variable = "Vertebrates"
     ),
-
   data_dietplant %>%
     mutate(
       diet = dietplant,
       variable = "Plants"
     )
 )
-
-
 pred_data <- bind_rows(
-
   pred_dietinv %>%
     mutate(diet = dietinv),
-
   pred_dietvet %>%
     mutate(diet = dietvet),
-
   pred_dietplant %>%
     mutate(diet = dietplant)
 )
-
-
-# ============================================================
-# 12. THREE-PANEL FIGURE
-# ============================================================
-
 figure_diet <- ggplot(
   plot_data,
   aes(x = diet, y = prevalence)
 ) +
-
-  # 95% CI
   geom_ribbon(
     data = pred_data,
     aes(
@@ -2240,8 +2051,6 @@ figure_diet <- ggplot(
     inherit.aes = FALSE,
     alpha = 0.20
   ) +
-
-  # Predicted relationship
   geom_line(
     data = pred_data,
     aes(
@@ -2251,45 +2060,30 @@ figure_diet <- ggplot(
     inherit.aes = FALSE,
     linewidth = 1
   ) +
-
-  # Observed prevalence
   geom_point(
     aes(size = n),
     alpha = 0.70
   ) +
-
   facet_wrap(
     ~ variable,
     nrow = 1,
     scales = "free_x"
   ) +
-
   scale_y_continuous(
     limits = c(0, 1),
     labels = scales::percent
   ) +
-
   labs(
     x = "Diet composition (%)",
     y = "Hemoplasma prevalence",
     size = "Number tested"
   ) +
-
   theme_classic() +
-
   theme(
     strip.background = element_blank(),
     strip.text = element_text(face = "bold")
   )
-
-
 print(figure_diet)
-
-
-# ============================================================
-# 13. SAVE FIGURE
-# ============================================================
-
 ggsave(
   "Hemoplasma_prevalence_diet_beta_binomial.png",
   figure_diet,
@@ -2297,7 +2091,6 @@ ggsave(
   height = 4.5,
   dpi = 300
 )
-
 ```
 
 
