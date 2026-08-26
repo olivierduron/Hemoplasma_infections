@@ -2265,7 +2265,7 @@ ggsave(
 )
 ```
 
-Variation in `hemoplasma` infection prevalence according to the host’s activity (nocturnal, diurnal, crepuscular)
+### Variation in `hemoplasma` infection prevalence according to the host’s activity (nocturnal, diurnal, crepuscular)
 ```
 species_data_activity <- data_hemoplasma_stat %>%
   group_by(species) %>%
