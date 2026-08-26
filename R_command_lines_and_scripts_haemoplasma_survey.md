@@ -41,7 +41,7 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 
 ## Step 1. Data retrieval and preparation
 
-### Retrieve and examine the epidemiological dataset :
+### Retrieve and examine the epidemiological dataset
 ```
 data_hemoplasma_stat <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_stat.csv")
 data_hemoplasma_stat
@@ -50,7 +50,7 @@ get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
 lapply(data_hemoplasma_stat, get_modalities)
 ```
 
-### Retrieve and examine the life trait dataset :
+### Retrieve and examine the life trait dataset
 ```
 data_mammal_traits <- read.csv2("https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_mammal_traits.csv")
 data_mammal_traits
@@ -59,7 +59,7 @@ get_modalities <- function(x) {sort(table(x), decreasing = TRUE)}
 lapply(data_mammal_traits, get_modalities)
 ```
 
-### Convert categorical variables :
+### Convert categorical variables
 ```
 data_hemoplasma_stat$species        <- as.factor(data_hemoplasma_stat$species)
 data_hemoplasma_stat$order           <- as.factor(data_hemoplasma_stat$order)
@@ -74,7 +74,7 @@ data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$ac
 data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
-### Load required libraries : 
+### Load required libraries 
 ```
 library(binom)
 library(dplyr)
@@ -101,7 +101,7 @@ library(patchwork)
 
 ## Step 2. `species`-level summary for `hemoplasma`
 
-### Calculate `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method)  :
+### Calculate `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method)
 ```
 species_summary <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -178,7 +178,7 @@ print(species_summary, n = Inf)
 | *Sciurus aestuans* | 1 | 0 | 1 | 0% | 0–79.3% |
 | *Tamandua tetradactyla* | 3 | 0 | 3 | 0% | 0–56.1% |
 
-### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1) : 
+### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1) 
 ```
 species_order <- c(
   "Alouatta_macconnelli",
@@ -382,7 +382,7 @@ ggsave(
 )
 ```
 
-### Test for the association between `hemoplasma` prevalence and sample size per `species` (Spearman correlation test) :
+### Test for the association between `hemoplasma` prevalence and sample size per `species` (Spearman correlation test)
 ```
 cor.test(
   species_summary$n_sampled,
@@ -398,7 +398,7 @@ Spearman's ρ = 0.334, p = 0.027.
 -> Interpretation : 
 A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
 
-### Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) : 
+### Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) 
 ```
 plot_data <- species_summary %>%
   filter(
@@ -447,7 +447,7 @@ ggsave(
 
 ## Step 3. Variation in `hemoplasma` infection status according to the host’s `sex`
 
-### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) : 
+### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) 
 Fit the full GLMM (model 1) :
 ```
 model_sex_data <- data_hemoplasma_stat %>%
@@ -527,8 +527,8 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
 data_hemoplasma_stat$pathogens <- as.factor(data_hemoplasma_stat$pathogens)
 ```
 
-### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) :
-Fit the full GLMM (model 2) :
+### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`)
+Fit the full GLMM (model 2)
 ```
 model2_a <- glmer(
   hemoplasma ~ pathogens + (1 | species),
@@ -589,8 +589,8 @@ or_pathogens_results
 
 -> Interpretation : Individuals positive for other blood-borne `pathogens` had approximately 2.8-fold higher odds of `hemoplasma` infection than `pathogens`-negative individuals, with the 95% HDI excluding 1.
 
-### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (`1 | species`) :
-Fit the full GLMM (model 3) :
+### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (`1 | species`)
+Fit the full GLMM (model 3)
 ```
 model3_a <- glmer(
   hemoplasma ~ anaplasmataceae * apicomplexa + (1 | species),
@@ -694,8 +694,8 @@ or_model3_results
 
 -> Interpretation : Overall, `anaplasmataceae` contributed to explaining variation in `hemoplasma` infection probability, whereas there was only weak evidence for an additional contribution of `apicomplexa`. However, the Bayesian estimates were uncertain, with the 95% HDIs for both odds ratios including 1. 
 
-### Sensitivity analysis : 
-A leave-one-species-out analysis was further performed to assess whether the association between `pathogens` and `hemoplasma` infection was driven by any single `species`.
+### Sensitivity analysis 
+A leave-one-species-out analysis was further performed to assess whether the association between `pathogens` and `hemoplasma` infection was driven by any single `species`
 ```
 species_list <- unique(
   data_hemoplasma_stat$species
@@ -815,7 +815,7 @@ leave_one_species_results
 -> Interpretation: The positive association between `hemoplasma` and `pathogens` was generally robust to the exclusion of individual host `species` and was not driven by a single mammal `species`. Excluding *Bradypus tridactylus* strengthened the estimated association, indicating that this `species` tends to attenuate the overall effect. 
 
 
-### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae` : 
+### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae` 
 ```
 or_results <- data.frame(
   variable = c(
@@ -908,7 +908,7 @@ ggsave(
 )
 ```
 
-### Visualization of `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) in *Bradypus_tridactylus* and *Didelphis marsupialis* according to `pathogens` (`anaplasmataceae` + `apicomplexa`) infection status :
+### Visualization of `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) in *Bradypus_tridactylus* and *Didelphis marsupialis* according to `pathogens` (`anaplasmataceae` + `apicomplexa`) infection status
 ```
 species_select <- c(
   "Didelphis_marsupialis",
@@ -1058,7 +1058,7 @@ ggsave(
 )
 ```
 
-### Fisher's exact test for association between `hemoplasma` and `pathogens` in *Bradypus tridactylus* and *Didelphis marsupialis* :
+### Fisher's exact test for association between `hemoplasma` and `pathogens` in *Bradypus tridactylus* and *Didelphis marsupialis*
 ```
 species_select <- c(
   "Bradypus_tridactylus",
@@ -1255,7 +1255,7 @@ ggsave(
 )
 ```
 
-### Test whether `hemoplasma` infection probability differs between mammalian `order` :
+### Test whether `hemoplasma` infection probability differs between mammalian `order`
 Fit the full GLMM (model 4) :
 ```
 model4_a <- glmer(
@@ -1318,7 +1318,7 @@ order_OR_results <- summary(
 order_OR_results
 ```
 
--> Tukey-adjusted pairwise comparisons of `hemoplasma` infection odds among mammalian `order` :
+-> Tukey-adjusted pairwise comparisons of `hemoplasma` infection odds among mammalian `order`
 | Contrast | OR | 95% CI low | 95% CI high | Tukey-adjusted *p* |
 |---|---:|---:|---:|---:|
 | Carnivora – Cingulata | 1.646 | 0.010 | 277.081 | 0.9998 |
@@ -1343,7 +1343,7 @@ Mammalian `order` significantly improved model fit compared with the null model 
 -> Interpretation : 
 `haemoplasma` prevalence significantly varied among mammalian `order`, with the strongest contrast being the markedly higher prevalence in Primates compared with Rodentia.
 
-### Visualization of odds ratios for mammalian `order` : 
+### Visualization of odds ratios for mammalian `order` 
 ```
 order_OR_results <- summary(
   order_OR,
@@ -1737,277 +1737,7 @@ pagel_lambda
 
 -> Interpretation : `hemoplasma` prevalence therefore did not appear to be structured by host phylogenetic relatedness, suggesting that closely related mammalian `species` did not have more similar prevalence than expected under phylogenetic independence.
 
-
-
-
-
-
-
-
-
-
-
-
-
-## Step 8. Exhaustive phylogenetic clade screening `hemoplasma` prevalence across 44 mammalian species
-
-### Prepare species-level data
-```
-species_data <- data_hemoplasma_stat %>%
-  group_by(species) %>%
-  summarise(
-    n_sampled = n(),
-    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
-    prevalence = n_positive / n_sampled,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    species = as.character(species)
-  )
-species_data <- species_data %>%
-  mutate(
-    species = case_when(
-      species == "Alouatta_macconnelli" ~
-        "Alouatta_seniculus_macconnelli",
-      species == "Cebus_apella" ~
-        "Sapajus_apella",
-      species == "Coendou_sp" ~
-        "Coendou_prehensilis",
-      species == "Felis_wiedii" ~
-        "Leopardus_wiedii",
-      TRUE ~ species
-    )
-  )
-stopifnot(
-  all(species_data$species %in% mammal_tree_grafen$tip.label)
-)
-cat(
-  "Number of species:",
-  nrow(species_data),
-  "\n"
-)
-```
-### Function testing one internal node
-```
-test_clade <- function(node, tree, species_data) {
-  clade_species <- extract.clade(
-    tree,
-    node = node
-  )$tip.label
-  test_data <- species_data %>%
-    mutate(
-      clade = ifelse(
-        species %in% clade_species,
-        "Clade",
-        "Outside"
-      ),
-      clade = factor(
-        clade,
-        levels = c("Outside", "Clade")
-      )
-    )
-  if (
-    n_distinct(test_data$clade) < 2 ||
-    sum(test_data$clade == "Clade") < 2 ||
-    sum(test_data$clade == "Outside") < 2
-  ) {
-    return(NULL)
-  }
-  model_full <- tryCatch(
-    glmer(
-      cbind(n_positive, n_sampled - n_positive) ~
-        clade + (1 | species),
-      data = test_data,
-      family = binomial,
-      control = glmerControl(
-        optimizer = "bobyqa"
-      )
-    ),
-    error = function(e) NULL
-  )
-
-  if (is.null(model_full)) {
-    return(NULL)
-  }
-  model_null <- tryCatch(
-    glmer(
-      cbind(n_positive, n_sampled - n_positive) ~
-        1 + (1 | species),
-      data = test_data,
-      family = binomial,
-      control = glmerControl(
-        optimizer = "bobyqa"
-      )
-    ),
-    error = function(e) NULL
-  )
-
-  if (is.null(model_null)) {
-    return(NULL)
-  }
-  LRT <- anova(
-    model_null,
-    model_full,
-    test = "Chisq"
-  )
-
-  chi2 <- LRT$Chisq[2]
-  p_value <- LRT$`Pr(>Chisq)`[2]
-  coef_table <- summary(model_full)$coefficients
-
-  clade_row <- grep(
-    "^clade",
-    rownames(coef_table)
-  )
-
-  if (length(clade_row) != 1) {
-    return(NULL)
-  }
-
-  estimate <- coef_table[
-    clade_row,
-    "Estimate"
-  ]
-  OR <- exp(estimate)
-prevalence_clade <- test_data %>%
-    filter(clade == "Clade") %>%
-    summarise(
-      prev = sum(n_positive) /
-        sum(n_sampled)
-    ) %>%
-    pull(prev)
-  prevalence_outside <- test_data %>%
-    filter(clade == "Outside") %>%
-    summarise(
-      prev = sum(n_positive) /
-        sum(n_sampled)
-    ) %>%
-    pull(prev)
-  tibble(
-    node = node,
-    n_species_clade =
-      sum(test_data$clade == "Clade"),
-    n_species_outside =
-      sum(test_data$clade == "Outside"),
-    prevalence_clade =
-      prevalence_clade,
-    prevalence_outside =
-      prevalence_outside,
-    OR = OR,
-    chi2 = chi2,
-    p_value = p_value,
-    species_clade =
-      paste(
-        clade_species,
-        collapse = "; "
-      )
-  )
-}
-```
-### Test all internal nodes
-```
-internal_nodes <- (
-  Ntip(mammal_tree_grafen) + 1
-):
-(
-  Ntip(mammal_tree_grafen) +
-    Nnode(mammal_tree_grafen)
-)
-clade_results_list <- lapply(
-  internal_nodes,
-  test_clade,
-  tree = mammal_tree_grafen,
-  species_data = species_data
-)
-clade_results <- bind_rows(
-  clade_results_list
-)
-```
-### Multiple-testing correction
-```
-clade_results <- clade_results %>%
-  mutate(
-    p_adjusted = p.adjust(
-      p_value,
-      method = "BH"
-    )
-  ) %>%
-  arrange(
-    p_adjusted,
-    p_value
-  )
-clade_results %>%
-  select(
-    node,
-    n_species_clade,
-    n_species_outside,
-    prevalence_clade,
-    prevalence_outside,
-    OR,
-    chi2,
-    p_value,
-    p_adjusted,
-    species_clade
-  ) %>%
-  print(n = 30)
-significant_clades <- clade_results %>%
-  filter(
-    p_adjusted < 0.05
-  )
-significant_clades
-suggestive_clades <- clade_results %>%
-  filter(
-    p_adjusted < 0.10
-  )
-suggestive_clades
-```
-### Most interesting clades
-```
-clade_results %>%
-  arrange(p_value) %>%
-  select(
-    node,
-    n_species_clade,
-    prevalence_clade,
-    prevalence_outside,
-    OR,
-    chi2,
-    p_value,
-    p_adjusted,
-    species_clade
-  ) %>%
-  print(n = 20)
-```
-
-Results are (most interesting clades):
-```
-    node n_species_clade prevalence_clade prevalence_outside      OR  chi2 p_value p_adjusted species_clade                                                                                                                          
-   <int>           <int>            <dbl>              <dbl>   <dbl> <dbl>   <dbl>      <dbl> <chr>                                                                                                                                  
- 1    68               4           0.938               0.242 6.55e+1  7.60 0.00583      0.164 Saguinus_midas; Saimiri_sciureus; Sapajus_apella; Alouatta_seniculus_macconnelli                                                       
- 2    49              19           0.0547              0.438 9.23e-2  6.98 0.00823      0.164 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
- 3    50              18           0.055               0.437 1.01e-1  6.36 0.0117       0.164 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
- 4    67               5           0.924               0.243 3.21e+1  5.51 0.0189       0.199 Saguinus_midas; Saimiri_sciureus; Sapajus_apella; Alouatta_seniculus_macconnelli; Pithecia_pithecia                                    
- 5    74               2           0.8                 0.311 1.79e+2  4.81 0.0282       0.237 Lontra_longicaudis; Galictis_vittata                                                                                                   
- 6    54               4           0.0175              0.344 3.02e-2  4.07 0.0436       0.305 Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus                                                        
- 7    56               2           0                   0.328 2.24e-9  3.52 0.0608       0.365 Hylaeamys_megacephalus; Hylaeamys_yunganus                                                                                             
- 8    64               2           0                   0.326 2.52e-9  3.24 0.0717       0.376 Makalata_didelphoides; Mesomys_hispidus                                                                                                
- 9    51              11           0.0519              0.387 1.53e-1  3.03 0.0817       0.381 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
-10    69               3           0.953               0.268 2.99e+1  2.74 0.0977       0.401 Saguinus_midas; Saimiri_sciureus; Sapajus_apella                                                                                       
-11    72               4           0.455               0.312 1.56e+1  2.63 0.105        0.401 Eira_barbara; Lontra_longicaudis; Galictis_vittata; Potos_flavus                                                                       
-12    59               2           0                   0.319 6.21e-9  1.86 0.173        0.504 Neacomys_dubosti; Neacomys_paracou                                                                                                     
-13    73               3           0.444               0.313 1.46e+1  1.84 0.175        0.504 Eira_barbara; Lontra_longicaudis; Galictis_vittata                                                                                     
-14    53               9           0.0610              0.353 1.99e-1  1.83 0.176        0.504 Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens; Neacomys_dubosti; Neacomys_p…
-15    87               2           0.465               0.295 1.21e+1  1.78 0.182        0.504 Philander_opossum; Didelphis_marsupialis                                                                                               
-16    75               2           0                   0.318 9.84e-9  1.57 0.211        0.504 Puma_yagouaroundi; Leopardus_wiedii                                                                                                    
-17    84               2           0.190               0.319 1.67e+1  1.47 0.226        0.504 Marmosa_lepida; Marmosa_murina                                                                                                         
-18    62               4           0.0508              0.342 1.42e-1  1.45 0.228        0.504 Proechimys_cuvieri; Proechimys_guyannensis; Makalata_didelphoides; Mesomys_hispidus                                                    
-19    61               7           0.0615              0.344 2.03e-1  1.41 0.235        0.504 Proechimys_cuvieri; Proechimys_guyannensis; Makalata_didelphoides; Mesomys_hispidus; Coendou_melanurus; Coendou_prehensilis; Hydrochoe…
-20    48              24           0.270               0.348 3.22e-1  1.38 0.240        0.504 Mus_musculus; Rattus_rattus; Oecomys_auyantepui; Oecomys_bicolor; Hylaeamys_megacephalus; Hylaeamys_yunganus; Oligoryzomys_fulvescens;…
-```
-
-Interpretation: Across the 44-species phylogeny, several clades showed nominal differences in hemoplasma prevalence, with the strongest contrasts observed for a four-species primate clade (93.8% vs. 24.2% outside; OR = 65.5, p = 0.0058) and a 19-species rodent-rich clade (5.5% vs. 43.8%; OR = 0.092, p = 0.0082). However, none remained significant after Benjamini–Hochberg correction (all adjusted p ≥ 0.164), providing no robust evidence for a specific phylogenetic clade associated with hemoplasma prevalence.
-
-### Visualization:
+### Visualization of the phylogenetic distribution of `hemoplasma` prevalence across 44 mammalian `species`
 ```
 species_prevalence <- data_hemoplasma_stat %>%
   group_by(species, order) %>%
@@ -2016,31 +1746,11 @@ species_prevalence <- data_hemoplasma_stat %>%
     n_positive = sum(hemoplasma == 1, na.rm = TRUE),
     prevalence = n_positive / n_sampled,
     .groups = "drop"
-  ) %>%
-  mutate(
-    n_class = case_when(
-      n_sampled <= 10 ~ "1–10",
-      n_sampled <= 20 ~ "11–20",
-      n_sampled <= 50 ~ "21–50",
-      n_sampled <= 100 ~ "51–100",
-      n_sampled > 100 ~ ">100"
-    ),
-    n_class = factor(
-      n_class,
-      levels = c(
-        "1–10",
-        "11–20",
-        "21–50",
-        "51–100",
-        ">100"
-      )
-    )
   )
 setdiff(
   species_prevalence$species,
   mammal_tree_grafen$tip.label
 )
-
 setdiff(
   mammal_tree_grafen$tip.label,
   species_prevalence$species
@@ -2052,71 +1762,84 @@ tree_44 <- drop.tip(
     species_prevalence$species
   )
 )
-
 Ntip(tree_44)
-
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
 p_tree <- ggtree(
   tree_44,
   layout = "rectangular"
+) %<+% species_prevalence
+x_max <- max(
+  p_tree$data$x,
+  na.rm = TRUE
 )
-
-p_tree <- p_tree %<+% species_prevalence
-x_max <- max(p_tree$data$x, na.rm = TRUE)
 p <- p_tree +
-
-  # Species names
   geom_tiplab(
+    aes(
+      colour = order
+    ),
     size = 2.7,
     hjust = 0,
-    offset = 0.05
+    offset = 0.45
   ) +
-
-  # Prevalence points
   geom_tippoint(
     aes(
-      x = x_max + 1.5,
-      colour = prevalence,
-      size = n_class
+      x = x_max + 0.20,
+      size = prevalence,
+      colour = order
     ),
-    shape = 16
+    shape = 1,
+    stroke = 1
   ) +
-
-  # Prevalence scale
-  scale_colour_viridis_c(
-    name = "Hemoplasma\nprevalence",
-    limits = c(0, 1),
-    labels = percent_format(accuracy = 1)
-  ) +
-
-  # Sample size classes
-  scale_size_manual(
-    name = "n sampled",
-    values = c(
-      "1–10" = 2.5,
-      "11–20" = 3.5,
-      "21–50" = 4.5,
-      "51–100" = 5.5,
-      ">100" = 7
-    ),
+  scale_colour_manual(
+    name = "Mammalian order",
+    values = order_colors,
     drop = FALSE
   ) +
-
-  # Give space for labels and points
+  scale_size_continuous(
+    name = "Hemoplasma\nprevalence",
+    range = c(1.5, 8),
+    limits = c(0, 1),
+    breaks = c(0, 0.25, 0.50, 0.75, 1),
+    labels = percent_format(
+      accuracy = 1
+    )
+  ) +
   xlim(
     0,
     x_max + 3
   ) +
-
   theme_tree2() +
-
   theme(
     legend.position = "right",
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    axis.title = element_blank()
+    axis.title = element_blank(),
+    legend.title = element_text(
+      size = 9
+    ),
+    legend.text = element_text(
+      size = 8
+    )
   )
 p
+ggsave(
+  "phylogeny_hemoplasma_prevalence.png",
+  p,
+  width = 10,
+  height = 12,
+  dpi = 300
+)
 ```
+
+
+
 
 ### Step 9. `hemoplasma` infection prevalence and mammal trait-based analyses
 
