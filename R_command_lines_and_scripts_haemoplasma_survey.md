@@ -2543,7 +2543,7 @@ ggsave(
 )
 ```
 
-Variation in `hemoplasma` infection prevalence according to the host `bodymass`
+### Variation in `hemoplasma` infection prevalence according to the host `bodymass`
 ```
 species_data_bodymass <- data_hemoplasma_stat %>%
   group_by(species) %>%
