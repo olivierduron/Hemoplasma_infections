@@ -1968,7 +1968,7 @@ print(results_diet)
 
 -> Interpretation : Interspecific variation in `hemoplasma` prevalence was not explained by the proportion of invertebrates, vertebrates, or plants in the host diet.
 
-### Visualisation of association between `hemoplasma` prevalence and dietary composition variables
+### Visualization of association between `hemoplasma` prevalence and dietary composition variables
 ```
 get_predictions <- function(model, data, variable, label) {
   x <- seq(
@@ -2216,7 +2216,7 @@ print(pairwise_strata_results)
 
 -> Interpretation : Although arboreal species showed a higher estimated `hemoplasma` prevalence than ground-foraging and scansorial species, foraging `strata` ware not significantly associated with interspecific variation in `hemoplasma` prevalence.
 
-### Visualisation of association between `hemoplasma` prevalence and foraging `strata`
+### Visualization of association between `hemoplasma` prevalence and foraging `strata`
 ```
 figure_strata <- ggplot(
   species_data_strata,
@@ -2463,7 +2463,7 @@ print(
 
 -> Interpretation : These results provide no evidence that activity patterns are associated with `hemoplasma` prevalence among the 44 mammalian `species`. Thus, differences in nocturnal, crepuscular, or diurnal activity do not appear to explain the observed interspecific variation in `hemoplasma` infection.
 
-### Visualisation of association between `hemoplasma` prevalence and nocturnal / crepuscular / diurnal activity
+### Visualization of association between `hemoplasma` prevalence and nocturnal / crepuscular / diurnal activity
 ```
 plot_data_activity <- bind_rows(
   species_data_activity %>%
@@ -2637,7 +2637,7 @@ print(
 
 -> Interpretation : `hemoplasma` prevalence tended to increase with increasing host `bodymass`, with an estimated 60% increase in the odds of infection per one SD increase in log-transformed body mass, but the evidence was insufficient to support a statistically significant association.
 
-### Visualisation of association between `hemoplasma` prevalence and host `bodymass`
+### Visualization of association between `hemoplasma` prevalence and host `bodymass`
 ```
 get_predictions_bodymass <- function(model, data) {
   x <- seq(
@@ -2814,7 +2814,7 @@ print(results_longevity, row.names = FALSE)
 
 -> Interpretation : Although prevalence tended to increase with longevity, `hemoplasma` prevalence therefore showed no detectable relationship with host `longevity` across the sampled `species`.
 
-### Visualisation of `hemoplasma` infection status according to the host mean `longivity`
+### Visualization of `hemoplasma` infection status according to the host mean `longivity`
 ```
 plot_longevity <- data_longevity
 pred_longevity <- data.frame(
