@@ -529,7 +529,7 @@ ggsave(
 
 ## Step 3. Variation in `hemoplasma` infection status according to the host’s `sex`
 
-### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) (complete mammal dataset, 44 `species`) 
+### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) (complete dataset, 44 `species`) 
 Fit the full GLMM (model 1) :
 ```
 model_sex_data <- data_hemoplasma_stat %>%
@@ -555,7 +555,7 @@ anova(
 AIC(model1_a, model1_b)
 ```
 
-Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection (complete mammal dataset, 44 `species`)
+Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection (complete dataset, 44 `species`)
 ```
 model_sex_bayes <- brm(
   hemoplasma ~ sex + (1 | species),
@@ -590,7 +590,7 @@ or_sex_results <- data.frame(
 or_sex_results
 ```
 
-### Test whether `hemoplasma` infection probability differs between `sex` while accounting for `species`-level random effects (1 | `species`) conservative species-level dataset (16 `species`)
+### Test whether `hemoplasma` infection probability differs between `sex` while accounting for `species`-level random effects (1 | `species`) (conservative species-level dataset, 16 `species`)
 Fit the full GLMM (model 1_n15) :
 ```
 model_sex_data_n15 <- data_hemoplasma_stat %>%
@@ -691,7 +691,7 @@ data_hemoplasma_stat <- data_hemoplasma_stat %>%
 data_hemoplasma_stat$pathogens <- as.factor(data_hemoplasma_stat$pathogens)
 ```
 
-### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`)
+### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) (complete dataset, 44 `species`)
 Fit the full GLMM (model 2)
 ```
 model2_a <- glmer(
@@ -713,7 +713,7 @@ anova(
 AIC(model2_a, model2_b)
 ```
 
-Calculate the odds ratio and 95% HDI for the effect of `pathogens` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `pathogens` on `hemoplasma` infection (complete dataset, 44 `species`)
 ```
 model_pathogens_bayes <- brm(
   hemoplasma ~ pathogens + (1 | species),
@@ -749,11 +749,68 @@ or_pathogens_results <- data.frame(
 or_pathogens_results
 ```
 
--> Results : `pathogens` was significantly associated with `hemoplasma` infection (GLMM, LRT: χ²₁ = 7.56, p = 0.006). The model including pathogens had a lower AIC than the null model (448.39 vs. 453.95; ΔAIC = 5.56). Individuals positive for other blood-borne `pathogens` had higher estimated odds of `hemoplasma` infection (OR = 2.85, 95% HDI: 1.07–5.71).
+### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) (conservative species-level dataset, 16 `species`)
+Fit the full GLMM (model 2_n15)
+```
+model2_a <- glmer(
+  hemoplasma ~ pathogens + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial
+)
+summary(model2_a)
+model2_b <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  data = data_hemoplasma_stat,
+  family = binomial,
+)
+anova(
+  model2_a,
+  model2_b,
+  test = "Chisq"
+)
+AIC(model2_a, model2_b)
+```
 
--> Interpretation : Individuals positive for other blood-borne `pathogens` had approximately 2.8-fold higher odds of `hemoplasma` infection than `pathogens`-negative individuals, with the 95% HDI excluding 1.
+Calculate the odds ratio and 95% HDI for the effect of `pathogens` on `hemoplasma` infection (conservative species-level dataset, 16 `species`)
+```
+model_pathogens_bayes <- brm(
+  hemoplasma ~ pathogens + (1 | species),
+  data = data_hemoplasma_stat,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 1,
+  seed = 1234
+)
+posterior_pathogens <- as_draws_df(
+  model_pathogens_bayes
+)
+or_pathogens <- exp(
+  posterior_pathogens$b_pathogens1
+)
+or_pathogens_results <- data.frame(
+    variable = "Pathogens (1 vs 0)",
+    OR = median(
+    or_pathogens
+  ),
+    HDI_low = hdi(
+    or_pathogens,
+    ci = 0.95
+  )$CI_low,
+  
+  HDI_high = hdi(
+    or_pathogens,
+    ci = 0.95
+  )$CI_high
+)
+or_pathogens_results
+```
+-> Results: `pathogen` was significantly associated with `hemoplasma` infection in both the complete dataset (GLMM, LRT: χ²₁ = 7.56, p = 0.006, ΔAIC = 5.56; OR = 2.85, 95% HDI: 1.07–5.71) and the conservative dataset (χ²₁ = 7.94, p = 0.005, ΔAIC = 5.94; OR = 3.03, 95% HDI: 1.10–6.09).
 
-### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (`1 | species`)
+-> Interpretation: Individuals positive for other blood-borne `pathogen` had approximately three-fold higher odds of `hemoplasma` infection, with consistent evidence for this association in both datasets.
+
+### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (1 | `species`) (complete dataset, 44 `species`)
 Fit the full GLMM (model 3)
 ```
 model3_a <- glmer(
@@ -798,7 +855,7 @@ anova(
 AIC(model3_c, model3_d)
 ```
 
-Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection (complete dataset, 44 `species`)
 ```
 model3_bayes <- brm(
   hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
@@ -854,9 +911,131 @@ or_model3_results <- data.frame(
 or_model3_results
 ```
 
--> Results : The `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100). Although the interaction model had a slightly lower AIC than the additive model (447.03 vs. 447.74; ΔAIC = 0.71), the interaction was therefore not retained. Adding `apicomplexa` to the model containing `anaplasmataceae` provided only weak evidence for an improvement in model fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20). In contrast, adding `anaplasmataceae` to the null model significantly improved model fit (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (median OR = 3.09, 95% HDI: 0.85–7.24), although the HDI included 1. The corresponding effect of `apicomplexa` was also positive but highly uncertain (median OR = 2.93, 95% HDI: 0.50–8.72).
+### Test whether `hemoplasma` infection probability differs with infections between `anaplasmataceae` and `apicomplexa` while accounting for species-level random effects (1 | `species`) (conservative species-level dataset, 16 `species`)
+Fit the full GLMM (model 3_n15)
+```
+model3_data_n15 <- data_hemoplasma_stat %>%
+  filter(
+    species %in% (
+      species_summary %>%
+        filter(n_sampled >= 15) %>%
+        pull(species)
+    )
+  )
 
--> Interpretation : Overall, `anaplasmataceae` contributed to explaining variation in `hemoplasma` infection probability, whereas there was only weak evidence for an additional contribution of `apicomplexa`. However, the Bayesian estimates were uncertain, with the 95% HDIs for both odds ratios including 1. 
+model3_a_n15 <- glmer(
+  hemoplasma ~ anaplasmataceae * apicomplexa + (1 | species),
+  data = model3_data_n15,
+  family = binomial
+)
+
+summary(model3_a_n15)
+
+model3_b_n15 <- glmer(
+  hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
+  data = model3_data_n15,
+  family = binomial,
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+anova(
+  model3_b_n15,
+  model3_a_n15,
+  test = "Chisq"
+)
+
+AIC(model3_a_n15, model3_b_n15)
+
+model3_c_n15 <- glmer(
+  hemoplasma ~ anaplasmataceae + (1 | species),
+  data = model3_data_n15,
+  family = binomial
+)
+
+anova(
+  model3_b_n15,
+  model3_c_n15,
+  test = "Chisq"
+)
+
+AIC(model3_b_n15, model3_c_n15)
+
+model3_d_n15 <- glmer(
+  hemoplasma ~ (1 | species),
+  data = model3_data_n15,
+  family = binomial
+)
+
+anova(
+  model3_c_n15,
+  model3_d_n15,
+  test = "Chisq"
+)
+
+AIC(model3_c_n15, model3_d_n15)
+```
+
+Calculate the odds ratio and 95% HDI for the effect of `anaplasmataceae` and `apicomplexa` on `hemoplasma` infection (conservative species-level dataset, 16 `species`)
+```
+model3_bayes_n15 <- brm(
+  hemoplasma ~ anaplasmataceae + apicomplexa + (1 | species),
+  data = model3_data_n15,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 1,
+  seed = 1234
+)
+
+posterior_model3_n15 <- as_draws_df(
+  model3_bayes_n15
+)
+
+or_anaplasmataceae_n15 <- exp(
+  posterior_model3_n15$b_anaplasmataceae1
+)
+
+or_apicomplexa_n15 <- exp(
+  posterior_model3_n15$b_apicomplexa1
+)
+
+or_model3_results_n15 <- data.frame(
+  variable = c(
+    "Anaplasmataceae (1 vs 0)",
+    "Apicomplexa (1 vs 0)"
+  ),
+  OR = c(
+    median(or_anaplasmataceae_n15),
+    median(or_apicomplexa_n15)
+  ),
+  HDI_low = c(
+    hdi(
+      or_anaplasmataceae_n15,
+      ci = 0.95
+    )$CI_low,
+    hdi(
+      or_apicomplexa_n15,
+      ci = 0.95
+    )$CI_low
+  ),
+  HDI_high = c(
+    hdi(
+      or_anaplasmataceae_n15,
+      ci = 0.95
+    )$CI_high,
+    hdi(
+      or_apicomplexa_n15,
+      ci = 0.95
+    )$CI_high
+  )
+)
+
+or_model3_results_n15
+```
+-> Results : In the complete dataset (44 `species`), the `anaplasmataceae` × `apicomplexa` interaction did not significantly improve model fit (LRT: χ²₁ = 2.71, p = 0.100; ΔAIC = 0.71) and was therefore not retained. Adding `apicomplexa` to the model containing `anaplasmataceae` provided only weak evidence for improved fit (LRT: χ²₁ = 3.20, p = 0.074; ΔAIC = 1.20), whereas adding `anaplasmataceae` to the null model significantly improved model fit (LRT: χ²₁ = 7.01, p = 0.008; ΔAIC = 5.01). `Anaplasmataceae`-positive individuals had higher estimated odds of `hemoplasma` infection (OR = 3.09, 95% HDI: 0.85–7.24), although the HDI included 1; the corresponding effect of `apicomplexa` was also positive but uncertain (OR = 2.93, 95% HDI: 0.50–8.72). In the conservative dataset (16 `species`), the interaction was likewise not supported (LRT: χ²₁ = 2.39, p = 0.122; ΔAIC = 0.39). Adding `apicomplexa` provided weak evidence for improved fit (LRT: χ²₁ = 3.47, p = 0.063; ΔAIC = 1.47), while `anaplasmataceae` remained significantly associated with `hemoplasma` infection (LRT: χ²₁ = 7.09, p = 0.008; ΔAIC = 5.09). Estimated odds were similarly higher for `anaplasmataceae`-positive individuals (OR = 3.14, 95% HDI: 0.95–7.54) and for `Apicomplexa`-positive individuals (OR = 3.33, 95% HDI: 0.48–11.33), although both HDIs included 1.
+
+-> Interpretation : Across both datasets, `anaplasmataceae` consistently contributed to explaining variation in `hemoplasma` infection probability, whereas evidence for an additional effect of `apicomplexa` remained weak. The similar effect estimates in the conservative dataset support the robustness of this pattern.
 
 ### Sensitivity analysis 
 A leave-one-species-out analysis was further performed to assess whether the association between `pathogens` and `hemoplasma` infection was driven by any single `species`
@@ -978,8 +1157,7 @@ leave_one_species_results
 
 -> Interpretation: The positive association between `hemoplasma` and `pathogens` was generally robust to the exclusion of individual host `species` and was not driven by a single mammal `species`. Excluding *Bradypus tridactylus* strengthened the estimated association, indicating that this `species` tends to attenuate the overall effect. 
 
-
-### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae` 
+### Visualization of odds ratios and 95% HDIs for `sex`, `pathogens`, `apicomplexa` and `anaplasmataceae` for complete (44 `species`) and conservative species-level dataset (16 `species`)
 ```
 or_results <- data.frame(
   variable = c(
@@ -989,41 +1167,81 @@ or_results <- data.frame(
     "Apicomplexa (1 vs 0)"
   ),
   OR = c(
-    1.51,
-    2.98,
-    4.32,
-    2.30
+    1.69,
+    2.85,
+    3.09,
+    2.93
   ),
   HDI_low = c(
-    0.63,
-    1.05,
-    1.03,
-    0.28
+    0.77,
+    1.07,
+    0.85,
+    0.50
   ),
   HDI_high = c(
-    2.83,
-    6.63,
-    11.70,
-    7.42
-  )
+    3.13,
+    5.71,
+    7.24,
+    8.72
+  ),
+  dataset = "Complete dataset (44 species)"
 )
-plot_or <- or_results %>%
+
+or_results_n15 <- data.frame(
+  variable = c(
+    "Sex (M vs F)",
+    "Pathogens (1 vs 0)",
+    "Anaplasmataceae (1 vs 0)",
+    "Apicomplexa (1 vs 0)"
+  ),
+  OR = c(
+    1.85,
+    3.03,
+    3.14,
+    3.33
+  ),
+  HDI_low = c(
+    0.73,
+    1.10,
+    0.95,
+    0.48
+  ),
+  HDI_high = c(
+    3.49,
+    6.09,
+    7.54,
+    11.33
+  ),
+  dataset = "Conservative dataset (16 species)"
+)
+
+plot_or <- bind_rows(
+  or_results,
+  or_results_n15
+) %>%
   mutate(
     variable = factor(
       variable,
-      levels = rev(c(
-        "Sex (M vs F)",
-        "Pathogens (1 vs 0)",
+      levels = c(
+        "Apicomplexa (1 vs 0)",
         "Anaplasmataceae (1 vs 0)",
-        "Apicomplexa (1 vs 0)"
-      ))
+        "Pathogens (1 vs 0)",
+        "Sex (M vs F)"
+      )
+    ),
+    y_base = as.numeric(variable),
+    y = ifelse(
+      dataset == "Complete dataset (44 species)",
+      y_base + 0.12,
+      y_base - 0.12
     )
   )
+
 p <- ggplot(
   plot_or,
   aes(
     x = OR,
-    y = variable
+    y = y
   )
 ) +
   geom_vline(
@@ -1035,17 +1253,35 @@ p <- ggplot(
     aes(
       x = HDI_low,
       xend = HDI_high,
-      y = variable,
-      yend = variable
+      y = y,
+      yend = y,
+      colour = dataset
     ),
     linewidth = 1
   ) +
   geom_point(
+    aes(
+      colour = dataset
+    ),
     shape = 21,
-    size = 12,
     fill = "white",
-    colour = "black",
-    stroke = 1.2
+    size = 5,
+    stroke = 1.1
+  ) +
+  scale_colour_manual(
+    values = c(
+      "Complete dataset (44 species)" = "grey60",
+      "Conservative dataset (16 species)" = "black"
+    )
+  ) +
+  scale_y_continuous(
+    breaks = 1:4,
+    labels = c(
+      "Apicomplexa (1 vs 0)",
+      "Anaplasmataceae (1 vs 0)",
+      "Pathogens (1 vs 0)",
+      "Sex (M vs F)"
+    )
   ) +
   scale_x_continuous(
     limits = c(0, 12),
@@ -1053,20 +1289,29 @@ p <- ggplot(
   ) +
   labs(
     x = "Odds ratio (95% HDI)",
-    y = NULL
+    y = NULL,
+    colour = NULL
   ) +
   theme_classic() +
   theme(
     axis.text.y = element_text(size = 11),
     axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11)
+    axis.title.x = element_text(size = 11),
+    legend.position = "top",
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
   )
+
 print(p)
+
 ggsave(
-  filename = "OR_hemoplasma_pathogens.png",
+  filename = "OR_hemoplasma_complete_vs_n15.png",
   plot = p,
   width = 7,
-  height = 4.5,
+  height = 4.8,
   units = "in",
   dpi = 300
 )
@@ -1078,6 +1323,7 @@ species_select <- c(
   "Didelphis_marsupialis",
   "Bradypus_tridactylus"
 )
+
 plot_data <- data_hemoplasma_stat %>%
   filter(
     species %in% species_select,
@@ -1091,22 +1337,22 @@ plot_data <- data_hemoplasma_stat %>%
     prevalence = n_positive / n_total,
     .groups = "drop"
   ) %>%
-  mutate(    
-    z = qnorm(0.975),    
-    denominator = 1 + z^2 / n_total,    
+  mutate(
+    z = qnorm(0.975),
+    denominator = 1 + z^2 / n_total,
     center = (
       prevalence +
         z^2 / (2 * n_total)
-    ) / denominator,    
+    ) / denominator,
     half_width = (
       z *
         sqrt(
           prevalence * (1 - prevalence) / n_total +
             z^2 / (4 * n_total^2)
         )
-    ) / denominator,    
+    ) / denominator,
     CI_low = center - half_width,
-    CI_high = center + half_width,    
+    CI_high = center + half_width,
     prevalence_percent = prevalence * 100,
     CI_low_percent = CI_low * 100,
     CI_high_percent = CI_high * 100,
@@ -1114,28 +1360,29 @@ plot_data <- data_hemoplasma_stat %>%
       species == "Didelphis_marsupialis" ~ "Didelphis marsupialis",
       species == "Bradypus_tridactylus" ~ "Bradypus tridactylus"
     ),
-    pathogens_label = ifelse(
-      pathogens == 0,
-      "Pathogens 0",
-      "Pathogens 1"
+    pathogens_label = case_when(
+      pathogens == 0 ~ "Uninfected by Anaplasmataceae or Apicomplexa",
+      pathogens == 1 ~ "Infected by Anaplasmataceae and/or Apicomplexa"
     ),
     group = case_when(
       species == "Bradypus_tridactylus" ~ "Xenarthrans",
       species == "Didelphis_marsupialis" ~ "Didelphids"
     )
   )
+
 plot_data <- plot_data %>%
   mutate(
     group_y = factor(
       paste(species_label, pathogens_label),
       levels = c(
-        "Didelphis marsupialis Pathogens 1",
-        "Didelphis marsupialis Pathogens 0",
-        "Bradypus tridactylus Pathogens 1",
-        "Bradypus tridactylus Pathogens 0"
+        "Bradypus tridactylus Uninfected by Anaplasmataceae or Apicomplexa",
+        "Bradypus tridactylus Infected by Anaplasmataceae and/or Apicomplexa",
+        "Didelphis marsupialis Uninfected by Anaplasmataceae or Apicomplexa",
+        "Didelphis marsupialis Infected by Anaplasmataceae and/or Apicomplexa"
       )
     )
   )
+
 print(
   plot_data %>%
     select(
@@ -1149,6 +1396,22 @@ print(
       CI_high_percent
     )
 )
+
+sig_data <- data.frame(
+  species = c(
+    "Bradypus tridactylus",
+    "Didelphis marsupialis"
+  ),
+  y = c(
+    1.5,
+    3.5
+  ),
+  label = c(
+    "NS",
+    "*"
+  )
+)
+
 p <- ggplot(
   plot_data,
   aes(
@@ -1172,6 +1435,19 @@ p <- ggplot(
     size = 12,
     stroke = 1.2
   ) +
+  geom_text(
+    data = sig_data,
+    aes(
+      x = 103,
+      y = y,
+      label = label
+    ),
+    inherit.aes = FALSE,
+    colour = "black",
+    family = "Calibri",
+    size = 5,
+    hjust = 0.5
+  ) +
   scale_colour_manual(
     values = c(
       "Primates" = "#264478",
@@ -1181,41 +1457,58 @@ p <- ggplot(
       "Carnivores" = "#375623",
       "Didelphids" = "#4472C4"
     )
-  ) +  
+  ) +
   scale_x_continuous(
-    limits = c(0, 100),
+    limits = c(0, 110),
     breaks = seq(0, 100, by = 20),
     expand = expansion(
       mult = c(0.02, 0.03)
     )
-  ) +  
+  ) +
+  scale_y_discrete(
+    labels = c(
+      "<i>Bradypus tridactylus</i><br>Uninfected by Anaplasmataceae or Apicomplexa",
+      "<i>Bradypus tridactylus</i><br>Infected by Anaplasmataceae and/or Apicomplexa",
+      "<i>Didelphis marsupialis</i><br>Uninfected by Anaplasmataceae or Apicomplexa",
+      "<i>Didelphis marsupialis</i><br>Infected by Anaplasmataceae and/or Apicomplexa"
+    )
+  ) +
   labs(
     x = "Hemoplasma prevalence (%)",
     y = NULL
-  ) +  
-  theme_classic() +  
+  ) +
+  theme_classic() +
   theme(
-    axis.text.y = element_text(
-      size = 11
-    ),    
+    text = element_text(
+      family = "Calibri"
+    ),
+    axis.text.y = ggtext::element_markdown(
+      size = 10,
+      family = "Calibri",
+      lineheight = 0.95
+    ),
     axis.text.x = element_text(
-      size = 10
-    ),    
+      size = 10,
+      family = "Calibri"
+    ),
     axis.title.x = element_text(
-      size = 11
-    ),    
+      size = 11,
+      family = "Calibri"
+    ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
       linewidth = 0.8
-    ),    
+    ),
     legend.position = "none"
   )
+
 print(p)
+
 ggsave(
   filename = "Hemoplasma_prevalence_Pathogens_Wilson_coloured.png",
   plot = p,
-  width = 7,
+  width = 8,
   height = 4.5,
   units = "in",
   dpi = 300
