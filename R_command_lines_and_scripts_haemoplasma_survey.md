@@ -1247,32 +1247,48 @@ p <- ggplot(
   geom_vline(
     xintercept = 1,
     linetype = "dashed",
-    linewidth = 0.5
+    linewidth = 0.5,
+    colour = "black"
   ) +
   geom_segment(
     aes(
       x = HDI_low,
       xend = HDI_high,
       y = y,
-      yend = y,
-      colour = dataset
+      yend = y
     ),
+    colour = "black",
     linewidth = 1
   ) +
   geom_point(
+    data = subset(
+      plot_or,
+      dataset == "Complete dataset (44 species)"
+    ),
     aes(
-      colour = dataset
+      x = OR,
+      y = y
     ),
     shape = 21,
-    fill = "white",
-    size = 5,
+    colour = "black",
+    fill = "black",
+    size = 4,
     stroke = 1.1
   ) +
-  scale_colour_manual(
-    values = c(
-      "Complete dataset (44 species)" = "grey60",
-      "Conservative dataset (16 species)" = "black"
-    )
+  geom_point(
+    data = subset(
+      plot_or,
+      dataset == "Conservative dataset (16 species)"
+    ),
+    aes(
+      x = OR,
+      y = y
+    ),
+    shape = 21,
+    colour = "black",
+    fill = "white",
+    size = 4,
+    stroke = 1.1
   ) +
   scale_y_continuous(
     breaks = 1:4,
@@ -1289,15 +1305,13 @@ p <- ggplot(
   ) +
   labs(
     x = "Odds ratio (95% HDI)",
-    y = NULL,
-    colour = NULL
+    y = NULL
   ) +
   theme_classic() +
   theme(
     axis.text.y = element_text(size = 11),
     axis.text.x = element_text(size = 10),
     axis.title.x = element_text(size = 11),
-    legend.position = "top",
     panel.border = element_rect(
       colour = "black",
       fill = NA,
@@ -1361,8 +1375,8 @@ plot_data <- data_hemoplasma_stat %>%
       species == "Bradypus_tridactylus" ~ "Bradypus tridactylus"
     ),
     pathogens_label = case_when(
-      pathogens == 0 ~ "Uninfected by Anaplasmataceae or Apicomplexa",
-      pathogens == 1 ~ "Infected by Anaplasmataceae and/or Apicomplexa"
+      pathogens == 0 ~ "Pathogens 0",
+      pathogens == 1 ~ "Pathogens 1"
     ),
     group = case_when(
       species == "Bradypus_tridactylus" ~ "Xenarthrans",
@@ -1375,10 +1389,10 @@ plot_data <- plot_data %>%
     group_y = factor(
       paste(species_label, pathogens_label),
       levels = c(
-        "Bradypus tridactylus Uninfected by Anaplasmataceae or Apicomplexa",
-        "Bradypus tridactylus Infected by Anaplasmataceae and/or Apicomplexa",
-        "Didelphis marsupialis Uninfected by Anaplasmataceae or Apicomplexa",
-        "Didelphis marsupialis Infected by Anaplasmataceae and/or Apicomplexa"
+        "Bradypus tridactylus Pathogens 0",
+        "Bradypus tridactylus Pathogens 1",
+        "Didelphis marsupialis Pathogens 0",
+        "Didelphis marsupialis Pathogens 1"
       )
     )
   )
@@ -1432,7 +1446,7 @@ p <- ggplot(
   geom_point(
     shape = 21,
     fill = "white",
-    size = 12,
+    size = 8,
     stroke = 1.2
   ) +
   geom_text(
@@ -1445,7 +1459,7 @@ p <- ggplot(
     inherit.aes = FALSE,
     colour = "black",
     family = "Calibri",
-    size = 5,
+    size = 5.5,
     hjust = 0.5
   ) +
   scale_colour_manual(
@@ -1467,10 +1481,10 @@ p <- ggplot(
   ) +
   scale_y_discrete(
     labels = c(
-      "<i>Bradypus tridactylus</i><br>Uninfected by Anaplasmataceae or Apicomplexa",
-      "<i>Bradypus tridactylus</i><br>Infected by Anaplasmataceae and/or Apicomplexa",
-      "<i>Didelphis marsupialis</i><br>Uninfected by Anaplasmataceae or Apicomplexa",
-      "<i>Didelphis marsupialis</i><br>Infected by Anaplasmataceae and/or Apicomplexa"
+      "<i>Bradypus tridactylus</i><br>Pathogens 0",
+      "<i>Bradypus tridactylus</i><br>Pathogens 1",
+      "<i>Didelphis marsupialis</i><br>Pathogens 0",
+      "<i>Didelphis marsupialis</i><br>Pathogens 1"
     )
   ) +
   labs(
@@ -1483,16 +1497,16 @@ p <- ggplot(
       family = "Calibri"
     ),
     axis.text.y = ggtext::element_markdown(
-      size = 10,
+      size = 12,
       family = "Calibri",
       lineheight = 0.95
     ),
     axis.text.x = element_text(
-      size = 10,
+      size = 11,
       family = "Calibri"
     ),
     axis.title.x = element_text(
-      size = 11,
+      size = 12,
       family = "Calibri"
     ),
     panel.border = element_rect(
@@ -1553,7 +1567,7 @@ for (sp in species_select) {
 *Didelphis marsupialis* : `haemoplasma` infection was significantly associated with `pathogens` positivity (OR = 10.26, 95% CI: 1.15–499.19, p = 0.019), with `haemoplasma`-positive individuals ~10-fold more likely to be `pathogens`-positive.
 
 ## Step 5. `hemoplasma` prevalence by mammalian `order`
-### Observed `hemoplasma` prevalence and 95% Wilson CI by `order`
+### Observed `hemoplasma` prevalence and 95% Wilson CI by `order` (complete dataset, 44 `species`) 
 ```
 order_prevalence <- data_hemoplasma_stat %>%
   group_by(order) %>%
@@ -1585,7 +1599,7 @@ order_prevalence <- data_hemoplasma_stat %>%
 order_prevalence
 ```
 
--> Results :
+-> Results (complete dataset, 44 `species`) :
 | Order | N sampled | N positive | Prevalence | 95% CI (Wilson) |
 |---|---:|---:|---:|---:|
 | Carnivora | 17 | 5 | 29.4% | 13.3–53.1% |
@@ -1595,9 +1609,14 @@ order_prevalence
 | Primates | 66 | 61 | 92.4% | 83.5–96.7% |
 | Rodentia | 201 | 11 | 5.47% | 3.08–9.53% |
 
-### Visualization of `hemoplasma` prevalence and 95% Wilson CI by mammalian `order`
+### Observed `hemoplasma` prevalence and 95% Wilson CI by `order` (conservative species-level dataset, 16 `species`) 
 ```
-order_prevalence <- data_hemoplasma_stat %>%
+species_n15 <- species_summary %>%
+  filter(n_sampled >= 15) %>%
+  pull(species)
+
+order_prevalence_n15 <- data_hemoplasma_stat %>%
+  filter(species %in% species_n15) %>%
   group_by(order) %>%
   summarise(
     n_sampled = n(),
@@ -1624,7 +1643,123 @@ order_prevalence <- data_hemoplasma_stat %>%
     CI_low_percent = CI_low * 100,
     CI_high_percent = CI_high * 100
   )
-order_prevalence <- order_prevalence %>%
+
+order_prevalence_n15
+```
+
+-> Results (conservative species-level dataset, 16 `species`) :
+| Mammalian order | n sampled | n positive | Prevalence (%) | 95% CI (%) |
+|---|---:|---:|---:|---:|
+| Cingulata | 15 | 5 | 33.3 | 15.2–58.3 |
+| Didelphimorphia | 107 | 38 | 35.5 | 27.1–44.9 |
+| Pilosa | 198 | 76 | 38.4 | 31.9–45.3 |
+| Primates | 63 | 61 | 96.8 | 89.1–99.1 |
+| Rodentia | 138 | 6 | 4.35 | 2.01–9.16 |
+
+### Visualization of `hemoplasma` prevalence and 95% Wilson CI by mammalian `order` for complete (44 `species`) and conservative species-level dataset (16 `species`)
+```
+order_prevalence_complete <- data.frame(
+  order = c(
+    "Carnivora",
+    "Cingulata",
+    "Didelphimorphia",
+    "Pilosa",
+    "Primates",
+    "Rodentia"
+  ),
+  n_sampled = c(
+    17,
+    17,
+    123,
+    202,
+    66,
+    201
+  ),
+  n_positive = c(
+    5,
+    5,
+    39,
+    76,
+    61,
+    11
+  ),
+  prevalence = c(
+    29.4,
+    29.4,
+    31.7,
+    37.6,
+    92.4,
+    5.47
+  ),
+  CI_low = c(
+    13.3,
+    13.3,
+    24.1,
+    31.2,
+    83.5,
+    3.08
+  ),
+  CI_high = c(
+    53.1,
+    53.1,
+    40.4,
+    44.5,
+    96.7,
+    9.53
+  ),
+  dataset = "Complete"
+)
+
+order_prevalence_n15 <- data.frame(
+  order = c(
+    "Cingulata",
+    "Didelphimorphia",
+    "Pilosa",
+    "Primates",
+    "Rodentia"
+  ),
+  n_sampled = c(
+    15,
+    107,
+    198,
+    63,
+    138
+  ),
+  n_positive = c(
+    5,
+    38,
+    76,
+    61,
+    6
+  ),
+  prevalence = c(
+    33.3,
+    35.5,
+    38.4,
+    96.8,
+    4.35
+  ),
+  CI_low = c(
+    15.2,
+    27.1,
+    31.9,
+    89.1,
+    2.01
+  ),
+  CI_high = c(
+    58.3,
+    44.9,
+    45.3,
+    99.1,
+    9.16
+  ),
+  dataset = "Conservative"
+)
+
+order_prevalence <- bind_rows(
+  order_prevalence_complete,
+  order_prevalence_n15
+) %>%
   mutate(
     order = factor(
       order,
@@ -1636,39 +1771,131 @@ order_prevalence <- order_prevalence %>%
         "Cingulata",
         "Rodentia"
       ))
+    ),
+    dataset = factor(
+      dataset,
+      levels = c(
+        "Conservative",
+        "Complete"
+      )
     )
+  ) %>%
+  arrange(order, dataset) %>%
+  mutate(
+    y = as.numeric(order) +
+      ifelse(dataset == "Complete", 0.16, -0.16)
   )
+
+order_colors <- c(
+  "Primates" = "#264478",
+  "Pilosa" = "#C65911",
+  "Didelphimorphia" = "#4472C4",
+  "Carnivora" = "#375623",
+  "Cingulata" = "#666666",
+  "Rodentia" = "#D6A500"
+)
+
 p_order_prevalence <- ggplot(
   order_prevalence,
   aes(
-    x = prevalence_percent,
-    y = order,
-    colour = order
+    x = prevalence,
+    y = y
   )
 ) +
-    geom_errorbar(
+  geom_errorbar(
     aes(
-      xmin = CI_low_percent,
-      xmax = CI_high_percent
+      xmin = CI_low,
+      xmax = CI_high,
+      colour = order
     ),
     orientation = "y",
     width = 0,
     linewidth = 1
   ) +
-    geom_point(
+  geom_point(
+    data = subset(
+      order_prevalence,
+      dataset == "Complete"
+    ),
+    aes(
+      colour = order,
+      fill = order
+    ),
+    shape = 21,
+    size = 7,
+    stroke = 1.2
+  ) +
+  geom_point(
+    data = subset(
+      order_prevalence,
+      dataset == "Conservative"
+    ),
+    aes(
+      colour = order
+    ),
     shape = 21,
     fill = "white",
     size = 7,
     stroke = 1.2
-  ) + 
+  ) +
+  annotate(
+    "point",
+    x = 10,
+    y = 6.55,
+    shape = 21,
+    fill = "black",
+    colour = "black",
+    size = 4,
+    stroke = 1
+  ) +
+  annotate(
+    "text",
+    x = 13,
+    y = 6.55,
+    label = "Complete dataset (44 species)",
+    hjust = 0,
+    vjust = 0.5,
+    size = 3.2,
+    family = "Calibri"
+  ) +
+  annotate(
+    "point",
+    x = 10,
+    y = 6.25,
+    shape = 21,
+    fill = "white",
+    colour = "black",
+    size = 4,
+    stroke = 1
+  ) +
+  annotate(
+    "text",
+    x = 13,
+    y = 6.25,
+    label = "Conservative dataset (16 species)",
+    hjust = 0,
+    vjust = 0.5,
+    size = 3.2,
+    family = "Calibri"
+  ) +
   scale_colour_manual(
-    values = c(
-      "Primates" = "#264478",
-      "Pilosa" = "#C65911",
-      "Didelphimorphia" = "#4472C4",
-      "Carnivora" = "#375623",
-      "Cingulata" = "#666666",
-      "Rodentia" = "#D6A500"
+    values = order_colors
+  ) +
+  scale_fill_manual(
+    values = order_colors
+  ) +
+  scale_y_continuous(
+    breaks = 1:6,
+    labels = c(
+      "Primates",
+      "Pilosa",
+      "Didelphimorphia",
+      "Carnivora",
+      "Cingulata",
+      "Rodentia"
+    ),
+    expand = expansion(
+      mult = c(0.03, 0.12)
     )
   ) +
   scale_x_continuous(
@@ -1678,21 +1905,27 @@ p_order_prevalence <- ggplot(
     expand = expansion(
       mult = c(0.02, 0.03)
     )
-  ) +  
+  ) +
   labs(
-    x = "Haemoplasma prevalence",
+    x = "Hemoplasma prevalence",
     y = NULL
-  ) +  
-  theme_classic() +  
+  ) +
+  theme_classic() +
   theme(
+    text = element_text(
+      family = "Calibri"
+    ),
     axis.text.y = element_text(
-      size = 11
+      size = 11,
+      family = "Calibri"
     ),
     axis.text.x = element_text(
-      size = 10
+      size = 10,
+      family = "Calibri"
     ),
     axis.title.x = element_text(
-      size = 11
+      size = 11,
+      family = "Calibri"
     ),
     panel.border = element_rect(
       colour = "black",
@@ -1701,9 +1934,11 @@ p_order_prevalence <- ggplot(
     ),
     legend.position = "none"
   )
+
 print(p_order_prevalence)
+
 ggsave(
-  filename = "order_haemoplasma_prevalence.png",
+  filename = "order_hemoplasma_prevalence_complete_vs_n15.png",
   plot = p_order_prevalence,
   width = 7,
   height = 5,
