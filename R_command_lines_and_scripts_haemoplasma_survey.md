@@ -462,7 +462,7 @@ Spearman's ρ = 0.334, p = 0.027
 A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
 
 
-### Test for the association between `hemoplasma` prevalence and sample size per `species`, restricted `species` with n ≥ 15 (n `species` = 18) (Spearman correlation test) 
+### Test for the association between `hemoplasma` prevalence and sample size per `species`, restricted `species` with n ≥ 15 (n `species` = 16) (Spearman correlation test) 
 ```
 species_summary_n15 <- species_summary %>%
   filter(n_sampled >= 15)
@@ -529,7 +529,7 @@ ggsave(
 
 ## Step 3. Variation in `hemoplasma` infection status according to the host’s `sex`
 
-### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) 
+### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) (complete mammal dataset, 44 `species`) 
 Fit the full GLMM (model 1) :
 ```
 model_sex_data <- data_hemoplasma_stat %>%
@@ -555,7 +555,7 @@ anova(
 AIC(model1_a, model1_b)
 ```
 
-Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection
+Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection (complete mammal dataset, 44 `species`)
 ```
 model_sex_bayes <- brm(
   hemoplasma ~ sex + (1 | species),
@@ -590,9 +590,91 @@ or_sex_results <- data.frame(
 or_sex_results
 ```
 
--> Results : `sex` was not significantly associated with `hemoplasma` infection status (LRT: χ²₁ = 2.33, p = 0.127). The model including `sex` had a slightly lower AIC than the null model (314.73 vs. 315.06; ΔAIC = 0.33). Males showed higher estimated odds of infection than females (OR = 1.69, 95% HDI: 0.77–3.13), but the HDI included 1.
+### Test whether `hemoplasma` infection probability differs between `sex` while accounting for `species`-level random effects (1 | `species`) conservative species-level dataset (16 `species`)
+Fit the full GLMM (model 1_n15) :
+```
+model_sex_data_n15 <- data_hemoplasma_stat %>%
+  filter(
+    !is.na(sex),
+    species %in% (
+      species_summary %>%
+        filter(n_sampled >= 15) %>%
+        pull(species)
+    )
+  )
 
--> Interpretation : There was no significant evidence for a `sex` effect on `hemoplasma` infection probability. 
+model1_a_n15 <- glmer(
+  hemoplasma ~ sex + (1 | species),
+  data = model_sex_data_n15,
+  family = binomial
+)
+
+summary(model1_a_n15)
+
+model1_b_n15 <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  data = model_sex_data_n15,
+  family = binomial
+)
+
+anova(
+  model1_a_n15,
+  model1_b_n15,
+  test = "Chisq"
+)
+
+AIC(model1_a_n15, model1_b_n15)
+```
+Calculate the odds ratio and 95% HDI for the effect of `sex` on `hemoplasma` infection (conservative species-level dataset, 16 `species`)
+```
+model_sex_data_n15 <- data_hemoplasma_stat %>%
+  filter(
+    !is.na(sex),
+    species %in% (
+      species_summary %>%
+        filter(n_sampled >= 15) %>%
+        pull(species)
+    )
+  )
+
+model_sex_bayes_n15 <- brm(
+  hemoplasma ~ sex + (1 | species),
+  data = model_sex_data_n15,
+  family = bernoulli(link = "logit"),
+  chains = 4,
+  iter = 4000,
+  warmup = 2000,
+  cores = 4,
+  seed = 1234
+)
+
+posterior_sex_n15 <- as_draws_df(
+  model_sex_bayes_n15
+)
+
+or_sex_n15 <- exp(
+  posterior_sex_n15$b_sexM
+)
+
+or_sex_results_n15 <- data.frame(
+  variable = "Sex (M vs F)",
+  OR = median(or_sex_n15),
+  HDI_low = hdi(
+    or_sex_n15,
+    ci = 0.95
+  )$CI_low,
+  HDI_high = hdi(
+    or_sex_n15,
+    ci = 0.95
+  )$CI_high
+)
+
+or_sex_results_n15
+```
+
+-> Results : For the complete mammal dataset (44 `species`), `sex` was not significantly associated with `hemoplasma` infection status (LRT: χ²₁ = 2.33, p = 0.127). The model including `sex` had a slightly lower AIC than the null model (314.73 vs. 315.06; ΔAIC = 0.33). Males showed higher estimated odds of infection than females (OR = 1.69, 95% HDI: 0.77–3.13), but the HDI included 1. For the conservative species-level dataset (16 `species`), the association remained non-significant (LRT: χ²₁ = 2.90, p = 0.088; ΔAIC = 0.90), with males again showing higher estimated odds of infection (OR = 1.85, 95% HDI: 0.73–3.49).
+
+-> Interpretation : There was no significant evidence for a `sex` effect on `hemoplasma` infection probability in either the complete dataset or the conservative species-level dataset. The consistent tendency towards higher infection odds in males suggests a possible weak `sex` effect, but uncertainty remained substantial.
 
 ## Step 4. Variation in `hemoplasma` infection status according to the presence of other blood-borne pathogens (`anaplasmataceae` and `apicomplexa`)
 
