@@ -92,6 +92,7 @@ library(MCMCglmm)
 library(scales)
 library(ggthemes)
 library(ggtree)
+library(ggtext)
 library(lme4)
 library(car)
 library(emmeans)
@@ -178,8 +179,47 @@ print(species_summary, n = Inf)
 | *Sciurus aestuans* | 1 | 0 | 1 | 0% | 0–79.3% |
 | *Tamandua tetradactyla* | 3 | 0 | 3 | 0% | 0–56.1% |
 
-### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) (Fig. 1) 
+### Visualization of `species`-level `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method), restricted to `species` with n ≥ 15  (n `species` = 16) (Fig. 1) 
 ```
+windowsFonts(Calibri = windowsFont("Calibri"))
+
+species_summary <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(
+      as.numeric(as.character(hemoplasma)),
+      na.rm = TRUE
+    ),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    n_negative = n_sampled - n_positive,
+    prevalence = n_positive / n_sampled
+  ) %>%
+  rowwise() %>%
+  mutate(
+    ci_low = binom::binom.confint(
+      n_positive,
+      n_sampled,
+      method = "wilson"
+    )$lower,
+    ci_high = binom::binom.confint(
+      n_positive,
+      n_sampled,
+      method = "wilson"
+    )$upper
+  ) %>%
+  ungroup() %>%
+  mutate(
+    ci_low = ifelse(n_positive == 0, 0, ci_low)
+  )
+
+print(species_summary, n = Inf)
+
+species_summary_n10 <- species_summary %>%
+  filter(n_sampled >= 10)
+
 species_order <- c(
   "Alouatta_macconnelli",
   "Saguinus_midas",
@@ -226,23 +266,9 @@ species_order <- c(
   "Micoureus_demerarae",
   "Philander_opossum"
 )
-plot_data <- species_summary %>%
+
+plot_data <- species_summary_n10 %>%
   mutate(
-    species_label = gsub(
-      "_",
-      " ",
-      as.character(species)
-    ),
-    species_label = factor(
-      species_label,
-      levels = rev(
-        gsub(
-          "_",
-          " ",
-          species_order
-        )
-      )
-    ),    
     group = case_when(
       species %in% c(
         "Alouatta_macconnelli",
@@ -250,17 +276,17 @@ plot_data <- species_summary %>%
         "Sapajus_apella",
         "Saimiri_sciureus",
         "Pithecia_pithecia"
-      ) ~ "Primates",      
+      ) ~ "Primates",
       species %in% c(
         "Bradypus_tridactylus",
         "Choloepus_didactylus",
         "Cyclopes_didactylus",
         "Tamandua_tetradactyla"
-      ) ~ "Xenarthrans",      
+      ) ~ "Xenarthrans",
       species %in% c(
         "Cabassous_unicinctus",
         "Dasypus_novemcinctus"
-      ) ~ "Armadillos",      
+      ) ~ "Armadillos",
       species %in% c(
         "Hydrochoerus_hydrochaeris",
         "Holochilus_sciureus",
@@ -281,7 +307,7 @@ plot_data <- species_summary %>%
         "Mus_musculus",
         "Rattus_rattus",
         "Sciurus_aestuans"
-      ) ~ "Rodents",     
+      ) ~ "Rodents",
       species %in% c(
         "Leopardus_wiedii",
         "Puma_yagouaroundi",
@@ -289,7 +315,7 @@ plot_data <- species_summary %>%
         "Galictis_vittata",
         "Lontra_longicaudis",
         "Potos_flavus"
-      ) ~ "Carnivores",     
+      ) ~ "Carnivores",
       species %in% c(
         "Caluromys_philander",
         "Didelphis_marsupialis",
@@ -300,8 +326,47 @@ plot_data <- species_summary %>%
         "Micoureus_demerarae",
         "Philander_opossum"
       ) ~ "Didelphids"
+    ),
+    species_label = gsub(
+      "_",
+      " ",
+      as.character(species)
+    ),
+    species_label = factor(
+      species_label,
+      levels = rev(
+        gsub("_", " ", species_order)
+      )
     )
   )
+
+group_colors <- c(
+  "Primates" = "#264478",
+  "Xenarthrans" = "#C65911",
+  "Armadillos" = "#666666",
+  "Rodents" = "#D6A500",
+  "Carnivores" = "#375623",
+  "Didelphids" = "#4472C4"
+)
+
+species_labels <- plot_data %>%
+  distinct(species_label, group) %>%
+  mutate(
+    label = paste0(
+      "<span style='color:",
+      group_colors[group],
+      "'><i>",
+      as.character(species_label),
+      "</i></span>"
+    )
+  ) %>%
+  select(species_label, label)
+
+label_vector <- setNames(
+  species_labels$label,
+  species_labels$species_label
+)
+
 p_species_prevalence <- ggplot(
   plot_data,
   aes(
@@ -328,19 +393,13 @@ p_species_prevalence <- ggplot(
   scale_x_continuous(
     limits = c(0, 100),
     breaks = seq(0, 100, 20),
-    labels = function(x) {
-      paste0(x, "%")
-    }
+    labels = function(x) paste0(x, "%")
+  ) +
+  scale_y_discrete(
+    labels = label_vector
   ) +
   scale_colour_manual(
-    values = c(
-      "Primates" = "#264478",
-      "Xenarthrans" = "#C65911",
-      "Armadillos" = "#666666",
-      "Rodents" = "#D6A500",
-      "Carnivores" = "#375623",
-      "Didelphids" = "#4472C4"
-    )
+    values = group_colors
   ) +
   labs(
     x = "Hemoplasma prevalence",
@@ -348,15 +407,19 @@ p_species_prevalence <- ggplot(
   ) +
   theme_classic() +
   theme(
-    axis.text.y = element_text(
+    text = element_text(family = "Calibri"),
+    axis.text.y = ggtext::element_markdown(
       size = 10,
-      margin = margin(r = 8)
+      margin = margin(r = 8),
+      family = "Calibri"
     ),
     axis.text.x = element_text(
-      size = 10
+      size = 10,
+      family = "Calibri"
     ),
     axis.title.x = element_text(
-      size = 11
+      size = 11,
+      family = "Calibri"
     ),
     panel.grid.major.x = element_line(
       linewidth = 0.3,
@@ -369,20 +432,20 @@ p_species_prevalence <- ggplot(
     ),
     legend.position = "none"
   )
-print(
-  p_species_prevalence
-)
+
+print(p_species_prevalence)
+
 ggsave(
-  filename = "species_Hemoplasma_prevalence.png",
+  filename = "species_Hemoplasma_prevalence_n10.png",
   plot = p_species_prevalence,
   width = 7,
-  height = 12,
+  height = 8,
   units = "in",
   dpi = 300
 )
 ```
 
-### Test for the association between `hemoplasma` prevalence and sample size per `species` (Spearman correlation test)
+### Test for the association between `hemoplasma` prevalence and sample size per `species`, for all `species` (n `species` = 44) (Spearman correlation test) 
 ```
 cor.test(
   species_summary$n_sampled,
@@ -393,10 +456,29 @@ cor.test(
 ```
 
 -> Results :
-Spearman's ρ = 0.334, p = 0.027.
+Spearman's ρ = 0.334, p = 0.027
 
 -> Interpretation : 
 A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
+
+
+### Test for the association between `hemoplasma` prevalence and sample size per `species`, restricted `species` with n ≥ 15 (n `species` = 18) (Spearman correlation test) 
+```
+species_summary_n15 <- species_summary %>%
+  filter(n_sampled >= 15)
+cor_test_n15 <- cor.test(
+  species_summary_n15$n_sampled,
+  species_summary_n15$prevalence,
+  method = "spearman",
+  exact = FALSE
+)
+print(cor_test_n15)
+```
+-> Results:
+Spearman's ρ = 0.370, p = 0.159
+
+-> Interpretation:
+No significant association was detected between sample size and `species`-level `hemoplasma` prevalence among `species` with n ≥ 15.
 
 ### Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) 
 ```
