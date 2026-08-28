@@ -95,6 +95,7 @@ library(ggtree)
 library(ggtext)
 library(lme4)
 library(car)
+library(ggrepel)
 library(emmeans)
 library(brms)
 library(patchwork)
@@ -1947,7 +1948,7 @@ ggsave(
 )
 ```
 
-### Test whether `hemoplasma` infection probability differs between mammalian `order`
+### Test whether `hemoplasma` infection probability differs between mammalian `order` (complete dataset, 44 `species`)
 Fit the full GLMM (model 4) :
 ```
 model4_a <- glmer(
@@ -2029,16 +2030,68 @@ order_OR_results
 | Pilosa – Rodentia | 5.571 | 0.192 | 161.553 | 0.6939 |
 | Primates – Rodentia | **96.957** | **3.168** | **2967.547** | **0.0019** |
 
--> Results : 
-Mammalian `order` significantly improved model fit compared with the null model (LRT: χ²₅ = 11.43, p = 0.044; ΔAIC = −1.43). After Tukey correction, only Primates and Rodentia differed significantly, with `hemoplasma` infection showing substantially higher odds in Primates than in Rodentia (OR = 96.96, 95% CI: 3.17–2967.55, p = 0.0019). All other pairwise comparisons were non-significant.
-
--> Interpretation : 
-`haemoplasma` prevalence significantly varied among mammalian `order`, with the strongest contrast being the markedly higher prevalence in Primates compared with Rodentia.
-
-### Visualization of odds ratios for mammalian `order` 
+### Test whether `hemoplasma` infection probability differs between mammalian `order` (conservative species-level dataset, 16 `species`)
+Fit the full GLMM (model 4_n15) :
 ```
-order_OR_results <- summary(
-  order_OR,
+model4_data_n15 <- data_hemoplasma_stat %>%
+  filter(
+    species %in% (
+      species_summary %>%
+        filter(n_sampled >= 15) %>%
+        pull(species)
+    )
+  )
+
+model4_a_n15 <- glmer(
+  hemoplasma ~ order + (1 | species),
+  data = model4_data_n15,
+  family = binomial,
+  control = glmerControl(
+    optimizer = "bobyqa"
+  )
+)
+
+summary(model4_a_n15)
+
+model4_b_n15 <- glmer(
+  hemoplasma ~ 1 + (1 | species),
+  data = model4_data_n15,
+  family = binomial,
+  control = glmerControl(
+    optimizer = "bobyqa"
+  )
+)
+
+order_test_n15 <- anova(
+  model4_b_n15,
+  model4_a_n15,
+  test = "Chisq"
+)
+
+order_test_n15
+
+AIC(
+  model4_b_n15,
+  model4_a_n15
+)
+```
+
+### Post-hoc pairwise comparisons (odds ratios) (conservative species-level dataset, 16 `species`)
+```
+order_emmeans_n15 <- emmeans(
+  model4_a_n15,
+  ~ order
+)
+
+order_OR_n15 <- pairs(
+  order_emmeans_n15,
+  adjust = "tukey"
+)
+
+order_OR_n15
+
+order_OR_results_n15 <- summary(
+  order_OR_n15,
   infer = TRUE
 ) %>%
   as.data.frame() %>%
@@ -2054,41 +2107,117 @@ order_OR_results <- summary(
     CI_high,
     p.value
   )
-plot_OR <- order_OR_results %>%
+
+order_OR_results_n15
+```
+
+-> Tukey-adjusted pairwise comparisons of `hemoplasma` infection odds among mammalian `order` (conservative species-level dataset, 16 `species`)
+| Contrast | OR | 95% CI | Adjusted p-value |
+|---|---:|---:|---:|
+| Cingulata – Didelphimorphia | 1.28 | 0.021–78.86 | 0.9998 |
+| Cingulata – Pilosa | 1.13 | 0.013–96.20 | >0.9999 |
+| Cingulata – Primates | 0.011 | 0.00008–1.55 | 0.093 |
+| Cingulata – Rodentia | 16.18 | 0.258–1014.72 | 0.353 |
+| Didelphimorphia – Pilosa | 0.88 | 0.041–19.11 | >0.9999 |
+| Didelphimorphia – Primates | 0.0086 | 0.00020–0.375 | 0.005 |
+| Didelphimorphia – Rodentia | 12.66 | 0.940–170.40 | 0.060 |
+| Pilosa – Primates | 0.0097 | 0.00016–0.607 | 0.019 |
+| Pilosa – Rodentia | 14.37 | 0.656–314.63 | 0.128 |
+| Primates – Rodentia | 1476.24 | 31.96–68189.05 | 0.000002 |
+
+-> Results : Mammalian `order` significantly improved model fit in both the complete dataset (44 species; LRT: χ²₅ = 11.43, p = 0.044, ΔAIC = −1.43) and the conservative dataset (16 species; LRT: χ²₄ = 21.09, p < 0.001, ΔAIC = −13.09). In the complete dataset, only Primates and Rodentia differed significantly after Tukey correction, with substantially higher odds of `hemoplasma` infection in Primates (OR = 96.96, 95% CI: 3.17–2967.55, p = 0.0019). In the conservative dataset, Primates also showed higher odds than Didelphimorphia (OR = 116.62, 95% CI: 2.70–5036.73, p = 0.005), Pilosa (OR = 102.75, 95% CI: 1.64–6451.12, p = 0.019), and Rodentia (OR = 1476.24, 95% CI: 31.96–68189.05, p < 0.0001). All other pairwise comparisons were non-significant after Tukey correction.
+
+-> Interpretation : `hemoplasma` infection probability varied among mammalian orders in both datasets, with the strongest and most consistent contrast involving the substantially higher prevalence in Primates, particularly compared with Rodentia.
+
+### Visualization of odds ratios for mammalian order for complete (44 `species`) and conservative species-level dataset (16 `species`)
+```
+order_OR_results <- summary(
+  order_OR,
+  infer = TRUE
+) %>%
+  as.data.frame() %>%
+  mutate(
+    OR = exp(estimate),
+    CI_low = exp(asymp.LCL),
+    CI_high = exp(asymp.UCL),
+    dataset = "Complete dataset"
+  ) %>%
+  select(
+    contrast,
+    OR,
+    CI_low,
+    CI_high,
+    p.value,
+    dataset
+  )
+
+order_OR_results_n15 <- summary(
+  order_OR_n15,
+  infer = TRUE
+) %>%
+  as.data.frame() %>%
+  mutate(
+    OR = exp(estimate),
+    CI_low = exp(asymp.LCL),
+    CI_high = exp(asymp.UCL),
+    dataset = "Conservative dataset"
+  ) %>%
+  select(
+    contrast,
+    OR,
+    CI_low,
+    CI_high,
+    p.value,
+    dataset
+  )
+
+contrast_levels <- c(
+  "Carnivora - Cingulata",
+  "Carnivora - Didelphimorphia",
+  "Carnivora - Pilosa",
+  "Carnivora - Primates",
+  "Carnivora - Rodentia",
+  "Cingulata - Didelphimorphia",
+  "Cingulata - Pilosa",
+  "Cingulata - Primates",
+  "Cingulata - Rodentia",
+  "Didelphimorphia - Pilosa",
+  "Didelphimorphia - Primates",
+  "Didelphimorphia - Rodentia",
+  "Pilosa - Primates",
+  "Pilosa - Rodentia",
+  "Primates - Rodentia"
+)
+
+plot_OR <- bind_rows(
+  order_OR_results,
+  order_OR_results_n15
+) %>%
   mutate(
     contrast = factor(
       contrast,
-      levels = rev(c(
-        "Carnivora - Cingulata",
-        "Carnivora - Didelphimorphia",
-        "Carnivora - Pilosa",
-        "Carnivora - Primates",
-        "Carnivora - Rodentia",
-        "Cingulata - Didelphimorphia",
-        "Cingulata - Pilosa",
-        "Cingulata - Primates",
-        "Cingulata - Rodentia",
-        "Didelphimorphia - Pilosa",
-        "Didelphimorphia - Primates",
-        "Didelphimorphia - Rodentia",
-        "Pilosa - Primates",
-        "Pilosa - Rodentia",
-        "Primates - Rodentia"
-      ))
+      levels = rev(contrast_levels)
+    ),
+    y_base = as.numeric(contrast),
+    y = ifelse(
+      dataset == "Complete dataset",
+      y_base + 0.22,
+      y_base - 0.22
     )
   )
+
 p_order_OR <- ggplot(
   plot_OR,
   aes(
-    y = contrast,
-    x = OR
+    x = OR,
+    y = y
   )
 ) +
   geom_vline(
     xintercept = 1,
     linetype = "dashed",
     linewidth = 0.6,
-    colour = "grey50"
+    colour = "black"
   ) +
   geom_errorbar(
     aes(
@@ -2101,12 +2230,71 @@ p_order_OR <- ggplot(
     colour = "black"
   ) +
   geom_point(
+    data = subset(
+      plot_OR,
+      dataset == "Complete dataset"
+    ),
+    shape = 21,
+    fill = "black",
+    colour = "black",
+    size = 5,
+    stroke = 1.1
+  ) +
+  geom_point(
+    data = subset(
+      plot_OR,
+      dataset == "Conservative dataset"
+    ),
     shape = 21,
     fill = "white",
     colour = "black",
     size = 5,
     stroke = 1.1
-  ) +  
+  ) +
+  annotate(
+    "point",
+    x = 500,
+    y = 15.55,
+    shape = 21,
+    fill = "black",
+    colour = "black",
+    size = 4,
+    stroke = 1
+  ) +
+  annotate(
+    "text",
+    x = 700,
+    y = 15.55,
+    label = "Complete dataset",
+    hjust = 0,
+    vjust = 0.5,
+    size = 3.2,
+    family = "Calibri"
+  ) +
+  annotate(
+    "point",
+    x = 500,
+    y = 15.15,
+    shape = 21,
+    fill = "white",
+    colour = "black",
+    size = 4,
+    stroke = 1
+  ) +
+  annotate(
+    "text",
+    x = 700,
+    y = 15.15,
+    label = "Conservative dataset",
+    hjust = 0,
+    vjust = 0.5,
+    size = 3.2,
+    family = "Calibri"
+  ) +
+  scale_y_continuous(
+    breaks = 1:15,
+    labels = rev(contrast_levels)
+  ) +
   scale_x_log10(
     breaks = c(
       0.001,
@@ -2116,7 +2304,8 @@ p_order_OR <- ggplot(
       10,
       100,
       1000,
-      10000
+      10000,
+      100000
     ),
     labels = c(
       "0.001",
@@ -2126,34 +2315,45 @@ p_order_OR <- ggplot(
       "10",
       "100",
       "1,000",
-      "10,000"
+      "10,000",
+      "100,000"
+    ),
+    expand = expansion(
+      mult = c(0.02, 0.05)
     )
-  ) +  
+  ) +
   labs(
     x = "Odds ratio (log scale)",
     y = NULL
-  ) +  
-  theme_classic() +  
+  ) +
+  theme_classic() +
   theme(
+    text = element_text(
+      family = "Calibri"
+    ),
     axis.text.y = element_text(
-      size = 10
-    ),    
+      size = 10,
+      family = "Calibri"
+    ),
     axis.text.x = element_text(
-      size = 10
-    ),    
+      size = 10,
+      family = "Calibri"
+    ),
     axis.title.x = element_text(
-      size = 11
-    ),    
+      size = 11,
+      family = "Calibri"
+    ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
       linewidth = 0.8
-    ),    
-    legend.position = "none"
+    )
   )
+
 print(p_order_OR)
+
 ggsave(
-  filename = "order_haemoplasma_OR_Tukey.png",
+  filename = "order_haemoplasma_OR_complete_vs_n15.png",
   plot = p_order_OR,
   width = 8,
   height = 7,
@@ -2358,9 +2558,9 @@ ggsave(
 )
 ```
 
-### Test phylogenetic signal of `hemoplasma` prevalence (Pagel's lambda)
+### Test phylogenetic signal of `hemoplasma` prevalence (Pagel's lambda) in complete (44 `species`) and conservative species-level dataset (16 `species`)
 ```
-species_prev <- data_hemoplasma_stat %>%
+species_prev_complete <- data_hemoplasma_stat %>%
   group_by(species) %>%
   summarise(
     n_sampled = n(),
@@ -2371,163 +2571,178 @@ species_prev <- data_hemoplasma_stat %>%
   mutate(
     species = as.character(species)
   )
+
 cat(
-  "Number of species in data:",
-  nrow(species_prev),
+  "Number of species in complete dataset:",
+  nrow(species_prev_complete),
   "\n"
 )
+
 cat(
   "Number of species in phylogeny:",
   length(mammal_tree_grafen$tip.label),
   "\n"
 )
-cat("\nSpecies in data but not in phylogeny:\n")
+
+cat("\nSpecies in complete dataset but not in phylogeny:\n")
+
 print(
   setdiff(
-    species_prev$species,
+    species_prev_complete$species,
     mammal_tree_grafen$tip.label
   )
 )
-cat("\nSpecies in phylogeny but not in data:\n")
+
+cat("\nSpecies in phylogeny but not in complete dataset:\n")
+
 print(
   setdiff(
     mammal_tree_grafen$tip.label,
-    species_prev$species
+    species_prev_complete$species
   )
 )
-stopifnot(nrow(species_prev) == 44)
+
+stopifnot(
+  nrow(species_prev_complete) == 44
+)
+
 stopifnot(
   length(mammal_tree_grafen$tip.label) == 44
 )
+
 stopifnot(
   setequal(
-    species_prev$species,
+    species_prev_complete$species,
     mammal_tree_grafen$tip.label
   )
 )
-prevalence <- species_prev$prevalence
-names(prevalence) <- species_prev$species
-prevalence <- prevalence[
+
+prevalence_complete <- species_prev_complete$prevalence
+
+names(prevalence_complete) <- species_prev_complete$species
+
+prevalence_complete <- prevalence_complete[
   mammal_tree_grafen$tip.label
 ]
+
 stopifnot(
   identical(
-    names(prevalence),
+    names(prevalence_complete),
     mammal_tree_grafen$tip.label
   )
 )
-pagel_lambda <- phylosig(
+
+pagel_lambda_complete <- phylosig(
   tree = mammal_tree_grafen,
-  x = prevalence,
+  x = prevalence_complete,
   method = "lambda",
   test = TRUE,
   nsim = 1000
 )
-pagel_lambda
-```
--> Results : `hemoplasma` prevalence showed no detectable phylogenetic signal across the 44 mammalian `species` (Pagel’s λ = 0.00008, p = 1.00).
 
--> Interpretation : `hemoplasma` prevalence therefore did not appear to be structured by host phylogenetic relatedness, suggesting that closely related mammalian `species` did not have more similar prevalence than expected under phylogenetic independence.
+pagel_lambda_complete
 
-### Visualization of the phylogenetic distribution of `hemoplasma` prevalence across 44 mammalian `species`
-```
-species_prevalence <- data_hemoplasma_stat %>%
-  group_by(species, order) %>%
+
+species_prev_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
   summarise(
     n_sampled = n(),
     n_positive = sum(hemoplasma == 1, na.rm = TRUE),
     prevalence = n_positive / n_sampled,
     .groups = "drop"
+  ) %>%
+  filter(
+    n_sampled >= 15
+  ) %>%
+  mutate(
+    species = as.character(species)
   )
-setdiff(
-  species_prevalence$species,
-  mammal_tree_grafen$tip.label
+
+cat(
+  "\nNumber of species in conservative dataset:",
+  nrow(species_prev_n15),
+  "\n"
 )
-setdiff(
-  mammal_tree_grafen$tip.label,
-  species_prevalence$species
+
+cat(
+  "Number of species in phylogeny:",
+  length(mammal_tree_grafen$tip.label),
+  "\n"
 )
-tree_44 <- drop.tip(
+
+cat("\nSpecies in conservative dataset but not in phylogeny:\n")
+
+print(
+  setdiff(
+    species_prev_n15$species,
+    mammal_tree_grafen$tip.label
+  )
+)
+
+cat("\nSpecies in phylogeny but not in conservative dataset:\n")
+
+print(
+  setdiff(
+    mammal_tree_grafen$tip.label,
+    species_prev_n15$species
+  )
+)
+
+stopifnot(
+  nrow(species_prev_n15) == 16
+)
+
+tree_n15 <- drop.tip(
   mammal_tree_grafen,
   setdiff(
     mammal_tree_grafen$tip.label,
-    species_prevalence$species
+    species_prev_n15$species
   )
 )
-Ntip(tree_44)
-order_colors <- c(
-  "Primates" = "#E69F00",
-  "Rodentia" = "#56B4E9",
-  "Pilosa" = "#009E73",
-  "Didelphimorphia" = "#CC79A7",
-  "Carnivora" = "#D55E00",
-  "Cingulata" = "#0072B2"
+
+stopifnot(
+  length(tree_n15$tip.label) == 16
 )
-p_tree <- ggtree(
-  tree_44,
-  layout = "rectangular"
-) %<+% species_prevalence
-x_max <- max(
-  p_tree$data$x,
-  na.rm = TRUE
-)
-p <- p_tree +
-  geom_tiplab(
-    aes(
-      colour = order
-    ),
-    size = 2.7,
-    hjust = 0,
-    offset = 0.45
-  ) +
-  geom_tippoint(
-    aes(
-      x = x_max + 0.20,
-      size = prevalence,
-      colour = order
-    ),
-    shape = 1,
-    stroke = 1
-  ) +
-  scale_colour_manual(
-    name = "Mammalian order",
-    values = order_colors,
-    drop = FALSE
-  ) +
-  scale_size_continuous(
-    name = "Hemoplasma\nprevalence",
-    range = c(1.5, 8),
-    limits = c(0, 1),
-    breaks = c(0, 0.25, 0.50, 0.75, 1),
-    labels = percent_format(
-      accuracy = 1
-    )
-  ) +
-  xlim(
-    0,
-    x_max + 3
-  ) +
-  theme_tree2() +
-  theme(
-    legend.position = "right",
-    axis.text = element_blank(),
-    axis.ticks = element_blank(),
-    axis.title = element_blank(),
-    legend.title = element_text(
-      size = 9
-    ),
-    legend.text = element_text(
-      size = 8
-    )
+
+stopifnot(
+  setequal(
+    species_prev_n15$species,
+    tree_n15$tip.label
   )
-p
-ggsave(
-  "phylogeny_hemoplasma_prevalence.png",
-  p,
-  width = 10,
-  height = 12,
-  dpi = 300
 )
+
+prevalence_n15 <- species_prev_n15$prevalence
+
+names(prevalence_n15) <- species_prev_n15$species
+
+prevalence_n15 <- prevalence_n15[
+  tree_n15$tip.label
+]
+
+stopifnot(
+  identical(
+    names(prevalence_n15),
+    tree_n15$tip.label
+  )
+)
+
+pagel_lambda_n15 <- phylosig(
+  tree = tree_n15,
+  x = prevalence_n15,
+  method = "lambda",
+  test = TRUE,
+  nsim = 1000
+)
+
+pagel_lambda_n15
+```
+-> Results : `hemoplasma` prevalence showed no detectable phylogenetic signal across the complete dataset of 44 mammalian `species` (Pagel’s λ = 0.00008, p = 1.00). The conservative dataset showed a strong phylogenetic signal (λ = 0.775), but with a marginal statistical support (p = 0.066).
+
+-> Interpretation : While no phylogenetic structure was detected across all 44 species, the conservative dataset revealed a stronger, but marginal, phylogenetic signal for greater similarity in `hemoplasma` prevalence among closely related `species`.
+
+### Visualization of the phylogenetic distribution of `hemoplasma` prevalence across 44 mammalian `species`
+```
+
 ```
 ## Step 8. `hemoplasma` infection prevalence and mammal trait-based analyses
 ### Data retrieval and convert categorical variables 
@@ -2542,7 +2757,7 @@ data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$ac
 data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
-### Variation in `hemoplasma` infection prevalence according to the host’s diet
+### Variation in `hemoplasma` infection prevalence according to the host’s diet (complete dataset, 44 `species`)
 ```
 species_data <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -2655,55 +2870,218 @@ results_diet <- results_diet %>%
   )
 print(results_diet)
 ```
-
--> Results : None of the dietary composition variables was significantly associated with `hemoplasma` prevalence across the 44 mammalian `species` (beta-binomial GLMs, all FDR-adjusted p > 0.52; ΔAIC < 0).
-
--> Interpretation : Interspecific variation in `hemoplasma` prevalence was not explained by the proportion of invertebrates, vertebrates, or plants in the host diet.
-
-### Visualization of association between `hemoplasma` prevalence and dietary composition variables
+### Variation in `hemoplasma` infection prevalence according to the host’s diet (conservative species-level dataset, 16 `species`)
 ```
+species_data_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, dietinv, dietvet, dietplant),
+    by = "species"
+  )
+
+data_dietinv_n15 <- species_data_n15 %>%
+  filter(!is.na(dietinv))
+
+data_dietvet_n15 <- species_data_n15 %>%
+  filter(!is.na(dietvet))
+
+data_dietplant_n15 <- species_data_n15 %>%
+  filter(!is.na(dietplant))
+
+model_dietinv_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_dietinv_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_dietinv_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ dietinv,
+  data = data_dietinv_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_dietvet_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_dietvet_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_dietvet_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ dietvet,
+  data = data_dietvet_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_dietplant_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_dietplant_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_dietplant_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ dietplant,
+  data = data_dietplant_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_dietinv_n15 <- anova(
+  model_dietinv_null_n15,
+  model_dietinv_n15
+)
+
+lrt_dietvet_n15 <- anova(
+  model_dietvet_null_n15,
+  model_dietvet_n15
+)
+
+lrt_dietplant_n15 <- anova(
+  model_dietplant_null_n15,
+  model_dietplant_n15
+)
+
+extract_beta_results <- function(
+  model,
+  null_model,
+  variable,
+  lrt
+) {
+  coef_table <- summary(model)$coefficients$cond
+  
+  estimate <- coef_table[variable, "Estimate"]
+  SE <- coef_table[variable, "Std. Error"]
+  
+  data.frame(
+    variable = variable,
+    n_species = nobs(model),
+    estimate = estimate,
+    SE = SE,
+    z = coef_table[variable, "z value"],
+    p_coefficient = coef_table[
+      variable,
+      "Pr(>|z|)"
+    ],
+    LRT_chisq = lrt$Chisq[2],
+    LRT_p = lrt$`Pr(>Chisq)`[2],
+    AIC_null = AIC(null_model),
+    AIC_model = AIC(model),
+    delta_AIC = AIC(null_model) - AIC(model),
+    CI_low = estimate - 1.96 * SE,
+    CI_high = estimate + 1.96 * SE,
+    OR = exp(estimate),
+    OR_low = exp(estimate - 1.96 * SE),
+    OR_high = exp(estimate + 1.96 * SE)
+  )
+}
+
+results_diet_n15 <- bind_rows(
+  extract_beta_results(
+    model_dietinv_n15,
+    model_dietinv_null_n15,
+    "dietinv",
+    lrt_dietinv_n15
+  ),
+  extract_beta_results(
+    model_dietvet_n15,
+    model_dietvet_null_n15,
+    "dietvet",
+    lrt_dietvet_n15
+  ),
+  extract_beta_results(
+    model_dietplant_n15,
+    model_dietplant_null_n15,
+    "dietplant",
+    lrt_dietplant_n15
+  )
+)
+
+results_diet_n15 <- results_diet_n15 %>%
+  mutate(
+    LRT_p_FDR = p.adjust(
+      LRT_p,
+      method = "BH"
+    ),
+    p_coefficient_FDR = p.adjust(
+      p_coefficient,
+      method = "BH"
+    )
+  )
+
+print(results_diet_n15)
+```
+-> Results: None of the dietary composition variables was significantly associated with `hemoplasma` prevalence in either the complete dataset (FDR-adjusted p = 0.76, 0.52, and 0.52 for invertebrate-, vertebrate-, and plant-based diet, respectively) or the conservative dataset (FDR-adjusted p = 0.56 for all three variables). In all cases, adding dietary composition resulted in a higher AIC than the corresponding null model (ΔAIC < 0).
+
+-> Interpretation: Interspecific variation in `hemoplasma` prevalence was not explained by the relative contribution of invertebrates, vertebrates, or plants in the host diet, with consistent results across both datasets.
+
+### Visualization of association between `hemoplasma` prevalence and dietary composition variables for complete (44 species)
+```
+species_order <- data_hemoplasma_stat %>%
+  select(species, order) %>%
+  distinct()
+
 get_predictions <- function(model, data, variable, label) {
+  
   x <- seq(
     min(data[[variable]], na.rm = TRUE),
     max(data[[variable]], na.rm = TRUE),
     length.out = 100
   )
+  
   newdata <- data.frame(x)
   names(newdata) <- variable
+  
   pred <- predict(
     model,
     newdata = newdata,
     type = "link",
     se.fit = TRUE
   )
+  
   newdata$fit <- plogis(pred$fit)
+  
   newdata$lower <- plogis(
     pred$fit - 1.96 * pred$se.fit
   )
+  
   newdata$upper <- plogis(
     pred$fit + 1.96 * pred$se.fit
   )
+  
   newdata$variable <- label
+  
   return(newdata)
 }
+
 pred_dietinv <- get_predictions(
   model_dietinv,
   data_dietinv,
   "dietinv",
   "Invertebrates"
 )
+
 pred_dietvet <- get_predictions(
   model_dietvet,
   data_dietvet,
   "dietvet",
   "Vertebrates"
 )
+
 pred_dietplant <- get_predictions(
   model_dietplant,
   data_dietplant,
   "dietplant",
   "Plants"
 )
+
 plot_data <- bind_rows(
   data_dietinv %>%
     mutate(
@@ -2720,7 +3098,22 @@ plot_data <- bind_rows(
       diet = dietplant,
       variable = "Plants"
     )
-)
+) %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
+  )
+
 pred_data <- bind_rows(
   pred_dietinv %>%
     mutate(diet = dietinv),
@@ -2729,9 +3122,23 @@ pred_data <- bind_rows(
   pred_dietplant %>%
     mutate(diet = dietplant)
 )
+
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
+
 figure_diet <- ggplot(
   plot_data,
-  aes(x = diet, y = prevalence)
+  aes(
+    x = diet,
+    y = prevalence,
+    colour = order
+  )
 ) +
   geom_ribbon(
     data = pred_data,
@@ -2741,6 +3148,7 @@ figure_diet <- ggplot(
       ymax = upper
     ),
     inherit.aes = FALSE,
+    fill = "grey70",
     alpha = 0.20
   ) +
   geom_line(
@@ -2750,42 +3158,94 @@ figure_diet <- ggplot(
       y = fit
     ),
     inherit.aes = FALSE,
+    colour = "black",
     linewidth = 1
   ) +
   geom_point(
-    aes(size = n),
+    aes(
+      size = n
+    ),
     alpha = 0.70
+  ) +
+  geom_text(
+    aes(
+      label = species_initials
+    ),
+    size = 3.5,
+    vjust = -0.9,
+    show.legend = FALSE
   ) +
   facet_wrap(
     ~ variable,
     nrow = 1,
-    scales = "free_x"
+    scales = "free_x",
+    strip.position = "bottom"
+  ) +
+  scale_colour_manual(
+    values = order_colors
   ) +
   scale_y_continuous(
     limits = c(0, 1),
     labels = scales::percent
   ) +
+  scale_size_continuous(
+    name = "Number tested"
+  ) +
   labs(
     x = "Diet composition (%)",
-    y = "Hemoplasma prevalence",
-    size = "Number tested"
+    y = "Hemoplasma prevalence"
   ) +
   theme_classic() +
   theme(
     strip.background = element_blank(),
-    strip.text = element_text(face = "bold")
+    strip.placement = "outside",
+    strip.text = element_text(
+      size = 11,
+      face = "bold",
+      family = "Calibri"
+    ),
+    axis.text.x = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    axis.title.y = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "Calibri"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "Calibri"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
   )
+
 print(figure_diet)
+
 ggsave(
   "Hemoplasma_prevalence_diet_beta_binomial.png",
   figure_diet,
   width = 11,
-  height = 4.5,
+  height = 4.8,
   dpi = 300
 )
 ```
-
-### Variation in `hemoplasma` infection prevalence according to the host’s foraging `strata`
+### Variation in `hemoplasma` infection prevalence according to the host’s foraging `strata` (complete dataset, 44 `species`) 
 ```
 species_data_strata <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -2904,16 +3364,275 @@ pairwise_strata_results <- as.data.frame(
 )
 print(pairwise_strata_results)
 ```
--> Results : `hemoplasma` prevalence did not differ significantly among foraging `strata` across the 44 mammalian `species` (beta-binomial GLM, LRT χ²₂ = 1.92, p = 0.382, ΔAIC = −2.08). Model-estimated prevalence was 18.1% (95% CI: 9.5–32.0%) for ground-foraging species, 20.5% (95% CI: 6.9–47.4%) for scansorial species, and 32.6% (95% CI: 17.8–51.8%) for arboreal species. None of the Tukey-adjusted pairwise comparisons was significant (all p ≥ 0.35).
-
--> Interpretation : Although arboreal species showed a higher estimated `hemoplasma` prevalence than ground-foraging and scansorial species, foraging `strata` ware not significantly associated with interspecific variation in `hemoplasma` prevalence.
-
-### Visualization of association between `hemoplasma` prevalence and foraging `strata`
+### Variation in `hemoplasma` infection prevalence according to the host’s foraging `strata` (conservative dataset, 16 `species`) 
 ```
-figure_strata <- ggplot(
-  species_data_strata,
+species_data_strata_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, strata),
+    by = "species"
+  ) %>%
+  mutate(
+    strata = factor(
+      strata,
+      levels = c("G", "S", "Ar")
+    )
+  )
+
+cat(
+  "\nNumber of species =",
+  nrow(species_data_strata_n15),
+  "\n"
+)
+
+cat("\nMissing values:\n")
+
+print(
+  colSums(
+    is.na(
+      species_data_strata_n15[c("strata")]
+    )
+  )
+)
+
+cat("\nStrata distribution:\n")
+
+print(
+  table(
+    species_data_strata_n15$strata
+  )
+)
+
+model_strata_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = species_data_strata_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_strata_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ strata,
+  data = species_data_strata_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_strata_n15 <- anova(
+  model_strata_null_n15,
+  model_strata_n15
+)
+
+cat("\n================ STRATA LRT ================\n")
+
+print(
+  lrt_strata_n15
+)
+
+cat("\n================ STRATA AIC ================\n")
+
+print(
+  AIC(
+    model_strata_null_n15,
+    model_strata_n15
+  )
+)
+
+cat("\n================ STRATA MODEL ================\n")
+
+print(
+  summary(
+    model_strata_n15
+  )
+)
+
+results_strata_n15 <- as.data.frame(
+  summary(
+    model_strata_n15
+  )$coefficients$cond
+) %>%
+  tibble::rownames_to_column(
+    "coefficient"
+  ) %>%
+  filter(
+    coefficient != "(Intercept)"
+  ) %>%
+  mutate(
+    variable = "strata",
+    n_species = nobs(model_strata_n15),
+    estimate = Estimate,
+    SE = `Std. Error`,
+    z = `z value`,
+    p_coefficient = `Pr(>|z|)`,
+    CI_low = estimate - 1.96 * SE,
+    CI_high = estimate + 1.96 * SE,
+    OR = exp(estimate),
+    OR_low = exp(CI_low),
+    OR_high = exp(CI_high),
+    AIC_null = AIC(model_strata_null_n15),
+    AIC_model = AIC(model_strata_n15),
+    delta_AIC = AIC_null - AIC_model,
+    LRT_chisq = lrt_strata_n15$Chisq[2],
+    LRT_p = lrt_strata_n15$`Pr(>Chisq)`[2]
+  ) %>%
+  select(
+    variable,
+    coefficient,
+    n_species,
+    estimate,
+    SE,
+    z,
+    p_coefficient,
+    LRT_chisq,
+    LRT_p,
+    AIC_null,
+    AIC_model,
+    delta_AIC,
+    CI_low,
+    CI_high,
+    OR,
+    OR_low,
+    OR_high
+  )
+
+results_strata_n15$LRT_p_FDR <- p.adjust(
+  results_strata_n15$LRT_p,
+  method = "BH"
+)
+
+results_strata_n15$p_coefficient_FDR <- p.adjust(
+  results_strata_n15$p_coefficient,
+  method = "BH"
+)
+
+cat("\n================ COEFFICIENT RESULTS ================\n")
+
+print(
+  results_strata_n15,
+  row.names = FALSE
+)
+
+emm_strata_n15 <- emmeans(
+  model_strata_n15,
+  ~ strata,
+  type = "response"
+)
+
+pairwise_strata_n15 <- pairs(
+  emm_strata_n15,
+  adjust = "tukey"
+)
+
+cat("\n================ ESTIMATED PREVALENCE BY STRATA ================\n")
+
+print(
+  emm_strata_n15
+)
+
+cat("\n================ PAIRWISE COMPARISONS ================\n")
+
+print(
+  pairwise_strata_n15
+)
+
+pairwise_strata_results_n15 <- as.data.frame(
+  summary(
+    pairwise_strata_n15,
+    infer = TRUE
+  )
+)
+
+print(
+  pairwise_strata_results_n15
+)
+```
+-> Results : `hemoplasma` prevalence did not differ significantly among foraging `strata` in the complete dataset (LRT: χ²₂ = 1.92, p = 0.382, ΔAIC = −2.08). In the conservative dataset, `strata` significantly improved model fit (LRT: χ²₂ = 7.72, p = 0.021; ΔAIC = 3.72). Model-estimated prevalence was 14.7% (95% CI: 5.7–32.9%) for ground-foraging `species`, 39.6% (95% CI: 14.7–71.4%) for scansorial `species`, and 60.8% (95% CI: 33.9–82.4%) for arboreal `species`. Tukey-adjusted pairwise comparisons identified a significant difference only between ground-foraging and arboreal species (p = 0.013).
+
+-> Interpretation : Foraging `strata` was not associated with interspecific variation in hemoplasma prevalence across all 44 species, but prevalence increased from ground-foraging to arboreal species in the conservative dataset, with marginally to significantly stronger evidence for higher prevalence in arboreal species.
+
+### Visualization of association between `hemoplasma` prevalence and foraging `strata` (conservative dataset, 44 `species`)
+```
+species_data_activity <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(
+        species,
+        activitynocturnal,
+        activitycrepuscular,
+        activitydiurnal
+      ),
+    by = "species"
+  ) %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
+  )
+activity_plot_data <- bind_rows(
+  species_data_activity %>%
+    filter(!is.na(activitynocturnal)) %>%
+    mutate(
+      activity = activitynocturnal,
+      variable = "Nocturnal"
+    ),
+  species_data_activity %>%
+    filter(!is.na(activitycrepuscular)) %>%
+    mutate(
+      activity = activitycrepuscular,
+      variable = "Crepuscular"
+    ),
+  species_data_activity %>%
+    filter(!is.na(activitydiurnal)) %>%
+    mutate(
+      activity = activitydiurnal,
+      variable = "Diurnal"
+    )
+) %>%
+  mutate(
+    activity_label = factor(
+      activity,
+      levels = c(0, 1),
+      labels = c(
+        "No",
+        "Yes"
+      )
+    ),
+    variable = factor(
+      variable,
+      levels = c(
+        "Nocturnal",
+        "Crepuscular",
+        "Diurnal"
+      )
+    )
+  )
+figure_activity <- ggplot(
+  activity_plot_data,
   aes(
-    x = strata,
+    x = activity_label,
     y = prevalence
   )
 ) +
@@ -2922,42 +3641,92 @@ figure_strata <- ggplot(
     outlier.shape = NA
   ) +
   geom_jitter(
+    aes(
+      colour = order
+    ),
     width = 0.12,
     height = 0,
-    size = 2.5,
-    alpha = 0.7
+    size = 2.8,
+    alpha = 0.80
   ) +
-  scale_x_discrete(
-    labels = c(
-      "G" = "Ground",
-      "S" = "Scansorial",
-      "Ar" = "Arboreal"
-    )
+  geom_text(
+    aes(
+      label = species_initials,
+      colour = order
+    ),
+    size = 3.2,
+    vjust = -0.8,
+    show.legend = FALSE
+  ) +
+  facet_wrap(
+    ~ variable,
+    nrow = 1,
+    strip.position = "bottom"
+  ) +
+  scale_colour_manual(
+    values = order_colors
   ) +
   scale_y_continuous(
     limits = c(0, 1),
-    labels = scales::percent_format(accuracy = 1)
+    labels = scales::percent_format(
+      accuracy = 1
+    )
   ) +
   labs(
-    x = "Foraging stratum",
-    y = "Hemoplasma prevalence"
+    x = "Activity pattern",
+    y = "Hemoplasma prevalence",
+    colour = "Mammalian order"
   ) +
   theme_classic() +
   theme(
-    axis.text = element_text(size = 10),
-    axis.title = element_text(size = 11)
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    strip.text = element_text(
+      size = 11,
+      face = "bold",
+      family = "Calibri"
+    ),
+    axis.text.x = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    axis.title.y = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "Calibri"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "Calibri"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
   )
-print(figure_strata)
+print(figure_activity)
 ggsave(
-  "Hemoplasma_prevalence_foraging_strata.png",
-  figure_strata,
-  width = 6,
-  height = 5,
+  "Hemoplasma_prevalence_activity.png",
+  figure_activity,
+  width = 10,
+  height = 4.8,
   dpi = 300
 )
 ```
 
-### Variation in `hemoplasma` infection prevalence according to the host’s activity (nocturnal, diurnal, crepuscular)
+### Variation in `hemoplasma` infection prevalence according to the host’s activity (nocturnal, diurnal, crepuscular) (complete dataset, 44 `species`)
 ```
 species_data_activity <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3150,12 +3919,307 @@ print(
   row.names = FALSE
 )
 ```
+### Variation in `hemoplasma` infection prevalence according to the host’s activity (nocturnal, diurnal, crepuscular) (conservative dataset, 16 `species`)
+```
+species_data_activity_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(
+        species,
+        activitynocturnal,
+        activitycrepuscular,
+        activitydiurnal
+      ),
+    by = "species"
+  )
 
--> Results : None of the three activity categories showed a significant effect in beta-binomial models: nocturnal activity (LRT, χ²₁ = 0.82, p = 0.364; OR = 0.45, 95% CI: 0.09–2.27), crepuscular activity (χ²₁ = 1.10, p = 0.293; OR = 0.53, 95% CI: 0.16–1.79), or diurnal activity (χ²₁ < 0.001, p = 0.994; OR = 1.00, 95% CI: 0.32–3.11). 
+cat(
+  "\nNumber of species =",
+  nrow(species_data_activity_n15),
+  "\n"
+)
 
--> Interpretation : These results provide no evidence that activity patterns are associated with `hemoplasma` prevalence among the 44 mammalian `species`. Thus, differences in nocturnal, crepuscular, or diurnal activity do not appear to explain the observed interspecific variation in `hemoplasma` infection.
+cat("\nMissing values:\n")
 
-### Visualization of association between `hemoplasma` prevalence and nocturnal / crepuscular / diurnal activity
+print(
+  colSums(
+    is.na(
+      species_data_activity_n15[
+        ,
+        c(
+          "activitynocturnal",
+          "activitycrepuscular",
+          "activitydiurnal"
+        )
+      ]
+    )
+  )
+)
+
+cat("\nActivity distribution:\n")
+
+print(
+  table(
+    species_data_activity_n15$activitynocturnal,
+    useNA = "ifany"
+  )
+)
+
+print(
+  table(
+    species_data_activity_n15$activitycrepuscular,
+    useNA = "ifany"
+  )
+)
+
+print(
+  table(
+    species_data_activity_n15$activitydiurnal,
+    useNA = "ifany"
+  )
+)
+
+data_activitynocturnal_n15 <- species_data_activity_n15 %>%
+  filter(
+    !is.na(activitynocturnal)
+  )
+
+data_activitycrepuscular_n15 <- species_data_activity_n15 %>%
+  filter(
+    !is.na(activitycrepuscular)
+  )
+
+data_activitydiurnal_n15 <- species_data_activity_n15 %>%
+  filter(
+    !is.na(activitydiurnal)
+  )
+
+model_activitynocturnal_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_activitynocturnal_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_activitynocturnal_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ activitynocturnal,
+  data = data_activitynocturnal_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_activitycrepuscular_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_activitycrepuscular_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_activitycrepuscular_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ activitycrepuscular,
+  data = data_activitycrepuscular_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_activitydiurnal_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_activitydiurnal_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_activitydiurnal_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ activitydiurnal,
+  data = data_activitydiurnal_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_activitynocturnal_n15 <- anova(
+  model_activitynocturnal_null_n15,
+  model_activitynocturnal_n15
+)
+
+lrt_activitycrepuscular_n15 <- anova(
+  model_activitycrepuscular_null_n15,
+  model_activitycrepuscular_n15
+)
+
+lrt_activitydiurnal_n15 <- anova(
+  model_activitydiurnal_null_n15,
+  model_activitydiurnal_n15
+)
+
+cat("\n================ NOCTURNAL LRT ================\n")
+
+print(
+  lrt_activitynocturnal_n15
+)
+
+cat("\n================ CREPUSCULAR LRT ================\n")
+
+print(
+  lrt_activitycrepuscular_n15
+)
+
+cat("\n================ DIURNAL LRT ================\n")
+
+print(
+  lrt_activitydiurnal_n15
+)
+
+cat("\n================ AIC ================\n")
+
+print(
+  AIC(
+    model_activitynocturnal_null_n15,
+    model_activitynocturnal_n15
+  )
+)
+
+print(
+  AIC(
+    model_activitycrepuscular_null_n15,
+    model_activitycrepuscular_n15
+  )
+)
+
+print(
+  AIC(
+    model_activitydiurnal_null_n15,
+    model_activitydiurnal_n15
+  )
+)
+
+extract_activity_results <- function(
+  model,
+  null_model,
+  variable,
+  lrt
+) {
+  
+  coef_table <- summary(
+    model
+  )$coefficients$cond
+  
+  coefficient_name <- setdiff(
+    rownames(coef_table),
+    "(Intercept)"
+  )[1]
+  
+  coef_row <- coef_table[
+    coefficient_name,
+    ,
+    drop = FALSE
+  ]
+  
+  estimate <- coef_row[
+    1,
+    "Estimate"
+  ]
+  
+  SE <- coef_row[
+    1,
+    "Std. Error"
+  ]
+  
+  z <- coef_row[
+    1,
+    "z value"
+  ]
+  
+  p <- coef_row[
+    1,
+    "Pr(>|z|)"
+  ]
+  
+  LRT_chisq <- lrt$Chisq[2]
+  
+  LRT_p <- lrt$`Pr(>Chisq)`[2]
+  
+  AIC_null <- AIC(
+    null_model
+  )
+  
+  AIC_model <- AIC(
+    model
+  )
+  
+  CI_low <- estimate - 1.96 * SE
+  
+  CI_high <- estimate + 1.96 * SE
+  
+  data.frame(
+    variable = variable,
+    coefficient = coefficient_name,
+    n_species = nobs(model),
+    estimate = estimate,
+    SE = SE,
+    z = z,
+    p_coefficient = p,
+    LRT_chisq = LRT_chisq,
+    LRT_p = LRT_p,
+    AIC_null = AIC_null,
+    AIC_model = AIC_model,
+    delta_AIC = AIC_null - AIC_model,
+    CI_low = CI_low,
+    CI_high = CI_high,
+    OR = exp(estimate),
+    OR_low = exp(CI_low),
+    OR_high = exp(CI_high)
+  )
+}
+
+results_activity_n15 <- bind_rows(
+  extract_activity_results(
+    model_activitynocturnal_n15,
+    model_activitynocturnal_null_n15,
+    "activitynocturnal",
+    lrt_activitynocturnal_n15
+  ),
+  extract_activity_results(
+    model_activitycrepuscular_n15,
+    model_activitycrepuscular_null_n15,
+    "activitycrepuscular",
+    lrt_activitycrepuscular_n15
+  ),
+  extract_activity_results(
+    model_activitydiurnal_n15,
+    model_activitydiurnal_null_n15,
+    "activitydiurnal",
+    lrt_activitydiurnal_n15
+  )
+)
+
+results_activity_n15$LRT_p_FDR <- p.adjust(
+  results_activity_n15$LRT_p,
+  method = "BH"
+)
+
+results_activity_n15$p_coefficient_FDR <- p.adjust(
+  results_activity_n15$p_coefficient,
+  method = "BH"
+)
+
+cat(
+  "\n================ FINAL ACTIVITY RESULTS ================\n"
+)
+
+print(
+  results_activity_n15,
+  row.names = FALSE
+)
+```
+-> Results : In the complete dataset, none of the three activity categories was associated with `hemoplasma` prevalence: nocturnal activity (LRT: χ²₁ = 0.82, p = 0.364; ΔAIC = −1.18; OR = 0.45, 95% CI: 0.09–2.27), crepuscular activity (χ²₁ < 0.001, p = 0.994; ΔAIC = −2.00; OR = 1.00, 95% CI: 0.32–3.11), or diurnal activity (χ²₁ < 0.001, p = 0.994; ΔAIC = −2.00; OR = 1.00, 95% CI: 0.32–3.11). In the conservative dataset, nocturnal activity was strongly associated with lower `hemoplasma` prevalence (LRT: χ²₁ = 12.00, p < 0.001; ΔAIC = 10.00; OR = 0.022, 95% CI: 0.002–0.210), whereas neither crepuscular nor diurnal activity showed evidence of an association (χ²₁ = 1.59, p = 0.208; ΔAIC = −0.41; OR = 2.65, 95% CI: 0.60–11.70, for both).
+
+-> Interpretation : Activity pattern was not associated with `hemoplasma` prevalence across the complete dataset, but the conservative dataset revealed a strong association with nocturnal activity, with nocturnal species showing substantially lower estimated prevalence. No comparable evidence was found for crepuscular or diurnal activity.
+
+### Visualization of association between `hemoplasma` prevalence and nocturnal / crepuscular / diurnal activity (complete database, 44 `species`)
 ```
 plot_data_activity <- bind_rows(
   species_data_activity %>%
@@ -3179,7 +4243,22 @@ plot_data_activity <- bind_rows(
       prevalence,
       activity = "Diurnal"
     )
-)
+) %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
+  )
+
 plot_data_activity$activity <- factor(
   plot_data_activity$activity,
   levels = c(
@@ -3188,6 +4267,16 @@ plot_data_activity$activity <- factor(
     "Diurnal"
   )
 )
+
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
+
 figure_activity <- ggplot(
   plot_data_activity,
   aes(
@@ -3200,32 +4289,75 @@ figure_activity <- ggplot(
     outlier.shape = NA
   ) +
   geom_jitter(
+    aes(
+      colour = order
+    ),
     width = 0.12,
     height = 0,
-    size = 2.5,
-    alpha = 0.7
+    size = 2.8,
+    alpha = 0.80
+  ) +
+  geom_text(
+    aes(
+      label = species_initials,
+      colour = order
+    ),
+    size = 3.2,
+    vjust = -0.8,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    values = order_colors,
+    name = "Mammalian order"
   ) +
   scale_y_continuous(
     limits = c(0, 1),
-    labels = scales::percent_format(accuracy = 1)
+    labels = scales::percent_format(
+      accuracy = 1
+    )
   ) +
   labs(
-    x = NULL,
+    x = "Activity patterns",
     y = "Hemoplasma prevalence"
   ) +
   theme_classic() +
   theme(
+    text = element_text(
+      family = "Calibri"
+    ),
     axis.text.x = element_text(
-      size = 10
+      size = 10,
+      family = "Calibri"
     ),
     axis.text.y = element_text(
-      size = 10
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "Calibri"
     ),
     axis.title.y = element_text(
-      size = 11
+      size = 11,
+      family = "Calibri"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "Calibri"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "Calibri"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
     )
   )
+
 print(figure_activity)
+
 ggsave(
   "Hemoplasma_prevalence_activity.png",
   figure_activity,
@@ -3235,7 +4367,7 @@ ggsave(
 )
 ```
 
-### Variation in `hemoplasma` infection prevalence according to the host `bodymass`
+### Variation in `hemoplasma` infection prevalence according to the host `bodymass` (complete dataset, 44 `species`)
 ```
 species_data_bodymass <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3325,11 +4457,180 @@ print(
 )
 ```
 
--> Results : Across the 44 mammalian `species`, `bodymass` showed a positive but marginal association with `hemoplasma` prevalence (β = 0.47 ± 0.27 SE, OR = 1.60, 95% CI: 0.95–2.70; LRT χ²₁ = 3.14, p = 0.077). The model including body mass had a lower AIC than the null model (147.53 vs. 148.67; ΔAIC = 1.14).
+### Variation in `hemoplasma` infection prevalence according to the host `bodymass` (conservative dataset, 16 `species`)
+```
+species_data_bodymass_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, bodymass) %>%
+      mutate(
+        bodymass = as.numeric(bodymass)
+      ),
+    by = "species"
+  ) %>%
+  mutate(
+    log_bodymass = log(bodymass),
+    log_bodymass_scaled = as.numeric(
+      scale(log_bodymass)
+    )
+  )
 
--> Interpretation : `hemoplasma` prevalence tended to increase with increasing host `bodymass`, with an estimated 60% increase in the odds of infection per one SD increase in log-transformed body mass, but the evidence was insufficient to support a statistically significant association.
+cat(
+  "\nNumber of species =",
+  nrow(species_data_bodymass_n15),
+  "\n"
+)
 
-### Visualization of association between `hemoplasma` prevalence and host `bodymass`
+cat(
+  "\nMissing bodymass values =",
+  sum(is.na(species_data_bodymass_n15$bodymass)),
+  "\n"
+)
+
+data_bodymass_n15 <- species_data_bodymass_n15 %>%
+  filter(
+    !is.na(bodymass),
+    !is.na(log_bodymass_scaled)
+  )
+
+cat(
+  "\nSpecies used for bodymass =",
+  nrow(data_bodymass_n15),
+  "\n"
+)
+
+model_bodymass_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_bodymass_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_bodymass_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ log_bodymass_scaled,
+  data = data_bodymass_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_bodymass_n15 <- anova(
+  model_bodymass_null_n15,
+  model_bodymass_n15
+)
+
+cat(
+  "\n================ BODY MASS LRT ================\n"
+)
+
+print(
+  lrt_bodymass_n15
+)
+
+cat(
+  "\n================ BODY MASS AIC ================\n"
+)
+
+print(
+  AIC(
+    model_bodymass_null_n15,
+    model_bodymass_n15
+  )
+)
+
+cat(
+  "\n================ BODY MASS MODEL ================\n"
+)
+
+print(
+  summary(model_bodymass_n15)
+)
+
+coef_table <- summary(
+  model_bodymass_n15
+)$coefficients$cond
+
+estimate <- coef_table[
+  "log_bodymass_scaled",
+  "Estimate"
+]
+
+SE <- coef_table[
+  "log_bodymass_scaled",
+  "Std. Error"
+]
+
+z <- coef_table[
+  "log_bodymass_scaled",
+  "z value"
+]
+
+p <- coef_table[
+  "log_bodymass_scaled",
+  "Pr(>|z|)"
+]
+
+CI_low <- estimate - 1.96 * SE
+
+CI_high <- estimate + 1.96 * SE
+
+results_bodymass_n15 <- data.frame(
+  variable = "bodymass",
+  coefficient = "log_bodymass_scaled",
+  n_species = nobs(
+    model_bodymass_n15
+  ),
+  estimate = estimate,
+  SE = SE,
+  z = z,
+  p_coefficient = p,
+  LRT_chisq = lrt_bodymass_n15$Chisq[2],
+  LRT_p = lrt_bodymass_n15$`Pr(>Chisq)`[2],
+  AIC_null = AIC(
+    model_bodymass_null_n15
+  ),
+  AIC_model = AIC(
+    model_bodymass_n15
+  ),
+  delta_AIC = AIC(
+    model_bodymass_null_n15
+  ) - AIC(
+    model_bodymass_n15
+  ),
+  CI_low = CI_low,
+  CI_high = CI_high,
+  OR = exp(estimate),
+  OR_low = exp(CI_low),
+  OR_high = exp(CI_high)
+)
+
+results_bodymass_n15$LRT_p_FDR <-
+  results_bodymass_n15$LRT_p
+
+results_bodymass_n15$p_coefficient_FDR <-
+  results_bodymass_n15$p_coefficient
+
+cat(
+  "\n================ FINAL BODY MASS RESULTS ================\n"
+)
+
+print(
+  results_bodymass_n15,
+  row.names = FALSE
+)
+```
+-> Results : In the complete dataset, `bodymass` showed a positive but marginal association with `hemoplasma` prevalence (β = 0.47 ± 0.27 SE, OR = 1.60, 95% CI: 0.95–2.70; LRT χ²₁ = 3.14, p = 0.077; ΔAIC = 1.14). In the conservative dataset , this association was stronger and statistically significant (β = 0.93 ± 0.36 SE, OR = 2.52, 95% CI: 1.26–5.07; LRT χ²₁ = 6.70, p = 0.010; ΔAIC = 4.70).
+
+-> Interpretation : `hemoplasma` prevalence tended to increase with host `bodymass`, with stronger evidence for this association among better-sampled species.
+
+### Visualization of association between `hemoplasma` prevalence and host `bodymass` (complete dataset, `species`)
 ```
 get_predictions_bodymass <- function(model, data) {
   x <- seq(
@@ -3419,10 +4720,8 @@ ggsave(
 )
 ```
 
-### Variation in `hemoplasma` infection status according to the host mean `longivity`
+### Variation in `hemoplasma` infection status according to the host mean `longivity` (complete dataset, 44 `species`)
 ```
-library(dplyr)
-library(glmmTMB)
 species_data_longevity <- data_hemoplasma_stat %>%
   group_by(species) %>%
   summarise(
@@ -3501,34 +4800,248 @@ results_longevity$p_coefficient_FDR <- results_longevity$p_coefficient
 cat("\n================ FINAL LONGEVITY RESULTS ================\n")
 print(results_longevity, row.names = FALSE)
 ```
-
--> Results : Across the 33 mammalian `species` with available `longevity` data, `longevity` was not significantly associated with `hemoplasma` prevalence (beta-binomial GLM, LRT χ²₁ = 2.13, p = 0.145; ΔAIC = 0.13; OR = 1.57, 95% CI: 0.86–2.88).
-
--> Interpretation : Although prevalence tended to increase with longevity, `hemoplasma` prevalence therefore showed no detectable relationship with host `longevity` across the sampled `species`.
-
-### Visualization of `hemoplasma` infection status according to the host mean `longivity`
+### Variation in `hemoplasma` infection status according to the host mean `longivity` (conservative dataset, 16 `species`)
 ```
-plot_longevity <- data_longevity
+species_data_longevity_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, longevity),
+    by = "species"
+  ) %>%
+  mutate(
+    longevity = as.numeric(longevity),
+    log_longevity = log(longevity),
+    log_longevity_scaled = as.numeric(
+      scale(log_longevity)
+    )
+  )
+
+cat(
+  "\nNumber of species =",
+  nrow(species_data_longevity_n15),
+  "\n"
+)
+
+cat(
+  "\nMissing longevity values =",
+  sum(is.na(species_data_longevity_n15$longevity)),
+  "\n"
+)
+
+data_longevity_n15 <- species_data_longevity_n15 %>%
+  filter(
+    !is.na(longevity),
+    is.finite(longevity),
+    !is.na(log_longevity_scaled)
+  )
+
+cat(
+  "\nSpecies used for longevity =",
+  nrow(data_longevity_n15),
+  "\n"
+)
+
+model_longevity_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_longevity_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_longevity_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ log_longevity_scaled,
+  data = data_longevity_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_longevity_n15 <- anova(
+  model_longevity_null_n15,
+  model_longevity_n15
+)
+
+cat(
+  "\n================ LONGEVITY LRT ================\n"
+)
+
+print(
+  lrt_longevity_n15
+)
+
+cat(
+  "\n================ LONGEVITY AIC ================\n"
+)
+
+print(
+  AIC(
+    model_longevity_null_n15,
+    model_longevity_n15
+  )
+)
+
+cat(
+  "\n================ LONGEVITY MODEL ================\n"
+)
+
+print(
+  summary(model_longevity_n15)
+)
+
+coef_table <- summary(
+  model_longevity_n15
+)$coefficients$cond
+
+estimate <- coef_table[
+  "log_longevity_scaled",
+  "Estimate"
+]
+
+SE <- coef_table[
+  "log_longevity_scaled",
+  "Std. Error"
+]
+
+z <- coef_table[
+  "log_longevity_scaled",
+  "z value"
+]
+
+p <- coef_table[
+  "log_longevity_scaled",
+  "Pr(>|z|)"
+]
+
+CI_low <- estimate - 1.96 * SE
+CI_high <- estimate + 1.96 * SE
+
+results_longevity_n15 <- data.frame(
+  variable = "longevity",
+  coefficient = "log_longevity_scaled",
+  n_species = nobs(
+    model_longevity_n15
+  ),
+  estimate = estimate,
+  SE = SE,
+  z = z,
+  p_coefficient = p,
+  LRT_chisq = lrt_longevity_n15$Chisq[2],
+  LRT_p = lrt_longevity_n15$`Pr(>Chisq)`[2],
+  AIC_null = AIC(
+    model_longevity_null_n15
+  ),
+  AIC_model = AIC(
+    model_longevity_n15
+  ),
+  delta_AIC = AIC(
+    model_longevity_null_n15
+  ) - AIC(
+    model_longevity_n15
+  ),
+  CI_low = CI_low,
+  CI_high = CI_high,
+  OR = exp(estimate),
+  OR_low = exp(CI_low),
+  OR_high = exp(CI_high)
+)
+
+results_longevity_n15$LRT_p_FDR <-
+  results_longevity_n15$LRT_p
+
+results_longevity_n15$p_coefficient_FDR <-
+  results_longevity_n15$p_coefficient
+
+cat(
+  "\n================ FINAL LONGEVITY RESULTS ================\n"
+)
+
+print(
+  results_longevity_n15,
+  row.names = FALSE
+)
+
+-> Results : In the complete dataset, across the 33 mammalian `species` with available `longevity` data, `longevity` was not significantly associated with `hemoplasma` prevalence (beta-binomial GLM, LRT χ²₁ = 2.13, *p* = 0.145; ΔAIC = 0.13; OR = 1.57, 95% CI: 0.86–2.88). In the conservative dataset, 13 species had available `longevity` data, and the association remained non-significant but showed a similar positive trend (LRT χ²₁ = 2.91, *p* = 0.088; ΔAIC = 0.91; OR = 1.96, 95% CI: 0.91–4.22).
+
+-> Interpretation : `hemoplasma` prevalence tended to increase with host `longevity`, with a stronger but still marginal association among better-sampled species.
+
+### Visualization of `hemoplasma` infection status according to the host mean `longivity`(complete dataset, 44 `species`)
+```
+species_order <- data_hemoplasma_stat %>%
+  select(
+    species,
+    order
+  ) %>%
+  distinct()
+
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
+
+plot_longevity <- data_longevity %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
+  )
+
 pred_longevity <- data.frame(
   log_longevity_scaled = seq(
-    min(data_longevity$log_longevity_scaled),
-    max(data_longevity$log_longevity_scaled),
+    min(
+      data_longevity$log_longevity_scaled,
+      na.rm = TRUE
+    ),
+    max(
+      data_longevity$log_longevity_scaled,
+      na.rm = TRUE
+    ),
     length.out = 100
   )
 )
+
 pred <- predict(
   model_longevity,
   newdata = pred_longevity,
   type = "link",
   se.fit = TRUE
 )
+
 pred_longevity <- pred_longevity %>%
   mutate(
     fit = plogis(pred$fit),
-    lower = plogis(pred$fit - 1.96 * pred$se.fit),
-    upper = plogis(pred$fit + 1.96 * pred$se.fit)
+    lower = plogis(
+      pred$fit - 1.96 * pred$se.fit
+    ),
+    upper = plogis(
+      pred$fit + 1.96 * pred$se.fit
+    )
   )
-longevity_range <- range(data_longevity$log_longevity, na.rm = TRUE)
+
+longevity_range <- range(
+  data_longevity$log_longevity,
+  na.rm = TRUE
+)
+
 pred_longevity <- pred_longevity %>%
   mutate(
     log_longevity = seq(
@@ -3537,6 +5050,7 @@ pred_longevity <- pred_longevity %>%
       length.out = n()
     )
   )
+
 figure_longevity <- ggplot(
   plot_longevity,
   aes(
@@ -3552,6 +5066,7 @@ figure_longevity <- ggplot(
       ymax = upper
     ),
     inherit.aes = FALSE,
+    fill = "grey70",
     alpha = 0.20
   ) +
   geom_line(
@@ -3561,33 +5076,90 @@ figure_longevity <- ggplot(
       y = fit
     ),
     inherit.aes = FALSE,
+    colour = "black",
     linewidth = 1
   ) +
   geom_point(
-    aes(size = n),
+    aes(
+      size = n,
+      colour = order
+    ),
     alpha = 0.70
+  ) +
+  geom_text(
+    aes(
+      label = species_initials,
+      colour = order
+    ),
+    size = 3.2,
+    vjust = -0.8,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    values = order_colors,
+    name = "Mammalian order"
   ) +
   scale_y_continuous(
     limits = c(0, 1),
-    labels = scales::percent
+    labels = scales::percent_format(
+      accuracy = 1
+    )
+  ) +
+  scale_size_continuous(
+    name = "Number tested"
   ) +
   labs(
     x = "Log host longevity (years)",
-    y = "Hemoplasma prevalence",
-    size = "Number tested"
+    y = "Hemoplasma prevalence"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    text = element_text(
+      family = "Calibri"
+    ),
+    axis.text.x = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    axis.title.y = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "Calibri"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "Calibri"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
+  )
+
 print(figure_longevity)
+
 ggsave(
   "Hemoplasma_prevalence_longevity_beta_binomial.png",
   figure_longevity,
-  width = 6,
-  height = 5,
+  width = 7,
+  height = 4.8,
   dpi = 300
 )
 ```
 
-### Variation in `hemoplasma` infection status according to the `femalematurity`
+### Variation in `hemoplasma` infection status according to the `femalematurity` (complete dataset, 44 `species`)
 ```
 species_data_femalematurity <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3667,37 +5239,254 @@ results_femalematurity$p_coefficient_FDR <- results_femalematurity$p_coefficient
 cat("\n================ FINAL FEMALE MATURITY RESULTS ================\n")
 print(results_femalematurity, row.names = FALSE)
 ```
-
--> Results: Female age at maturity was significantly associated with `hemoplasma` prevalence across the 26 mammalian `species` for which data were available (beta-binomial GLM, LRT χ²₁ = 4.30, p = 0.038; ΔAIC = 2.30). The association was positive, with higher hemoplasma prevalence in species with later `femalematurity` (OR = 2.03, 95% CI: 1.05–3.92).
-
--> Interpretation : `species` with a later age at `femalematurity` tended to have higher `hemoplasma` prevalence. This association remained supported by both the likelihood-ratio test and the coefficient test, although it is based on a reduced dataset of 26 `species` because maturity data were unavailable for 18 species.
-
-### Visualization of `hemoplasma` infection status according to the `femalematurity`
+### Variation in `hemoplasma` infection status according to the `femalematurity` (conservative dataset, 16 `species`)
 ```
-plot_femalematurity <- data_femalematurity
+species_data_femalematurity_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, femalematurity),
+    by = "species"
+  ) %>%
+  mutate(
+    femalematurity = as.numeric(femalematurity),
+    log_femalematurity = log(femalematurity),
+    log_femalematurity_scaled = as.numeric(
+      scale(log_femalematurity)
+    )
+  )
+
+cat(
+  "\nNumber of species =",
+  nrow(species_data_femalematurity_n15),
+  "\n"
+)
+
+cat(
+  "\nMissing femalematurity values =",
+  sum(
+    is.na(
+      species_data_femalematurity_n15$femalematurity
+    )
+  ),
+  "\n"
+)
+
+data_femalematurity_n15 <- species_data_femalematurity_n15 %>%
+  filter(
+    !is.na(femalematurity),
+    is.finite(femalematurity),
+    !is.na(log_femalematurity_scaled)
+  )
+
+cat(
+  "\nSpecies used for femalematurity =",
+  nrow(data_femalematurity_n15),
+  "\n"
+)
+
+model_femalematurity_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_femalematurity_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_femalematurity_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ log_femalematurity_scaled,
+  data = data_femalematurity_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_femalematurity_n15 <- anova(
+  model_femalematurity_null_n15,
+  model_femalematurity_n15
+)
+
+cat(
+  "\n================ FEMALE MATURITY LRT ================\n"
+)
+
+print(
+  lrt_femalematurity_n15
+)
+
+cat(
+  "\n================ FEMALE MATURITY AIC ================\n"
+)
+
+print(
+  AIC(
+    model_femalematurity_null_n15,
+    model_femalematurity_n15
+  )
+)
+
+cat(
+  "\n================ FEMALE MATURITY MODEL ================\n"
+)
+
+print(
+  summary(
+    model_femalematurity_n15
+  )
+)
+
+coef_table <- summary(
+  model_femalematurity_n15
+)$coefficients$cond
+
+estimate <- coef_table[
+  "log_femalematurity_scaled",
+  "Estimate"
+]
+
+SE <- coef_table[
+  "log_femalematurity_scaled",
+  "Std. Error"
+]
+
+z <- coef_table[
+  "log_femalematurity_scaled",
+  "z value"
+]
+
+p <- coef_table[
+  "log_femalematurity_scaled",
+  "Pr(>|z|)"
+]
+
+CI_low <- estimate - 1.96 * SE
+CI_high <- estimate + 1.96 * SE
+
+results_femalematurity_n15 <- data.frame(
+  variable = "femalematurity",
+  coefficient = "log_femalematurity_scaled",
+  n_species = nobs(
+    model_femalematurity_n15
+  ),
+  estimate = estimate,
+  SE = SE,
+  z = z,
+  p_coefficient = p,
+  LRT_chisq = lrt_femalematurity_n15$Chisq[2],
+  LRT_p = lrt_femalematurity_n15$`Pr(>Chisq)`[2],
+  AIC_null = AIC(
+    model_femalematurity_null_n15
+  ),
+  AIC_model = AIC(
+    model_femalematurity_n15
+  ),
+  delta_AIC = AIC(
+    model_femalematurity_null_n15
+  ) - AIC(
+    model_femalematurity_n15
+  ),
+  CI_low = CI_low,
+  CI_high = CI_high,
+  OR = exp(estimate),
+  OR_low = exp(CI_low),
+  OR_high = exp(CI_high)
+)
+
+results_femalematurity_n15$LRT_p_FDR <-
+  results_femalematurity_n15$LRT_p
+
+results_femalematurity_n15$p_coefficient_FDR <-
+  results_femalematurity_n15$p_coefficient
+
+cat(
+  "\n================ FINAL FEMALE MATURITY RESULTS ================\n"
+)
+
+print(
+  results_femalematurity_n15,
+  row.names = FALSE
+)
+```
+-> Results: `femalematurity` was significantly associated with `hemoplasma` prevalence across the 26 mammalian `species` (beta-binomial GLM, LRT χ²₁ = 4.30, *p* = 0.038; ΔAIC = 2.30; OR = 2.03, 95% CI: 1.05–3.92). In the conservative dataset, 14 species had available `femalematurity` data, and the association was stronger (LRT χ²₁ = 10.46, *p* = 0.001; ΔAIC = 8.46; OR = 3.79, 95% CI: 1.68–8.56).
+
+-> Interpretation: `hemoplasma` prevalence increased with later female age at maturity, with consistent evidence for this positive association in both datasets and stronger support among better-sampled species.
+
+### Visualization of `hemoplasma` infection status according to the `femalematurity` (complete dataset, 44 `species`)
+```
+species_order <- data_hemoplasma_stat %>%
+  select(
+    species,
+    order
+  ) %>%
+  distinct()
+
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
+
+plot_femalematurity <- data_femalematurity %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
+  )
+
 pred_femalematurity <- data.frame(
   log_femalematurity_scaled = seq(
-    min(data_femalematurity$log_femalematurity_scaled, na.rm = TRUE),
-    max(data_femalematurity$log_femalematurity_scaled, na.rm = TRUE),
+    min(
+      data_femalematurity$log_femalematurity_scaled,
+      na.rm = TRUE
+    ),
+    max(
+      data_femalematurity$log_femalematurity_scaled,
+      na.rm = TRUE
+    ),
     length.out = 100
   )
 )
+
 pred <- predict(
   model_femalematurity,
   newdata = pred_femalematurity,
   type = "link",
   se.fit = TRUE
 )
+
 pred_femalematurity <- pred_femalematurity %>%
   mutate(
     fit = plogis(pred$fit),
-    lower = plogis(pred$fit - 1.96 * pred$se.fit),
-    upper = plogis(pred$fit + 1.96 * pred$se.fit)
+    lower = plogis(
+      pred$fit - 1.96 * pred$se.fit
+    ),
+    upper = plogis(
+      pred$fit + 1.96 * pred$se.fit
+    )
   )
+
 maturity_range <- range(
   data_femalematurity$log_femalematurity,
   na.rm = TRUE
 )
+
 pred_femalematurity <- pred_femalematurity %>%
   mutate(
     log_femalematurity = seq(
@@ -3706,6 +5495,7 @@ pred_femalematurity <- pred_femalematurity %>%
       length.out = n()
     )
   )
+
 figure_femalematurity <- ggplot(
   plot_femalematurity,
   aes(
@@ -3721,6 +5511,7 @@ figure_femalematurity <- ggplot(
       ymax = upper
     ),
     inherit.aes = FALSE,
+    fill = "grey70",
     alpha = 0.20
   ) +
   geom_line(
@@ -3730,33 +5521,90 @@ figure_femalematurity <- ggplot(
       y = fit
     ),
     inherit.aes = FALSE,
+    colour = "black",
     linewidth = 1
   ) +
   geom_point(
-    aes(size = n),
+    aes(
+      size = n,
+      colour = order
+    ),
     alpha = 0.70
+  ) +
+  geom_text(
+    aes(
+      label = species_initials,
+      colour = order
+    ),
+    size = 3.2,
+    vjust = -0.8,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    values = order_colors,
+    name = "Mammalian order"
   ) +
   scale_y_continuous(
     limits = c(0, 1),
-    labels = scales::percent
+    labels = scales::percent_format(
+      accuracy = 1
+    )
+  ) +
+  scale_size_continuous(
+    name = "Number tested"
   ) +
   labs(
     x = "Log female age at maturity (days)",
-    y = "Hemoplasma prevalence",
-    size = "Number tested"
+    y = "Hemoplasma prevalence"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    text = element_text(
+      family = "Calibri"
+    ),
+    axis.text.x = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    axis.title.y = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "Calibri"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "Calibri"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
+  )
+
 print(figure_femalematurity)
+
 ggsave(
   "Hemoplasma_prevalence_female_maturity_beta_binomial.png",
   figure_femalematurity,
-  width = 6,
-  height = 5,
+  width = 7,
+  height = 4.8,
   dpi = 300
 )
 ```
 
-### Variation of `hemoplasma` infection status according to the host `littersize`
+### Variation of `hemoplasma` infection status according to the host `littersize` (complete dataset, 44 `species`)
 ```
 species_data_littersize <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3836,42 +5684,267 @@ results_littersize$p_coefficient_FDR <- results_littersize$p_coefficient
 cat("\n================ FINAL LITTER SIZE RESULTS ================\n")
 print(results_littersize, row.names = FALSE)
 ```
-
--> Results: `littersize` was not associated with `hemoplasma` prevalence among `species` (β = 0.086 ± 0.270, OR = 1.09, 95% CI = 0.64–1.85, LRT χ² = 0.10, p = 0.749; n = 39 species).
-
--> Interpretation: There was no evidence that species with larger litters had higher or lower `hemoplasma` prevalence.
-
-### Visualization of `hemoplasma` infection status according to host `littersize`
+### Variation of `hemoplasma` infection status according to the host `littersize` (conservative dataset, 16 `species`)
 ```
+species_data_littersize_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n,
+    .groups = "drop"
+  ) %>%
+  filter(
+    n >= 15
+  ) %>%
+  left_join(
+    data_mammal_traits %>%
+      select(species, littersize),
+    by = "species"
+  ) %>%
+  mutate(
+    littersize = as.numeric(littersize),
+    log_littersize = log(littersize),
+    log_littersize_scaled = as.numeric(
+      scale(log_littersize)
+    )
+  )
+
+cat(
+  "\nNumber of species =",
+  nrow(species_data_littersize_n15),
+  "\n"
+)
+
+cat(
+  "\nMissing littersize values =",
+  sum(
+    is.na(
+      species_data_littersize_n15$littersize
+    )
+  ),
+  "\n"
+)
+
+data_littersize_n15 <- species_data_littersize_n15 %>%
+  filter(
+    !is.na(littersize),
+    is.finite(littersize),
+    !is.na(log_littersize_scaled)
+  )
+
+cat(
+  "\nSpecies used for littersize =",
+  nrow(data_littersize_n15),
+  "\n"
+)
+
+model_littersize_null_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ 1,
+  data = data_littersize_n15,
+  family = betabinomial(link = "logit")
+)
+
+model_littersize_n15 <- glmmTMB(
+  cbind(n_positive, n - n_positive) ~ log_littersize_scaled,
+  data = data_littersize_n15,
+  family = betabinomial(link = "logit")
+)
+
+lrt_littersize_n15 <- anova(
+  model_littersize_null_n15,
+  model_littersize_n15
+)
+
+cat(
+  "\n================ LITTER SIZE LRT ================\n"
+)
+
+print(
+  lrt_littersize_n15
+)
+
+cat(
+  "\n================ LITTER SIZE AIC ================\n"
+)
+
+print(
+  AIC(
+    model_littersize_null_n15,
+    model_littersize_n15
+  )
+)
+
+cat(
+  "\n================ LITTER SIZE MODEL ================\n"
+)
+
+print(
+  summary(
+    model_littersize_n15
+  )
+)
+
+coef_table <- summary(
+  model_littersize_n15
+)$coefficients$cond
+
+estimate <- coef_table[
+  "log_littersize_scaled",
+  "Estimate"
+]
+
+SE <- coef_table[
+  "log_littersize_scaled",
+  "Std. Error"
+]
+
+z <- coef_table[
+  "log_littersize_scaled",
+  "z value"
+]
+
+p <- coef_table[
+  "log_littersize_scaled",
+  "Pr(>|z|)"
+]
+
+CI_low <- estimate - 1.96 * SE
+CI_high <- estimate + 1.96 * SE
+
+results_littersize_n15 <- data.frame(
+  variable = "littersize",
+  coefficient = "log_littersize_scaled",
+  n_species = nobs(
+    model_littersize_n15
+  ),
+  estimate = estimate,
+  SE = SE,
+  z = z,
+  p_coefficient = p,
+  LRT_chisq = lrt_littersize_n15$Chisq[2],
+  LRT_p = lrt_littersize_n15$`Pr(>Chisq)`[2],
+  AIC_null = AIC(
+    model_littersize_null_n15
+  ),
+  AIC_model = AIC(
+    model_littersize_n15
+  ),
+  delta_AIC = AIC(
+    model_littersize_null_n15
+  ) - AIC(
+    model_littersize_n15
+  ),
+  CI_low = CI_low,
+  CI_high = CI_high,
+  OR = exp(estimate),
+  OR_low = exp(CI_low),
+  OR_high = exp(CI_high)
+)
+
+results_littersize_n15$LRT_p_FDR <-
+  results_littersize_n15$LRT_p
+
+results_littersize_n15$p_coefficient_FDR <-
+  results_littersize_n15$p_coefficient
+
+cat(
+  "\n================ FINAL LITTER SIZE RESULTS ================\n"
+)
+
+print(
+  results_littersize_n15,
+  row.names = FALSE
+)
+```
+-> Results: `littersize` was not associated with `hemoplasma` prevalence among the 39 mammalian `species` with available data (beta-binomial GLM, LRT χ²₁ = 0.10, *p* = 0.749; ΔAIC = −1.90; OR = 1.09, 95% CI: 0.64–1.85). This result was consistent in the conservative dataset, where `littersize` showed no significant association with `hemoplasma` prevalence among the 14 species with available data (LRT χ²₁ = 1.78, *p* = 0.182; ΔAIC = −0.22; OR = 0.60, 95% CI: 0.29–1.27).
+
+-> Interpretation: There was no evidence that litter size explained interspecific variation in `hemoplasma` prevalence, with no consistent association in either dataset.
+
+### Visualization of `hemoplasma` infection status according to host `littersize` (complete dataset, 44 `species`)
+```
+species_order <- data_hemoplasma_stat %>%
+  select(
+    species,
+    order
+  ) %>%
+  distinct()
+
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
+
+plot_littersize <- data_littersize %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
+  )
+
 x_seq <- seq(
-  min(data_littersize$littersize, na.rm = TRUE),
-  max(data_littersize$littersize, na.rm = TRUE),
+  min(
+    data_littersize$littersize,
+    na.rm = TRUE
+  ),
+  max(
+    data_littersize$littersize,
+    na.rm = TRUE
+  ),
   length.out = 100
 )
+
 newdata_littersize <- data.frame(
   littersize = x_seq
 )
+
 newdata_littersize$log_littersize_scaled <- (
   log(newdata_littersize$littersize) -
-    mean(log(data_littersize$littersize), na.rm = TRUE)
-) / sd(log(data_littersize$littersize), na.rm = TRUE)
+    mean(
+      log(data_littersize$littersize),
+      na.rm = TRUE
+    )
+) / sd(
+  log(data_littersize$littersize),
+  na.rm = TRUE
+)
+
 pred_littersize <- predict(
   model_littersize,
   newdata = newdata_littersize,
   type = "link",
   se.fit = TRUE
 )
-newdata_littersize$fit <- plogis(pred_littersize$fit)
+
+newdata_littersize$fit <- plogis(
+  pred_littersize$fit
+)
+
 newdata_littersize$lower <- plogis(
   pred_littersize$fit -
     1.96 * pred_littersize$se.fit
 )
+
 newdata_littersize$upper <- plogis(
   pred_littersize$fit +
     1.96 * pred_littersize$se.fit
 )
+
 figure_littersize <- ggplot(
-  data_littersize,
+  plot_littersize,
   aes(
     x = littersize,
     y = prevalence
@@ -3885,6 +5958,7 @@ figure_littersize <- ggplot(
       ymax = upper
     ),
     inherit.aes = FALSE,
+    fill = "grey70",
     alpha = 0.20
   ) +
   geom_line(
@@ -3894,28 +5968,85 @@ figure_littersize <- ggplot(
       y = fit
     ),
     inherit.aes = FALSE,
+    colour = "black",
     linewidth = 1
   ) +
   geom_point(
-    aes(size = n),
+    aes(
+      size = n,
+      colour = order
+    ),
     alpha = 0.70
+  ) +
+  geom_text(
+    aes(
+      label = species_initials,
+      colour = order
+    ),
+    size = 3.2,
+    vjust = -0.8,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    values = order_colors,
+    name = "Mammalian order"
   ) +
   scale_y_continuous(
     limits = c(0, 1),
-    labels = scales::percent
+    labels = scales::percent_format(
+      accuracy = 1
+    )
+  ) +
+  scale_size_continuous(
+    name = "Number tested"
   ) +
   labs(
     x = "Litter size",
-    y = "Hemoplasma prevalence",
-    size = "Number tested"
+    y = "Hemoplasma prevalence"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    text = element_text(
+      family = "Calibri"
+    ),
+    axis.text.x = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    axis.title.y = element_text(
+      size = 11,
+      family = "Calibri"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "Calibri"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "Calibri"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
+  )
+
 print(figure_littersize)
+
 ggsave(
   "Hemoplasma_prevalence_littersize_beta_binomial.png",
   figure_littersize,
-  width = 6,
-  height = 5,
+  width = 7,
+  height = 4.8,
   dpi = 300
 )
 ```
