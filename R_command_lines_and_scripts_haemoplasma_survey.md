@@ -218,8 +218,9 @@ species_summary <- data_hemoplasma_stat %>%
 
 print(species_summary, n = Inf)
 
-species_summary_n10 <- species_summary %>%
-  filter(n_sampled >= 10)
+# Species with n >= 15
+species_summary_n15 <- species_summary %>%
+  filter(n_sampled >= 15)
 
 species_order <- c(
   "Alouatta_macconnelli",
@@ -268,7 +269,7 @@ species_order <- c(
   "Philander_opossum"
 )
 
-plot_data <- species_summary_n10 %>%
+plot_data <- species_summary_n15 %>%
   mutate(
     group = case_when(
       species %in% c(
@@ -383,13 +384,13 @@ p_species_prevalence <- ggplot(
       y = species_label,
       yend = species_label
     ),
-    linewidth = 0.7
+    linewidth = 0.8
   ) +
   geom_point(
     shape = 21,
     fill = "white",
-    size = 5,
-    stroke = 0.8
+    size = 5.5,
+    stroke = 0.9
   ) +
   scale_x_continuous(
     limits = c(0, 100),
@@ -408,36 +409,47 @@ p_species_prevalence <- ggplot(
   ) +
   theme_classic() +
   theme(
-    text = element_text(family = "Calibri"),
+    text = element_text(
+      family = "Calibri"
+    ),
+    
+    # Larger species names on Y axis
     axis.text.y = ggtext::element_markdown(
-      size = 10,
-      margin = margin(r = 8),
+      size = 15,
+      margin = margin(r = 10),
       family = "Calibri"
     ),
+    
+    # Larger X-axis labels
     axis.text.x = element_text(
-      size = 10,
+      size = 13,
       family = "Calibri"
     ),
+    
+    # Larger X-axis title
     axis.title.x = element_text(
-      size = 11,
+      size = 14,
       family = "Calibri"
     ),
+    
     panel.grid.major.x = element_line(
       linewidth = 0.3,
       colour = "grey85"
     ),
+    
     panel.border = element_rect(
       colour = "black",
       fill = NA,
       linewidth = 0.8
     ),
+    
     legend.position = "none"
   )
 
 print(p_species_prevalence)
 
 ggsave(
-  filename = "species_Hemoplasma_prevalence_n10.png",
+  filename = "species_Hemoplasma_prevalence_n15.png",
   plot = p_species_prevalence,
   width = 7,
   height = 8,
@@ -446,7 +458,7 @@ ggsave(
 )
 ```
 
-### Test for the association between `hemoplasma` prevalence and sample size per `species`, for all `species` (n `species` = 44) (Spearman correlation test) 
+### Test for the association between `hemoplasma` prevalence and sample size per `species`, for all `species` (n `species` = 44, complete dataset) (Spearman correlation test) 
 ```
 cor.test(
   species_summary$n_sampled,
@@ -460,10 +472,10 @@ cor.test(
 Spearman's ρ = 0.334, p = 0.027
 
 -> Interpretation : 
-A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence.
+A weak but significant positive association was detected between sample size and `species`-level `hemoplasma` prevalence (complete dataset).
 
 
-### Test for the association between `hemoplasma` prevalence and sample size per `species`, restricted `species` with n ≥ 15 (n `species` = 16) (Spearman correlation test) 
+### Test for the association between `hemoplasma` prevalence and sample size per `species`, restricted `species` with n ≥ 15 (n `species` = 16, conservative dataset) (Spearman correlation test) 
 ```
 species_summary_n15 <- species_summary %>%
   filter(n_sampled >= 15)
@@ -479,10 +491,19 @@ print(cor_test_n15)
 Spearman's ρ = 0.370, p = 0.159
 
 -> Interpretation:
-No significant association was detected between sample size and `species`-level `hemoplasma` prevalence among `species` with n ≥ 15.
+No significant association was detected between sample size and `species`-level `hemoplasma` prevalence among `species` with n ≥ 15 (conservative dataset).
 
 ### Visualization of the association between `hemoplasma` prevalence and sample size per `species` (Fig. S1) 
 ```
+windowsFonts(Calibri = windowsFont("Calibri"))
+order_colors <- c(
+  "Primates (monkeys)" = "#264478",
+  "Pilosa (sloths, anteaters)" = "#C65911",
+  "Cingulata (armadillos)" = "#666666",
+  "Rodentia (rodents)" = "#D6A500",
+  "Carnivora (carnivorans)" = "#375623",
+  "Didelphimorphia (opossums)" = "#4472C4"
+)
 plot_data <- species_summary %>%
   filter(
     is.finite(n_sampled),
@@ -490,47 +511,182 @@ plot_data <- species_summary %>%
     n_sampled > 0
   ) %>%
   mutate(
-    log_n = log10(n_sampled)
+    log_n = log10(n_sampled),
+    order = case_when(
+      species %in% c(
+        "Alouatta_macconnelli",
+        "Saguinus_midas",
+        "Sapajus_apella",
+        "Saimiri_sciureus",
+        "Pithecia_pithecia"
+      ) ~ "Primates (monkeys)",
+      species %in% c(
+        "Bradypus_tridactylus",
+        "Choloepus_didactylus",
+        "Cyclopes_didactylus",
+        "Tamandua_tetradactyla"
+      ) ~ "Pilosa (sloths, anteaters)",
+      species %in% c(
+        "Cabassous_unicinctus",
+        "Dasypus_novemcinctus"
+      ) ~ "Cingulata (armadillos)",
+      species %in% c(
+        "Hydrochoerus_hydrochaeris",
+        "Holochilus_sciureus",
+        "Hylaeamys_megacephalus",
+        "Hylaeamys_yunganus",
+        "Neacomys_dubosti",
+        "Neacomys_paracou",
+        "Nectomys_rattus",
+        "Oecomys_auyantepui",
+        "Oecomys_bicolor",
+        "Oligoryzomys_fulvescens",
+        "Makalata_didelphoides",
+        "Mesomys_hispidus",
+        "Proechimys_cuvieri",
+        "Proechimys_guyannensis",
+        "Coendou_melanurus",
+        "Coendou_prehensilis",
+        "Mus_musculus",
+        "Rattus_rattus",
+        "Sciurus_aestuans"
+      ) ~ "Rodentia (rodents)",
+      species %in% c(
+        "Leopardus_wiedii",
+        "Puma_yagouaroundi",
+        "Eira_barbara",
+        "Galictis_vittata",
+        "Lontra_longicaudis",
+        "Potos_flavus"
+      ) ~ "Carnivora (carnivorans)",
+      species %in% c(
+        "Caluromys_philander",
+        "Didelphis_marsupialis",
+        "Marmosa_lepida",
+        "Marmosa_murina",
+        "Marmosops_parvidens",
+        "Metachirus_nudicaudatus",
+        "Micoureus_demerarae",
+        "Philander_opossum"
+      ) ~ "Didelphimorphia (opossums)",
+      TRUE ~ NA_character_
+    )
+  )
+conservative_species <- species_summary %>%
+  filter(n_sampled >= 15) %>%
+  pull(species)
+print(conservative_species)
+print(paste("Number of species with n >= 15:", length(conservative_species)))
+species_abbr <- setNames(
+  paste0(
+    substr(sub("_.*", "", conservative_species), 1, 1),
+    substr(sub("^[^_]+_", "", conservative_species), 1, 1)
+  ),
+  conservative_species
+)
+plot_data <- plot_data %>%
+  mutate(
+    species_abbr = unname(
+      species_abbr[as.character(species)]
+    )
   )
 p <- ggplot(
   plot_data,
-  aes(x = log_n, y = prevalence)
+  aes(
+    x = log_n,
+    y = prevalence
+  )
 ) +
-  geom_point(size = 3, alpha = 0.7) +
   geom_smooth(
     method = "lm",
     formula = y ~ x,
     se = TRUE,
-    color = "blue",
-    fill = "grey70"
+    color = "black",
+    fill = "grey70",
+    linewidth = 0.8,
+    show.legend = FALSE
+  ) +
+  geom_point(
+    data = plot_data %>% filter(n_sampled < 15),
+    aes(
+      colour = order,
+      fill = order
+    ),
+    shape = 21,
+    size = 4,
+    stroke = 0.9
+  ) +
+  geom_point(
+    data = plot_data %>% filter(n_sampled >= 15),
+    aes(
+      colour = order
+    ),
+    shape = 21,
+    fill = "white",
+    size = 4,
+    stroke = 1.1
+  ) +
+  geom_text(
+    data = plot_data %>%
+      filter(
+        n_sampled >= 15,
+        !is.na(species_abbr)
+      ),
+    aes(
+      label = species_abbr,
+      colour = order
+    ),
+    hjust = -0.5,
+    vjust = 0.5,
+    size = 4,
+    family = "Calibri",
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    name = "Host order",
+    values = order_colors
+  ) +
+  scale_fill_manual(
+    values = order_colors,
+    guide = "none"
   ) +
   scale_x_continuous(
     breaks = log10(c(1, 2, 5, 10, 20, 50, 100)),
-    labels = c(1, 2, 5, 10, 20, 50, 100)
+    labels = c(1, 2, 5, 10, 20, 50, 100),
+    expand = expansion(mult = c(0.02, 0.15))
   ) +
   scale_y_continuous(
     labels = scales::percent_format(accuracy = 1),
     limits = c(0, 1)
   ) +
-  theme_classic() +
   labs(
     x = "Sample size per species",
     y = "Hemoplasma prevalence"
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(family = "Calibri"),
+    axis.text.x = element_text(size = 13, family = "Calibri"),
+    axis.text.y = element_text(size = 13, family = "Calibri"),
+    axis.title.x = element_text(size = 14, family = "Calibri"),
+    axis.title.y = element_text(size = 14, family = "Calibri"),
+    legend.title = element_text(size = 13, family = "Calibri"),
+    legend.text = element_text(size = 12, family = "Calibri"),
+    legend.position = "right"
   )
 print(p)
 ggsave(
-  filename = "hemoplasma_prevalence_vs_sample_size.png",
+  filename = "hemoplasma_prevalence_vs_sample_size_n15.png",
   plot = p,
-  width = 7,
-  height = 5,
+  width = 9,
+  height = 5.5,
   units = "in",
   dpi = 300
 )
 ```
 
-## Step 3. Variation in `hemoplasma` infection status according to the host’s `sex`
-
-### Test whether `hemoplasma` infection probability differs between sexes (`sex`) while accounting for species-level random effects (`1 | species`) (complete dataset, 44 `species`) 
+## Step 3. Variation in `hemoplasma` infection status according to the host `sex`
+### Test whether `hemoplasma` infection probability differs between `sex` while accounting for species-level random effects (`1 | species`) (complete dataset, 44 `species`) 
 Fit the full GLMM (model 1) :
 ```
 model_sex_data <- data_hemoplasma_stat %>%
@@ -750,33 +906,60 @@ or_pathogens_results <- data.frame(
 or_pathogens_results
 ```
 
-### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) (conservative species-level dataset, 16 `species`)
+### Test whether `hemoplasma` infection probability differs with infections by other blood-borne pathogens (`pathogens`) while accounting for species-level random effects (`1 | species`) (conservative dataset, 16 `species`)
 Fit the full GLMM (model 2_n15)
 ```
-model2_a <- glmer(
+species_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    .groups = "drop"
+  ) %>%
+  filter(n_sampled >= 15)
+
+model2_data_n15 <- data_hemoplasma_stat %>%
+  filter(species %in% species_n15$species)
+
+model2_a_n15 <- glmer(
   hemoplasma ~ pathogens + (1 | species),
-  data = data_hemoplasma_stat,
+  data = model2_data_n15,
   family = binomial
 )
-summary(model2_a)
-model2_b <- glmer(
+
+summary(model2_a_n15)
+
+model2_b_n15 <- glmer(
   hemoplasma ~ 1 + (1 | species),
-  data = data_hemoplasma_stat,
-  family = binomial,
+  data = model2_data_n15,
+  family = binomial
 )
+
 anova(
-  model2_a,
-  model2_b,
+  model2_a_n15,
+  model2_b_n15,
   test = "Chisq"
 )
-AIC(model2_a, model2_b)
+
+AIC(
+  model2_a_n15,
+  model2_b_n15
+)
 ```
 
-Calculate the odds ratio and 95% HDI for the effect of `pathogens` on `hemoplasma` infection (conservative species-level dataset, 16 `species`)
+Calculate the odds ratio and 95% HDI for the effect of `pathogens` on `hemoplasma` infection (conservative dataset, 16 `species`)
 ```
-model_pathogens_bayes <- brm(
+species_n15 <- data_hemoplasma_stat %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    .groups = "drop"
+  ) %>%
+  filter(n_sampled >= 15)
+
+model_pathogens_bayes_n15 <- brm(
   hemoplasma ~ pathogens + (1 | species),
-  data = data_hemoplasma_stat,
+  data = data_hemoplasma_stat %>%
+    filter(species %in% species_n15$species),
   family = bernoulli(link = "logit"),
   chains = 4,
   iter = 4000,
@@ -784,28 +967,31 @@ model_pathogens_bayes <- brm(
   cores = 1,
   seed = 1234
 )
-posterior_pathogens <- as_draws_df(
-  model_pathogens_bayes
+
+posterior_pathogens_n15 <- as_draws_df(
+  model_pathogens_bayes_n15
 )
-or_pathogens <- exp(
-  posterior_pathogens$b_pathogens1
+
+or_pathogens_n15 <- exp(
+  posterior_pathogens_n15$b_pathogens1
 )
-or_pathogens_results <- data.frame(
-    variable = "Pathogens (1 vs 0)",
-    OR = median(
-    or_pathogens
+
+or_pathogens_results_n15 <- data.frame(
+  variable = "Pathogens (1 vs 0)",
+  OR = median(
+    or_pathogens_n15
   ),
-    HDI_low = hdi(
-    or_pathogens,
+  HDI_low = hdi(
+    or_pathogens_n15,
     ci = 0.95
   )$CI_low,
-  
   HDI_high = hdi(
-    or_pathogens,
+    or_pathogens_n15,
     ci = 0.95
   )$CI_high
 )
-or_pathogens_results
+
+or_pathogens_results_n15
 ```
 -> Results: `pathogen` was significantly associated with `hemoplasma` infection in both the complete dataset (GLMM, LRT: χ²₁ = 7.56, p = 0.006, ΔAIC = 5.56; OR = 2.85, 95% HDI: 1.07–5.71) and the conservative dataset (χ²₁ = 7.94, p = 0.005, ΔAIC = 5.94; OR = 3.03, 95% HDI: 1.10–6.09).
 
@@ -1233,8 +1419,8 @@ plot_or <- bind_rows(
     y_base = as.numeric(variable),
     y = ifelse(
       dataset == "Complete dataset (44 species)",
-      y_base + 0.12,
-      y_base - 0.12
+      y_base + 0.08,
+      y_base - 0.08
     )
   )
 
@@ -1248,7 +1434,7 @@ p <- ggplot(
   geom_vline(
     xintercept = 1,
     linetype = "dashed",
-    linewidth = 0.5,
+    linewidth = 0.6,
     colour = "black"
   ) +
   geom_segment(
@@ -1259,7 +1445,7 @@ p <- ggplot(
       yend = y
     ),
     colour = "black",
-    linewidth = 1
+    linewidth = 1.2
   ) +
   geom_point(
     data = subset(
@@ -1273,8 +1459,8 @@ p <- ggplot(
     shape = 21,
     colour = "black",
     fill = "black",
-    size = 4,
-    stroke = 1.1
+    size = 5,
+    stroke = 1.2
   ) +
   geom_point(
     data = subset(
@@ -1288,8 +1474,8 @@ p <- ggplot(
     shape = 21,
     colour = "black",
     fill = "white",
-    size = 4,
-    stroke = 1.1
+    size = 5,
+    stroke = 1.2
   ) +
   scale_y_continuous(
     breaks = 1:4,
@@ -1310,13 +1496,25 @@ p <- ggplot(
   ) +
   theme_classic() +
   theme(
-    axis.text.y = element_text(size = 11),
-    axis.text.x = element_text(size = 10),
-    axis.title.x = element_text(size = 11),
+    text = element_text(
+      family = "Calibri"
+    ),
+    axis.text.y = element_text(
+      size = 14,
+      family = "Calibri"
+    ),
+    axis.text.x = element_text(
+      size = 13,
+      family = "Calibri"
+    ),
+    axis.title.x = element_text(
+      size = 15,
+      family = "Calibri"
+    ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
-      linewidth = 0.8
+      linewidth = 0.9
     )
   )
 
@@ -1338,7 +1536,6 @@ species_select <- c(
   "Didelphis_marsupialis",
   "Bradypus_tridactylus"
 )
-
 plot_data <- data_hemoplasma_stat %>%
   filter(
     species %in% species_select,
@@ -1376,28 +1573,26 @@ plot_data <- data_hemoplasma_stat %>%
       species == "Bradypus_tridactylus" ~ "Bradypus tridactylus"
     ),
     pathogens_label = case_when(
-      pathogens == 0 ~ "Pathogens 0",
-      pathogens == 1 ~ "Pathogens 1"
+      pathogens == 0 ~ "infected by Anaplasmataceae/Apicomplexa",
+      pathogens == 1 ~ "uninfected by Anaplasmataceae/Apicomplexa"
     ),
     group = case_when(
       species == "Bradypus_tridactylus" ~ "Xenarthrans",
       species == "Didelphis_marsupialis" ~ "Didelphids"
     )
   )
-
 plot_data <- plot_data %>%
   mutate(
     group_y = factor(
       paste(species_label, pathogens_label),
       levels = c(
-        "Bradypus tridactylus Pathogens 0",
-        "Bradypus tridactylus Pathogens 1",
-        "Didelphis marsupialis Pathogens 0",
-        "Didelphis marsupialis Pathogens 1"
+        "Bradypus tridactylus infected by Anaplasmataceae/Apicomplexa",
+        "Bradypus tridactylus uninfected by Anaplasmataceae/Apicomplexa",
+        "Didelphis marsupialis infected by Anaplasmataceae/Apicomplexa",
+        "Didelphis marsupialis uninfected by Anaplasmataceae/Apicomplexa"
       )
     )
   )
-
 print(
   plot_data %>%
     select(
@@ -1411,7 +1606,6 @@ print(
       CI_high_percent
     )
 )
-
 sig_data <- data.frame(
   species = c(
     "Bradypus tridactylus",
@@ -1426,7 +1620,6 @@ sig_data <- data.frame(
     "*"
   )
 )
-
 p <- ggplot(
   plot_data,
   aes(
@@ -1442,13 +1635,13 @@ p <- ggplot(
     ),
     orientation = "y",
     width = 0,
-    linewidth = 1
+    linewidth = 1.2
   ) +
   geom_point(
     shape = 21,
     fill = "white",
     size = 8,
-    stroke = 1.2
+    stroke = 1.3
   ) +
   geom_text(
     data = sig_data,
@@ -1460,7 +1653,7 @@ p <- ggplot(
     inherit.aes = FALSE,
     colour = "black",
     family = "Calibri",
-    size = 5.5,
+    size = 6,
     hjust = 0.5
   ) +
   scale_colour_manual(
@@ -1482,10 +1675,10 @@ p <- ggplot(
   ) +
   scale_y_discrete(
     labels = c(
-      "<i>Bradypus tridactylus</i><br>Pathogens 0",
-      "<i>Bradypus tridactylus</i><br>Pathogens 1",
-      "<i>Didelphis marsupialis</i><br>Pathogens 0",
-      "<i>Didelphis marsupialis</i><br>Pathogens 1"
+      "<i>Bradypus tridactylus</i><br>infected by Anaplasmataceae/Apicomplexa",
+      "<i>Bradypus tridactylus</i><br>uninfected by Anaplasmataceae/Apicomplexa",
+      "<i>Didelphis marsupialis</i><br>infected by Anaplasmataceae/Apicomplexa",
+      "<i>Didelphis marsupialis</i><br>uninfected by Anaplasmataceae/Apicomplexa"
     )
   ) +
   labs(
@@ -1498,33 +1691,31 @@ p <- ggplot(
       family = "Calibri"
     ),
     axis.text.y = ggtext::element_markdown(
-      size = 12,
+      size = 15,
       family = "Calibri",
       lineheight = 0.95
     ),
     axis.text.x = element_text(
-      size = 11,
+      size = 14,
       family = "Calibri"
     ),
     axis.title.x = element_text(
-      size = 12,
+      size = 16,
       family = "Calibri"
     ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
-      linewidth = 0.8
+      linewidth = 0.9
     ),
     legend.position = "none"
   )
-
 print(p)
-
 ggsave(
   filename = "Hemoplasma_prevalence_Pathogens_Wilson_coloured.png",
   plot = p,
-  width = 8,
-  height = 4.5,
+  width = 9,
+  height = 5.5,
   units = "in",
   dpi = 300
 )
@@ -1757,6 +1948,15 @@ order_prevalence_n15 <- data.frame(
   dataset = "Conservative"
 )
 
+order_levels <- c(
+  "Rodentia",
+  "Cingulata",
+  "Carnivora",
+  "Didelphimorphia",
+  "Pilosa",
+  "Primates"
+)
+
 order_prevalence <- bind_rows(
   order_prevalence_complete,
   order_prevalence_n15
@@ -1764,14 +1964,7 @@ order_prevalence <- bind_rows(
   mutate(
     order = factor(
       order,
-      levels = rev(c(
-        "Primates",
-        "Pilosa",
-        "Didelphimorphia",
-        "Carnivora",
-        "Cingulata",
-        "Rodentia"
-      ))
+      levels = order_levels
     ),
     dataset = factor(
       dataset,
@@ -1779,12 +1972,13 @@ order_prevalence <- bind_rows(
         "Conservative",
         "Complete"
       )
-    )
-  ) %>%
-  arrange(order, dataset) %>%
-  mutate(
+    ),
     y = as.numeric(order) +
-      ifelse(dataset == "Complete", 0.16, -0.16)
+      ifelse(
+        dataset == "Complete",
+        0.23,
+        -0.23
+      )
   )
 
 order_colors <- c(
@@ -1811,7 +2005,7 @@ p_order_prevalence <- ggplot(
     ),
     orientation = "y",
     width = 0,
-    linewidth = 1
+    linewidth = 1.2
   ) +
   geom_point(
     data = subset(
@@ -1823,8 +2017,8 @@ p_order_prevalence <- ggplot(
       fill = order
     ),
     shape = 21,
-    size = 7,
-    stroke = 1.2
+    size = 8,
+    stroke = 1.3
   ) +
   geom_point(
     data = subset(
@@ -1836,27 +2030,27 @@ p_order_prevalence <- ggplot(
     ),
     shape = 21,
     fill = "white",
-    size = 7,
-    stroke = 1.2
+    size = 8,
+    stroke = 1.3
   ) +
   annotate(
     "point",
     x = 10,
-    y = 6.55,
+    y = 6.65,
     shape = 21,
     fill = "black",
     colour = "black",
-    size = 4,
-    stroke = 1
+    size = 5,
+    stroke = 1.2
   ) +
   annotate(
     "text",
-    x = 13,
-    y = 6.55,
+    x = 14,
+    y = 6.65,
     label = "Complete dataset (44 species)",
     hjust = 0,
     vjust = 0.5,
-    size = 3.2,
+    size = 4,
     family = "Calibri"
   ) +
   annotate(
@@ -1866,17 +2060,17 @@ p_order_prevalence <- ggplot(
     shape = 21,
     fill = "white",
     colour = "black",
-    size = 4,
-    stroke = 1
+    size = 5,
+    stroke = 1.2
   ) +
   annotate(
     "text",
-    x = 13,
+    x = 14,
     y = 6.25,
     label = "Conservative dataset (16 species)",
     hjust = 0,
     vjust = 0.5,
-    size = 3.2,
+    size = 4,
     family = "Calibri"
   ) +
   scale_colour_manual(
@@ -1886,17 +2080,10 @@ p_order_prevalence <- ggplot(
     values = order_colors
   ) +
   scale_y_continuous(
-    breaks = 1:6,
-    labels = c(
-      "Primates",
-      "Pilosa",
-      "Didelphimorphia",
-      "Carnivora",
-      "Cingulata",
-      "Rodentia"
-    ),
+    breaks = seq_along(order_levels),
+    labels = order_levels,
     expand = expansion(
-      mult = c(0.03, 0.12)
+      mult = c(0.03, 0.15)
     )
   ) +
   scale_x_continuous(
@@ -1917,21 +2104,21 @@ p_order_prevalence <- ggplot(
       family = "Calibri"
     ),
     axis.text.y = element_text(
-      size = 11,
+      size = 14,
       family = "Calibri"
     ),
     axis.text.x = element_text(
-      size = 10,
+      size = 13,
       family = "Calibri"
     ),
     axis.title.x = element_text(
-      size = 11,
+      size = 15,
       family = "Calibri"
     ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
-      linewidth = 0.8
+      linewidth = 0.9
     ),
     legend.position = "none"
   )
@@ -1941,8 +2128,8 @@ print(p_order_prevalence)
 ggsave(
   filename = "order_hemoplasma_prevalence_complete_vs_n15.png",
   plot = p_order_prevalence,
-  width = 7,
-  height = 5,
+  width = 8,
+  height = 5.5,
   units = "in",
   dpi = 300
 )
