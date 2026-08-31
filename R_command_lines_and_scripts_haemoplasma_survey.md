@@ -1801,7 +1801,7 @@ order_prevalence
 | Primates | 66 | 61 | 92.4% | 83.5–96.7% |
 | Rodentia | 201 | 11 | 5.47% | 3.08–9.53% |
 
-### Observed `hemoplasma` prevalence and 95% Wilson CI by `order` (conservative species-level dataset, 16 `species`) 
+### Observed `hemoplasma` prevalence and 95% Wilson CI by `order` (conservative dataset, 16 `species`) 
 ```
 species_n15 <- species_summary %>%
   filter(n_sampled >= 15) %>%
@@ -1848,7 +1848,7 @@ order_prevalence_n15
 | Primates | 63 | 61 | 96.8 | 89.1–99.1 |
 | Rodentia | 138 | 6 | 4.35 | 2.01–9.16 |
 
-### Visualization of `hemoplasma` prevalence and 95% Wilson CI by mammalian `order` for complete (44 `species`) and conservative species-level dataset (16 `species`)
+### Visualization of `hemoplasma` prevalence and 95% Wilson CI by mammalian `order` for complete (44 `species`) and conservative (16 `species`) dataset
 ```
 order_prevalence_complete <- data.frame(
   order = c(
