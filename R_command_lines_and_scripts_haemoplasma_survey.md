@@ -3494,7 +3494,7 @@ data_mammal_traits$activitycrepuscular        <- as.factor(data_mammal_traits$ac
 data_mammal_traits$activitydiurnal        <- as.factor(data_mammal_traits$activitydiurnal)
 ```
 
-### Variation in `hemoplasma` infection prevalence according to the host’s diet (complete dataset, 44 `species`)
+### Variation in `hemoplasma` infection prevalence according to the host diet (complete dataset, 44 `species`)
 ```
 species_data <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3607,7 +3607,7 @@ results_diet <- results_diet %>%
   )
 print(results_diet)
 ```
-### Variation in `hemoplasma` infection prevalence according to the host’s diet (conservative dataset, 16 `species`)
+### Variation in `hemoplasma` infection prevalence according to the host diet (conservative dataset, 16 `species`)
 ```
 species_data_n15 <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3996,8 +3996,7 @@ ggsave(
 )
 ```
 
-```
-### Variation in `hemoplasma` infection prevalence according to the host’s foraging `strata` (complete dataset, 44 `species`) 
+### Variation in `hemoplasma` infection prevalence according to the host foraging `strata` (complete dataset, 44 `species`) 
 ```
 species_data_strata <- data_hemoplasma_stat %>%
   group_by(species) %>%
