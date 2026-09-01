@@ -4311,7 +4311,7 @@ print(
 
 ### Visualization of association between `hemoplasma` prevalence and foraging `strata` (conservative dataset, 44 `species`)
 ```
-species_data_activity <- data_hemoplasma_stat %>%
+species_data_strata_plot <- data_hemoplasma_stat %>%
   group_by(species) %>%
   summarise(
     n = n(),
@@ -4321,12 +4321,7 @@ species_data_activity <- data_hemoplasma_stat %>%
   ) %>%
   left_join(
     data_mammal_traits %>%
-      select(
-        species,
-        activitynocturnal,
-        activitycrepuscular,
-        activitydiurnal
-      ),
+      select(species, strata),
     by = "species"
   ) %>%
   left_join(
@@ -4334,6 +4329,15 @@ species_data_activity <- data_hemoplasma_stat %>%
     by = "species"
   ) %>%
   mutate(
+    strata = factor(
+      strata,
+      levels = c("G", "S", "Ar"),
+      labels = c(
+        "Ground",
+        "Shrub",
+        "Arboreal"
+      )
+    ),
     species_initials = paste0(
       substr(species, 1, 1),
       substr(
@@ -4343,171 +4347,145 @@ species_data_activity <- data_hemoplasma_stat %>%
       )
     ),
     n15 = n >= 15
+  ) %>%
+  filter(
+    !is.na(strata)
   )
-activity_plot_data <- bind_rows(
-  species_data_activity %>%
-    filter(!is.na(activitynocturnal)) %>%
-    mutate(
-      activity = activitynocturnal,
-      variable = "Nocturnal"
-    ),
-  species_data_activity %>%
-    filter(!is.na(activitycrepuscular)) %>%
-    mutate(
-      activity = activitycrepuscular,
-      variable = "Crepuscular"
-    ),
-  species_data_activity %>%
-    filter(!is.na(activitydiurnal)) %>%
-    mutate(
-      activity = activitydiurnal,
-      variable = "Diurnal"
-    )
-) %>%
+
+label_data <- species_data_strata_plot %>%
+  filter(n15) %>%
+  group_by(strata) %>%
+  arrange(prevalence) %>%
   mutate(
-    activity_label = factor(
-      activity,
-      levels = c(0, 1),
-      labels = c("No", "Yes")
+    direction = if_else(
+      row_number() %% 2 == 0,
+      1,
+      -1
     ),
-    variable = factor(
-      variable,
-      levels = c(
-        "Nocturnal",
-        "Crepuscular",
-        "Diurnal"
-      )
-    )
-  )
-activity_labels <- activity_plot_data %>%
-  filter(n15)
-figure_activity <- ggplot(
-  activity_plot_data,
+    label_x = as.numeric(strata) + direction * 0.18
+  ) %>%
+  ungroup()
+
+figure_strata <- ggplot(
+  species_data_strata_plot,
   aes(
-    x = activity_label,
-    y = prevalence
+    x = strata,
+    y = prevalence,
+    colour = order
   )
 ) +
   geom_boxplot(
-    width = 0.55,
+    width = 0.50,
     outlier.shape = NA,
+    colour = "black",
     fill = NA
   ) +
-  geom_jitter(
-    data = activity_plot_data %>%
+  geom_point(
+    data = species_data_strata_plot %>%
       filter(!n15),
     aes(
-      colour = order,
       size = n
     ),
-    width = 0.12,
-    height = 0,
-    alpha = 0.80
+    alpha = 0.75
   ) +
-  geom_jitter(
-    data = activity_plot_data %>%
+  geom_point(
+    data = species_data_strata_plot %>%
       filter(n15),
     aes(
-      colour = order,
       size = n
     ),
-    width = 0.12,
-    height = 0,
     shape = 1,
-    stroke = 1.1,
-    alpha = 1
+    stroke = 1.1
   ) +
-  geom_text_repel(
-    data = activity_labels,
+  geom_segment(
+    data = label_data,
     aes(
-      label = species_initials,
+      x = as.numeric(strata),
+      xend = label_x,
+      y = prevalence,
+      yend = prevalence,
       colour = order
     ),
-    size = 3.2,
-    direction = "both",
-    nudge_x = 0.20,
-    nudge_y = 0.02,
-    force = 1.5,
-    force_pull = 0.4,
-    box.padding = 0.40,
-    point.padding = 0.25,
-    segment.size = 0.35,
-    segment.alpha = 0.7,
-    min.segment.length = 0,
-    max.overlaps = Inf,
-    seed = 123,
+    linewidth = 0.45,
     show.legend = FALSE
   ) +
-  facet_wrap(
-    ~ variable,
-    nrow = 1,
-    strip.position = "bottom"
+  geom_text(
+    data = label_data,
+    aes(
+      x = label_x,
+      y = prevalence,
+      label = species_initials,
+      colour = order,
+      hjust = ifelse(
+        direction > 0,
+        0,
+        1
+      )
+    ),
+    size = 3.5,
+    family = "sans",
+    show.legend = FALSE
   ) +
   scale_colour_manual(
     values = order_colors
   ) +
   scale_size_continuous(
     name = "Number tested",
-    range = c(2.5, 7)
+    range = c(2.5, 8)
   ) +
   scale_y_continuous(
-    breaks = seq(0, 1, 0.2),
+    limits = c(0, 1),
     labels = scales::percent_format(
       accuracy = 1
     ),
     expand = expansion(
-      mult = c(0.02, 0.10)
+      mult = c(0.02, 0.08)
     )
   ) +
-  coord_cartesian(
-    ylim = c(0, 1),
-    clip = "off"
-  ) +
   labs(
-    x = "Activity pattern",
+    x = "Foraging stratum",
     y = "Hemoplasma prevalence",
     colour = "Mammalian order"
   ) +
   theme_classic() +
   theme(
-    strip.background = element_blank(),
-    strip.placement = "outside",
-    strip.text = element_text(
-      size = 11,
-      face = "bold"
-    ),
     axis.text.x = element_text(
-      size = 10
+      size = 10,
+      family = "sans"
     ),
     axis.text.y = element_text(
-      size = 10
+      size = 10,
+      family = "sans"
     ),
     axis.title.x = element_text(
-      size = 11
+      size = 11,
+      family = "sans"
     ),
     axis.title.y = element_text(
-      size = 11
+      size = 11,
+      family = "sans"
     ),
     legend.title = element_text(
-      size = 9
+      size = 9,
+      family = "sans"
     ),
     legend.text = element_text(
-      size = 8
+      size = 8,
+      family = "sans"
     ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
       linewidth = 0.8
-    ),
-    plot.margin = margin(
-      10, 25, 10, 10
     )
   )
-print(figure_activity)
+
+print(figure_strata)
+
 ggsave(
-  "Hemoplasma_prevalence_activity.png",
-  figure_activity,
-  width = 10,
+  "Hemoplasma_prevalence_strata.png",
+  figure_strata,
+  width = 7,
   height = 4.8,
   dpi = 300
 )
@@ -5400,47 +5378,54 @@ print(
 
 ### Visualization of association between `hemoplasma` prevalence and host `bodymass` (complete dataset, `species`)
 ```
-get_predictions_bodymass <- function(model, data) {
-  x <- seq(
-    min(data$log_bodymass_scaled, na.rm = TRUE),
-    max(data$log_bodymass_scaled, na.rm = TRUE),
-    length.out = 100
-  )
-  newdata <- data.frame(
-    log_bodymass_scaled = x
-  )
-  pred <- predict(
-    model,
-    newdata = newdata,
-    type = "link",
-    se.fit = TRUE
-  )
-  newdata$fit <- plogis(pred$fit)
-  newdata$lower <- plogis(
-    pred$fit - 1.96 * pred$se.fit
-  )
-  newdata$upper <- plogis(
-    pred$fit + 1.96 * pred$se.fit
-  )
-  newdata
-}
-pred_bodymass <- get_predictions_bodymass(
-  model_bodymass,
-  data_bodymass
-)
+species_order <- data_hemoplasma_stat %>%
+  select(species, order) %>%
+  distinct()
+
 plot_data_bodymass <- data_bodymass %>%
   mutate(
     bodymass_plot = log_bodymass_scaled
+  ) %>%
+  left_join(
+    species_order,
+    by = "species"
+  ) %>%
+  mutate(
+    species_initials = paste0(
+      substr(species, 1, 1),
+      substr(
+        sub("^[^_]+_", "", species),
+        1,
+        1
+      )
+    )
   )
+
 pred_data_bodymass <- pred_bodymass %>%
   mutate(
     bodymass_plot = log_bodymass_scaled
   )
+
+label_data_bodymass <- plot_data_bodymass %>%
+  filter(
+    n >= 15
+  )
+
+order_colors <- c(
+  "Primates" = "#E69F00",
+  "Rodentia" = "#56B4E9",
+  "Pilosa" = "#009E73",
+  "Didelphimorphia" = "#CC79A7",
+  "Carnivora" = "#D55E00",
+  "Cingulata" = "#0072B2"
+)
+
 figure_bodymass <- ggplot(
   plot_data_bodymass,
   aes(
     x = bodymass_plot,
-    y = prevalence
+    y = prevalence,
+    colour = order
   )
 ) +
   geom_ribbon(
@@ -5451,6 +5436,7 @@ figure_bodymass <- ggplot(
       ymax = upper
     ),
     inherit.aes = FALSE,
+    fill = "grey70",
     alpha = 0.20
   ) +
   geom_line(
@@ -5460,30 +5446,108 @@ figure_bodymass <- ggplot(
       y = fit
     ),
     inherit.aes = FALSE,
+    colour = "black",
     linewidth = 1
   ) +
   geom_point(
+    data = plot_data_bodymass %>%
+      filter(n < 15),
     aes(
       size = n
     ),
+    shape = 16,
     alpha = 0.70
+  ) +
+  geom_point(
+    data = plot_data_bodymass %>%
+      filter(n >= 15),
+    aes(
+      size = n
+    ),
+    shape = 21,
+    fill = "white",
+    alpha = 1,
+    stroke = 1.1
+  ) +
+  ggrepel::geom_text_repel(
+    data = label_data_bodymass,
+    aes(
+      label = species_initials,
+      colour = order
+    ),
+    size = 3.5,
+    family = "sans",
+    fontface = "plain",
+    box.padding = 1.0,
+    point.padding = 0.8,
+    force = 2.5,
+    force_pull = 0.3,
+    direction = "both",
+    max.overlaps = Inf,
+    min.segment.length = 0,
+    segment.size = 0.5,
+    segment.color = "black",
+    segment.curvature = 0,
+    segment.ncp = 1,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    values = order_colors
+  ) +
+  scale_size_continuous(
+    name = "Number tested"
   ) +
   scale_y_continuous(
     limits = c(0, 1),
-    labels = scales::percent_format(accuracy = 1)
+    labels = scales::percent_format(
+      accuracy = 1
+    )
   ) +
   labs(
-    x = expression("Log"[10]*"(body mass, g)"),
+    x = "Log body mass (g)",
     y = "Hemoplasma prevalence",
-    size = "Number tested"
+    colour = "Mammalian order"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      size = 10,
+      family = "sans"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      family = "sans"
+    ),
+    axis.title.x = element_text(
+      size = 11,
+      family = "sans"
+    ),
+    axis.title.y = element_text(
+      size = 11,
+      family = "sans"
+    ),
+    legend.title = element_text(
+      size = 9,
+      family = "sans"
+    ),
+    legend.text = element_text(
+      size = 8,
+      family = "sans"
+    ),
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      linewidth = 0.8
+    )
+  )
+
 print(figure_bodymass)
+
 ggsave(
   "Hemoplasma_prevalence_bodymass.png",
   figure_bodymass,
-  width = 6,
-  height = 4.5,
+  width = 7,
+  height = 4.8,
   dpi = 300
 )
 ```
@@ -5734,7 +5798,7 @@ print(
   results_longevity_n15,
   row.names = FALSE
 )
-
+```
 -> Results : In the complete dataset, across the 33 mammalian `species` with available `longevity` data, `longevity` was not significantly associated with `hemoplasma` prevalence (beta-binomial GLM, LRT χ²₁ = 2.13, *p* = 0.145; ΔAIC = 0.13; OR = 1.57, 95% CI: 0.86–2.88). In the conservative dataset, 13 species had available `longevity` data, and the association remained non-significant but showed a similar positive trend (LRT χ²₁ = 2.91, *p* = 0.088; ΔAIC = 0.91; OR = 1.96, 95% CI: 0.91–4.22).
 
 -> Interpretation : `hemoplasma` prevalence tended to increase with host `longevity`, with a stronger but still marginal association among better-sampled species.
@@ -5770,7 +5834,31 @@ plot_longevity <- data_longevity %>%
         1,
         1
       )
-    )
+    ),
+    n15 = n >= 15
+  )
+
+label_data_longevity <- plot_longevity %>%
+  filter(
+    n15,
+    !is.na(log_longevity),
+    !is.na(prevalence)
+  ) %>%
+  arrange(
+    log_longevity,
+    prevalence
+  ) %>%
+  mutate(
+    label_side = rep(
+      c("right", "left"),
+      length.out = n()
+    ),
+    label_x = ifelse(
+      label_side == "right",
+      log_longevity + 0.08,
+      log_longevity - 0.08
+    ),
+    label_y = prevalence
   )
 
 pred_longevity <- data.frame(
@@ -5848,19 +5936,52 @@ figure_longevity <- ggplot(
     linewidth = 1
   ) +
   geom_point(
+    data = plot_longevity %>%
+      filter(!n15),
     aes(
       size = n,
       colour = order
     ),
+    shape = 16,
     alpha = 0.70
   ) +
-  geom_text(
+  geom_point(
+    data = plot_longevity %>%
+      filter(n15),
     aes(
-      label = species_initials,
+      size = n,
       colour = order
     ),
+    shape = 1,
+    stroke = 1.1
+  ) +
+  geom_segment(
+    data = label_data_longevity,
+    aes(
+      x = log_longevity,
+      xend = label_x,
+      y = prevalence,
+      yend = label_y,
+      colour = order
+    ),
+    linewidth = 0.45,
+    show.legend = FALSE
+  ) +
+  geom_text(
+    data = label_data_longevity,
+    aes(
+      x = label_x,
+      y = label_y,
+      label = species_initials,
+      colour = order,
+      hjust = ifelse(
+        label_side == "right",
+        0,
+        1
+      )
+    ),
     size = 3.2,
-    vjust = -0.8,
+    family = "sans",
     show.legend = FALSE
   ) +
   scale_colour_manual(
@@ -5883,31 +6004,31 @@ figure_longevity <- ggplot(
   theme_classic() +
   theme(
     text = element_text(
-      family = "Calibri"
+      family = "sans"
     ),
     axis.text.x = element_text(
       size = 10,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.text.y = element_text(
       size = 10,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.title.x = element_text(
       size = 11,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.title.y = element_text(
       size = 11,
-      family = "Calibri"
+      family = "sans"
     ),
     legend.title = element_text(
       size = 9,
-      family = "Calibri"
+      family = "sans"
     ),
     legend.text = element_text(
       size = 8,
-      family = "Calibri"
+      family = "sans"
     ),
     panel.border = element_rect(
       colour = "black",
@@ -6215,7 +6336,31 @@ plot_femalematurity <- data_femalematurity %>%
         1,
         1
       )
-    )
+    ),
+    n15 = n >= 15
+  )
+
+label_data_femalematurity <- plot_femalematurity %>%
+  filter(
+    n15,
+    !is.na(log_femalematurity),
+    !is.na(prevalence)
+  ) %>%
+  arrange(
+    log_femalematurity,
+    prevalence
+  ) %>%
+  mutate(
+    label_side = rep(
+      c("right", "left"),
+      length.out = n()
+    ),
+    label_x = ifelse(
+      label_side == "right",
+      log_femalematurity + 0.08,
+      log_femalematurity - 0.08
+    ),
+    label_y = prevalence
   )
 
 pred_femalematurity <- data.frame(
@@ -6293,19 +6438,52 @@ figure_femalematurity <- ggplot(
     linewidth = 1
   ) +
   geom_point(
+    data = plot_femalematurity %>%
+      filter(!n15),
     aes(
       size = n,
       colour = order
     ),
+    shape = 16,
     alpha = 0.70
   ) +
-  geom_text(
+  geom_point(
+    data = plot_femalematurity %>%
+      filter(n15),
     aes(
-      label = species_initials,
+      size = n,
       colour = order
     ),
+    shape = 1,
+    stroke = 1.1
+  ) +
+  geom_segment(
+    data = label_data_femalematurity,
+    aes(
+      x = log_femalematurity,
+      xend = label_x,
+      y = prevalence,
+      yend = label_y,
+      colour = order
+    ),
+    linewidth = 0.45,
+    show.legend = FALSE
+  ) +
+  geom_text(
+    data = label_data_femalematurity,
+    aes(
+      x = label_x,
+      y = label_y,
+      label = species_initials,
+      colour = order,
+      hjust = ifelse(
+        label_side == "right",
+        0,
+        1
+      )
+    ),
     size = 3.2,
-    vjust = -0.8,
+    family = "sans",
     show.legend = FALSE
   ) +
   scale_colour_manual(
@@ -6328,31 +6506,31 @@ figure_femalematurity <- ggplot(
   theme_classic() +
   theme(
     text = element_text(
-      family = "Calibri"
+      family = "sans"
     ),
     axis.text.x = element_text(
       size = 10,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.text.y = element_text(
       size = 10,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.title.x = element_text(
       size = 11,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.title.y = element_text(
       size = 11,
-      family = "Calibri"
+      family = "sans"
     ),
     legend.title = element_text(
       size = 9,
-      family = "Calibri"
+      family = "sans"
     ),
     legend.text = element_text(
       size = 8,
-      family = "Calibri"
+      family = "sans"
     ),
     panel.border = element_rect(
       colour = "black",
@@ -6660,7 +6838,8 @@ plot_littersize <- data_littersize %>%
         1,
         1
       )
-    )
+    ),
+    conservative = n >= 15
   )
 
 x_seq <- seq(
@@ -6711,6 +6890,14 @@ newdata_littersize$upper <- plogis(
     1.96 * pred_littersize$se.fit
 )
 
+label_data_littersize <- plot_littersize %>%
+  filter(
+    conservative,
+    !is.na(littersize),
+    !is.na(prevalence),
+    !is.na(order)
+  )
+
 figure_littersize <- ggplot(
   plot_littersize,
   aes(
@@ -6740,19 +6927,44 @@ figure_littersize <- ggplot(
     linewidth = 1
   ) +
   geom_point(
+    data = plot_littersize %>%
+      filter(!conservative),
     aes(
       size = n,
       colour = order
     ),
     alpha = 0.70
   ) +
-  geom_text(
+  geom_point(
+    data = plot_littersize %>%
+      filter(conservative),
+    aes(
+      size = n,
+      colour = order
+    ),
+    shape = 1,
+    stroke = 1.1
+  ) +
+  ggrepel::geom_text_repel(
+    data = label_data_littersize,
     aes(
       label = species_initials,
       colour = order
     ),
     size = 3.2,
-    vjust = -0.8,
+    family = "sans",
+    fontface = "plain",
+    box.padding = 0.45,
+    point.padding = 0.35,
+    force = 1.5,
+    force_pull = 0.4,
+    direction = "both",
+    min.segment.length = 0,
+    segment.size = 0.5,
+    segment.curvature = 0,
+    segment.ncp = 1,
+    segment.angle = 90,
+    max.overlaps = Inf,
     show.legend = FALSE
   ) +
   scale_colour_manual(
@@ -6763,6 +6975,14 @@ figure_littersize <- ggplot(
     limits = c(0, 1),
     labels = scales::percent_format(
       accuracy = 1
+    ),
+    expand = expansion(
+      mult = c(0.02, 0.08)
+    )
+  ) +
+  scale_x_continuous(
+    expand = expansion(
+      mult = c(0.04, 0.08)
     )
   ) +
   scale_size_continuous(
@@ -6775,31 +6995,25 @@ figure_littersize <- ggplot(
   theme_classic() +
   theme(
     text = element_text(
-      family = "Calibri"
+      family = "sans"
     ),
     axis.text.x = element_text(
-      size = 10,
-      family = "Calibri"
+      size = 10
     ),
     axis.text.y = element_text(
-      size = 10,
-      family = "Calibri"
+      size = 10
     ),
     axis.title.x = element_text(
-      size = 11,
-      family = "Calibri"
+      size = 11
     ),
     axis.title.y = element_text(
-      size = 11,
-      family = "Calibri"
+      size = 11
     ),
     legend.title = element_text(
-      size = 9,
-      family = "Calibri"
+      size = 9
     ),
     legend.text = element_text(
-      size = 8,
-      family = "Calibri"
+      size = 8
     ),
     panel.border = element_rect(
       colour = "black",
@@ -6818,5 +7032,3 @@ ggsave(
   dpi = 300
 )
 ```
-
-
