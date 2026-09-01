@@ -3761,7 +3761,6 @@ print(results_diet_n15)
 
 ### Visualization of association between `hemoplasma` prevalence and dietary composition variables for complete (44 species)
 ```
-```r
 species_order <- data_hemoplasma_stat %>%
   select(species, order) %>%
   distinct()
