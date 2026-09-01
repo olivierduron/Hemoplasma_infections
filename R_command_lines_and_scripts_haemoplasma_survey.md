@@ -31,7 +31,7 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 - [Step 3. Variation in hemoplasma infection status according to the host sex](#step-3-variation-in-hemoplasma-infection-status-according-to-the-host-sex)
 - [Step 4. Variation in hemoplasma infection status according to the presence of other blood-borne pathogens (anaplasmataceae and apicomplexa)](#step-4-variation-in-hemoplasma-infection-status-according-to-the-presence-of-other-blood-borne-pathogens-anaplasmataceae-and-apicomplexa)
 - [Step 5. Hemoplasma prevalence by mammalian order](#step-5-hemoplasma-prevalence-by-mammalian-order)
-- [Step 6. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics](#step-6-phylogeny-of-the-44-mammalian-species-open-tree-of-life-grafen-branch-lengths-and-other-evolutionary-metrics)
+- [Step 6. Phylogeny of the 44 mammalian species](#step-6-phylogeny-of-the-44-mammalian-species)
 - [Step 7. Hemoplasma infection prevalence and mammal trait-based analyses](#step-7-hemoplasma-infection-prevalence-and-mammal-trait-based-analyses)
 
 ## Step 1. Data retrieval and preparation
@@ -2543,7 +2543,7 @@ ggsave(
   dpi = 300
 )
 ```
-## Step 6. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics
+## Step 6. Phylogeny of the 44 mammalian species
 ### List of mammalian species
 ```
 mammal_species <- c(
