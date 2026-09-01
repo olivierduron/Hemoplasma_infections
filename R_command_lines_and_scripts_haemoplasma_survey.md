@@ -30,14 +30,9 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 - [Step 2. Species-level summary for hemoplasma](#step-2-species-level-summary-for-hemoplasma)
 - [Step 3. Variation in hemoplasma infection status according to the host sex](#step-3-variation-in-hemoplasma-infection-status-according-to-the-host-sex)
 - [Step 4. Variation in hemoplasma infection status according to the presence of other blood-borne pathogens (anaplasmataceae and apicomplexa)](#step-4-variation-in-hemoplasma-infection-status-according-to-the-presence-of-other-blood-borne-pathogens-anaplasmataceae-and-apicomplexa)
-- [Step 5. Test whether _Anaplasma_ infection prevalence in _Choloepus didactylus_ (Cd) is influenced by sex, age, season, ticks and blood parasites (GLM model 2)](#step-5-test-whether-anaplasma-infection-prevalence-in-choloepus-didactylus-cd-is-influenced-by-sex-age-season-ticks-and-blood-parasites-glm-model-2)
-- [Step 6. Test whether the proportion of sloths carrying ticks and blood parasites vary between seasons](#step-6-test-whether-the-proportion-of-sloths-carrying-ticks-and-blood-parasites-vary-between-seasons)
-- [Step 7. Impact of _Anaplasma_ infections on Scale Mass Index (SMI) (GLM models 3 and 4)](#step-7-impact-of-anaplasma-infections-on-scale-mass-index-smi-glm-models-3-and-4)
-- [Step 8. Impact of _Anaplasma_ infections on neck circumference (GLM models 5 and 6)](#step-8-impact-of-anaplasma-infections-on-neck-circumference-glm-models-5-and-6)
-- [Step 9. Impact of _Anaplasma_ infections on hematocrit levels (GLM models 7, 8 and 9)](#step-9-impact-of-anaplasma-infections-on-hematocrit-levels-glm-models-7-8-and-9)
-- [Step 10. Impact of _Anaplasma_ infections on body temperature (CLRM models 10 and 11)](#step-10-impact-of-anaplasma-infections-on-body-temperature-clrm-models-10-and-11)
-- [Step 11. Impact of _Anaplasma_ infections on general health condition](#step-11-impact-of-anaplasma-infections-on-general-health-condition)
-- [Step 12. Impact of _Anaplasma_ infections on female reproductive status](#step-12-impact-of-anaplasma-infections-on-female-reproductive-status)
+- [Step 5. Hemoplasma prevalence by mammalian order](#step-5-hemoplasma-prevalence-by-mammalian-order)
+- [Step 6. Phylogeny of the 44 mammalian species (Open Tree of Life & Grafen branch lengths) and other evolutionary metrics](#step-6-phylogeny-of-the-44-mammalian-species-open-tree-of-life-&-grafen-branch-lengths-and-other-evolutionary-metrics)
+- [Step 7. Hemoplasma infection prevalence and mammal trait-based analyses](#step-7-hemoplasma-infection-prevalence-and-mammal-trait-based-analyses)
 
 ## Step 1. Data retrieval and preparation
 
