@@ -26,7 +26,7 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 -  `littersize` : Mean litter size (number of offspring per litter)
    
 ## Table of contents A UPDATER !!!
-- [Step 1. Retrieving the data](#step-1-retrieving-the-data)
+- [Step 1. Data retrieval and preparation](#step-1-data-retrieval-and-preparation)
 - [Step 2. Prepare the data for analysis](#step-2-prepare-the-data-for-analysis)
 - [Step 3. Calculate *Anaplasma* infection prevalence](#step-3-calculate-anaplasma-infection-prevalence)
 - [Step 4. Test whether _Anaplasma_ infection prevalence in _Bradypus tridactylus_ (Bt) is influenced by sex, age, season, ticks and blood parasites (GLM model 1)](#step-4-test-whether-anaplasma-infection-prevalence-in-bradypus-tridactylus-bt-is-influenced-by-sex-age-season-ticks-and-blood-parasites-glm-model-1)
