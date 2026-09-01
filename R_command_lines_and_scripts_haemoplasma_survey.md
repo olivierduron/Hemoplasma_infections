@@ -1530,7 +1530,7 @@ ggsave(
 )
 ```
 
-### Visualization of `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) in *Bradypus_tridactylus* and *Didelphis marsupialis* according to `pathogens` (`anaplasmataceae` + `apicomplexa`) infection status
+### Visualization of `hemoplasma` prevalence with 95% confidence intervals (CI; Wilson method) in *Bradypus tridactylus* and *Didelphis marsupialis* according to `pathogens` (`anaplasmataceae` + `apicomplexa`) infection status
 ```
 species_select <- c(
   "Didelphis_marsupialis",
@@ -2929,9 +2929,557 @@ pagel_lambda_n15
 
 ### Visualization of the phylogenetic distribution of `hemoplasma` prevalence across 44 mammalian `species`
 ```
-
+species_prevalence <- data_hemoplasma_stat %>%
+  group_by(species, order) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n_sampled,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    species_label = gsub("_", " ", species),
+    group = case_when(
+      order == "Didelphimorphia" ~ "Didelphimorphia",
+      order == "Pilosa" ~ "Pilosa",
+      order == "Primates" ~ "Primates",
+      order == "Rodentia" ~ "Rodentia",
+      order == "Cingulata" ~ "Cingulata",
+      order == "Carnivora" ~ "Carnivora"
+    ),
+    n_class = if_else(n_sampled >= 15, "n ≥ 15", "n < 15")
+  )
+group_colors <- c(
+  "Didelphimorphia" = "#4472C4",
+  "Pilosa" = "#C65911",
+  "Primates" = "#264478",
+  "Rodentia" = "#D6A500",
+  "Cingulata" = "#666666",
+  "Carnivora" = "#375623"
+)
+tree_44 <- drop.tip(
+  mammal_tree_grafen,
+  setdiff(
+    mammal_tree_grafen$tip.label,
+    species_prevalence$species
+  )
+)
+Ntip(tree_44)
+p_tree <- ggtree(
+  tree_44,
+  layout = "rectangular"
+)
+p_tree <- p_tree %<+% species_prevalence
+x_max <- max(
+  p_tree$data$x[p_tree$data$isTip],
+  na.rm = TRUE
+)
+p <- p_tree +
+  geom_point(
+    data = p_tree$data %>% filter(isTip, n_sampled < 15),
+    aes(
+      x = x_max + 0.25,
+      y = y,
+      size = prevalence,
+      colour = group,
+      fill = group
+    ),
+    shape = 21,
+    stroke = 1
+  ) +
+  geom_point(
+    data = p_tree$data %>% filter(isTip, n_sampled >= 15),
+    aes(
+      x = x_max + 0.25,
+      y = y,
+      size = prevalence,
+      colour = group
+    ),
+    shape = 21,
+    fill = "white",
+    stroke = 1
+  ) +
+  geom_tiplab(
+    aes(
+      label = species_label,
+      colour = group
+    ),
+    size = 4,
+    hjust = 0,
+    offset = 0.45,
+    fontface = "italic",
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(
+    name = "Order",
+    values = group_colors,
+    guide = guide_legend(
+      override.aes = list(
+        shape = 16,
+        size = 3,
+        fill = group_colors
+      )
+    )
+  ) +
+  scale_fill_manual(
+    values = group_colors,
+    guide = "none"
+  ) +
+  scale_size_continuous(
+    name = "Hemoplasma\nprevalence",
+    range = c(2.5, 6.5),
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1)
+  ) +
+  xlim(
+    0,
+    x_max + 5
+  ) +
+  theme_tree2() +
+  theme(
+    text = element_text(family = "sans"),
+    legend.position = "right",
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 13),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank()
+  )
+p
+ggsave(
+  filename = "mammal_tree_Hemoplasma_prevalence.png",
+  plot = p,
+  width = 10,
+  height = 10,
+  units = "in",
+  dpi = 300,
+  bg = "white"
+)
 ```
-## Step 8. `hemoplasma` infection prevalence and mammal trait-based analyses
+
+### Exhaustive phylogenetic clade screening `hemoplasma` prevalence (complete data set, 44 `species')
+```
+species_data <- data_hemoplasma_stat %>%
+  mutate(
+    hemoplasma = as.numeric(as.character(hemoplasma)),
+    species = as.character(species)
+  ) %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n_sampled,
+    .groups = "drop"
+  )
+stopifnot(
+  all(species_data$species %in% mammal_tree_grafen$tip.label)
+)
+cat(
+  "Number of species:",
+  nrow(species_data),
+  "\n"
+)
+test_clade <- function(node, tree, species_data) {
+  clade_species <- extract.clade(
+    tree,
+    node = node
+  )$tip.label
+  test_data <- species_data %>%
+    mutate(
+      clade = if_else(
+        species %in% clade_species,
+        "Clade",
+        "Outside"
+      ),
+      clade = factor(
+        clade,
+        levels = c("Outside", "Clade")
+      )
+    )
+  n_clade <- sum(test_data$clade == "Clade")
+  n_outside <- sum(test_data$clade == "Outside")
+  if (
+    n_clade < 2 ||
+    n_outside < 2
+  ) {
+    return(NULL)
+  }
+  model_null <- tryCatch(
+    glm(
+      cbind(
+        n_positive,
+        n_sampled - n_positive
+      ) ~ 1,
+      data = test_data,
+      family = binomial
+    ),
+    error = function(e) NULL
+  )
+  model_full <- tryCatch(
+    glm(
+      cbind(
+        n_positive,
+        n_sampled - n_positive
+      ) ~ clade,
+      data = test_data,
+      family = binomial
+    ),
+    error = function(e) NULL
+  )
+  if (
+    is.null(model_null) ||
+    is.null(model_full)
+  ) {
+    return(NULL)
+  }
+  LRT <- tryCatch(
+    anova(
+      model_null,
+      model_full,
+      test = "Chisq"
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(LRT)) {
+    return(NULL)
+  }
+  chi2 <- LRT$Deviance[2]
+  p_value <- LRT$`Pr(>Chi)`[2]
+  coef_table <- summary(model_full)$coefficients
+  clade_row <- grep(
+    "^clade",
+    rownames(coef_table)
+  )
+  if (length(clade_row) != 1) {
+    return(NULL)
+  }
+  estimate <- coef_table[
+    clade_row,
+    "Estimate"
+  ]
+  OR <- exp(estimate)
+  prevalence_clade <- test_data %>%
+    filter(clade == "Clade") %>%
+    summarise(
+      prev = sum(n_positive) /
+        sum(n_sampled)
+    ) %>%
+    pull(prev)
+  prevalence_outside <- test_data %>%
+    filter(clade == "Outside") %>%
+    summarise(
+      prev = sum(n_positive) /
+        sum(n_sampled)
+    ) %>%
+    pull(prev)
+  tibble(
+    node = node,
+    n_species_clade = n_clade,
+    n_species_outside = n_outside,
+    n_individuals_clade = sum(
+      test_data$n_sampled[
+        test_data$clade == "Clade"
+      ]
+    ),
+    n_individuals_outside = sum(
+      test_data$n_sampled[
+        test_data$clade == "Outside"
+      ]
+    ),
+    prevalence_clade = prevalence_clade,
+    prevalence_outside = prevalence_outside,
+    OR = OR,
+    chi2 = chi2,
+    p_value = p_value,
+    species_clade = paste(
+      clade_species,
+      collapse = "; "
+    )
+  )
+}
+internal_nodes <- (
+  Ntip(mammal_tree_grafen) + 1
+):(
+  Ntip(mammal_tree_grafen) +
+    Nnode(mammal_tree_grafen)
+)
+clade_results_list <- lapply(
+  internal_nodes,
+  test_clade,
+  tree = mammal_tree_grafen,
+  species_data = species_data
+)
+clade_results <- bind_rows(
+  clade_results_list
+)
+clade_results <- clade_results %>%
+  mutate(
+    p_adjusted = p.adjust(
+      p_value,
+      method = "BH"
+    )
+  ) %>%
+  arrange(
+    p_adjusted,
+    p_value
+  )
+clade_results %>%
+  select(
+    node,
+    n_species_clade,
+    n_species_outside,
+    n_individuals_clade,
+    n_individuals_outside,
+    prevalence_clade,
+    prevalence_outside,
+    OR,
+    chi2,
+    p_value,
+    p_adjusted,
+    species_clade
+  ) %>%
+  print(n = 30)
+significant_clades <- clade_results %>%
+  filter(
+    p_adjusted < 0.05
+  )
+significant_clades
+suggestive_clades <- clade_results %>%
+  filter(
+    p_adjusted < 0.10
+  )
+suggestive_clades
+clade_results %>%
+  arrange(p_value) %>%
+  select(
+    node,
+    n_species_clade,
+    n_species_outside,
+    n_individuals_clade,
+    n_individuals_outside,
+    prevalence_clade,
+    prevalence_outside,
+    OR,
+    chi2,
+    p_value,
+    p_adjusted,
+    species_clade
+  ) %>%
+  print(n = 20)
+```
+### Exhaustive phylogenetic clade screening `hemoplasma` prevalence (conservative dataset, 16 `species')
+```
+species_data <- data_hemoplasma_stat %>%
+  mutate(
+    hemoplasma = as.numeric(as.character(hemoplasma)),
+    species = as.character(species)
+  ) %>%
+  group_by(species) %>%
+  summarise(
+    n_sampled = n(),
+    n_positive = sum(hemoplasma == 1, na.rm = TRUE),
+    prevalence = n_positive / n_sampled,
+    .groups = "drop"
+  ) %>%
+  filter(n_sampled >= 15)
+stopifnot(
+  all(species_data$species %in% mammal_tree_grafen$tip.label)
+)
+cat(
+  "Number of species (n >= 15):",
+  nrow(species_data),
+  "\n"
+)
+test_clade <- function(node, tree, species_data) {
+  clade_species <- extract.clade(
+    tree,
+    node = node
+  )$tip.label
+  test_data <- species_data %>%
+    mutate(
+      clade = if_else(
+        species %in% clade_species,
+        "Clade",
+        "Outside"
+      ),
+      clade = factor(
+        clade,
+        levels = c("Outside", "Clade")
+      )
+    )
+  n_clade <- sum(test_data$clade == "Clade")
+  n_outside <- sum(test_data$clade == "Outside")
+  if (
+    n_clade < 2 ||
+    n_outside < 2
+  ) {
+    return(NULL)
+  }
+  model_null <- tryCatch(
+    glm(
+      cbind(
+        n_positive,
+        n_sampled - n_positive
+      ) ~ 1,
+      data = test_data,
+      family = binomial
+    ),
+    error = function(e) NULL
+  )
+  model_full <- tryCatch(
+    glm(
+      cbind(
+        n_positive,
+        n_sampled - n_positive
+      ) ~ clade,
+      data = test_data,
+      family = binomial
+    ),
+    error = function(e) NULL
+  )
+  if (
+    is.null(model_null) ||
+    is.null(model_full)
+  ) {
+    return(NULL)
+  }
+  LRT <- tryCatch(
+    anova(
+      model_null,
+      model_full,
+      test = "Chisq"
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(LRT)) {
+    return(NULL)
+  }
+  chi2 <- LRT$Deviance[2]
+  p_value <- LRT$`Pr(>Chi)`[2]
+  coef_table <- summary(model_full)$coefficients
+  clade_row <- grep(
+    "^clade",
+    rownames(coef_table)
+  )
+  if (length(clade_row) != 1) {
+    return(NULL)
+  }
+  estimate <- coef_table[
+    clade_row,
+    "Estimate"
+  ]
+  OR <- exp(estimate)
+  prevalence_clade <- test_data %>%
+    filter(clade == "Clade") %>%
+    summarise(
+      prev = sum(n_positive) /
+        sum(n_sampled)
+    ) %>%
+    pull(prev)
+  prevalence_outside <- test_data %>%
+    filter(clade == "Outside") %>%
+    summarise(
+      prev = sum(n_positive) /
+        sum(n_sampled)
+    ) %>%
+    pull(prev)
+  tibble(
+    node = node,
+    n_species_clade = n_clade,
+    n_species_outside = n_outside,
+    n_individuals_clade = sum(
+      test_data$n_sampled[
+        test_data$clade == "Clade"
+      ]
+    ),
+    n_individuals_outside = sum(
+      test_data$n_sampled[
+        test_data$clade == "Outside"
+      ]
+    ),
+    prevalence_clade = prevalence_clade,
+    prevalence_outside = prevalence_outside,
+    OR = OR,
+    chi2 = chi2,
+    p_value = p_value,
+    species_clade = paste(
+      clade_species[clade_species %in% species_data$species],
+      collapse = "; "
+    )
+  )
+}
+internal_nodes <- (
+  Ntip(mammal_tree_grafen) + 1
+):(
+  Ntip(mammal_tree_grafen) +
+    Nnode(mammal_tree_grafen)
+)
+clade_results_list <- lapply(
+  internal_nodes,
+  test_clade,
+  tree = mammal_tree_grafen,
+  species_data = species_data
+)
+clade_results <- bind_rows(
+  clade_results_list
+)
+clade_results <- clade_results %>%
+  mutate(
+    p_adjusted = p.adjust(
+      p_value,
+      method = "BH"
+    )
+  ) %>%
+  arrange(
+    p_adjusted,
+    p_value
+  )
+clade_results %>%
+  select(
+    node,
+    n_species_clade,
+    n_species_outside,
+    n_individuals_clade,
+    n_individuals_outside,
+    prevalence_clade,
+    prevalence_outside,
+    OR,
+    chi2,
+    p_value,
+    p_adjusted,
+    species_clade
+  ) %>%
+  print(n = Inf)
+significant_clades <- clade_results %>%
+  filter(
+    p_adjusted < 0.05
+  )
+significant_clades
+suggestive_clades <- clade_results %>%
+  filter(
+    p_adjusted < 0.10
+  )
+suggestive_clades
+clade_results %>%
+  arrange(p_value) %>%
+  select(
+    node,
+    n_species_clade,
+    n_species_outside,
+    prevalence_clade,
+    prevalence_outside,
+    OR,
+    chi2,
+    p_value,
+    p_adjusted,
+    species_clade
+  ) %>%
+  print(n = 20)
+```
+-> Results : For the complete dataset, phylogenetically defined clades showed strong heterogeneity in Hemoplasma prevalence. After Benjamini–Hochberg correction, 22 of 42 tested clades were significantly associated with prevalence differences (padj < 0.05). The strongest association involved a primate clade of four species, with 93.8% prevalence versus 24.2% outside the clade (OR = 47.7, χ² = 128, p < 0.001, padj = 4.1 × 10⁻²⁸). Conversely, several rodent clades showed markedly lower prevalence than species outside the clade (e.g. 5.5% vs. 43.8%, OR = 0.075, χ² = 111, p < 0.001, padj < 10⁻²⁴). For the conservative dataset, the same overall pattern was observed. Thirteen of 24 tested clades remained significant after correction. The strongest association involved *Saguinus midas* + *Alouatta macconnelli*, with 96.8% prevalence versus 27.3% outside the clade (OR = 81.3, χ² = 124, p < 0.001, padj = 8.3 × 10⁻²⁸). Several rodent clades also showed substantially lower prevalence, including a seven-species clade with 4.4% prevalence versus 47.0% outside (OR = 0.051, χ² = 100, p < 0.001, padj = 8.6 × 10⁻²³).
+-> Interpretation : These analyses provide strong evidence for phylogenetically structured variation in Hemoplasma prevalence, and the pattern is not driven solely by species with small sample sizes, as most major associations persisted in the conservative dataset. The recurrent contrast between high-prevalence primate lineages and low-prevalence rodent lineages suggests that host evolutionary history may contribute substantially to variation in infection probability. However, because many clade tests are overlapping and therefore non-independent, these results should be interpreted as evidence of phylogenetic clustering rather than as independent effects of each individual clade.
+
+## Step 7. `hemoplasma` infection prevalence and mammal trait-based analyses
 ### Data retrieval and convert categorical variables 
 The life trait dataset is available in the GitHub repository [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_mammal_traits.csv).
 ```
