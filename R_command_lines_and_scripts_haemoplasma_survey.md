@@ -3607,7 +3607,7 @@ results_diet <- results_diet %>%
   )
 print(results_diet)
 ```
-### Variation in `hemoplasma` infection prevalence according to the host’s diet (conservative species-level dataset, 16 `species`)
+### Variation in `hemoplasma` infection prevalence according to the host’s diet (conservative dataset, 16 `species`)
 ```
 species_data_n15 <- data_hemoplasma_stat %>%
   group_by(species) %>%
@@ -3761,41 +3761,30 @@ print(results_diet_n15)
 
 ### Visualization of association between `hemoplasma` prevalence and dietary composition variables for complete (44 species)
 ```
+```r
 species_order <- data_hemoplasma_stat %>%
   select(species, order) %>%
   distinct()
 
 get_predictions <- function(model, data, variable, label) {
-  
   x <- seq(
     min(data[[variable]], na.rm = TRUE),
     max(data[[variable]], na.rm = TRUE),
     length.out = 100
   )
-  
   newdata <- data.frame(x)
   names(newdata) <- variable
-  
   pred <- predict(
     model,
     newdata = newdata,
     type = "link",
     se.fit = TRUE
   )
-  
   newdata$fit <- plogis(pred$fit)
-  
-  newdata$lower <- plogis(
-    pred$fit - 1.96 * pred$se.fit
-  )
-  
-  newdata$upper <- plogis(
-    pred$fit + 1.96 * pred$se.fit
-  )
-  
+  newdata$lower <- plogis(pred$fit - 1.96 * pred$se.fit)
+  newdata$upper <- plogis(pred$fit + 1.96 * pred$se.fit)
   newdata$variable <- label
-  
-  return(newdata)
+  newdata
 }
 
 pred_dietinv <- get_predictions(
@@ -3841,13 +3830,17 @@ plot_data <- bind_rows(
     by = "species"
   ) %>%
   mutate(
-    species_initials = paste0(
-      substr(species, 1, 1),
-      substr(
-        sub("^[^_]+_", "", species),
-        1,
-        1
-      )
+    species_initials = ifelse(
+      n >= 15,
+      paste0(
+        substr(species, 1, 1),
+        substr(
+          sub("^[^_]+_", "", species),
+          1,
+          1
+        )
+      ),
+      NA_character_
     )
   )
 
@@ -3859,6 +3852,16 @@ pred_data <- bind_rows(
   pred_dietplant %>%
     mutate(diet = dietplant)
 )
+
+label_data <- plot_data %>%
+  filter(n >= 15) %>%
+  group_by(variable, diet) %>%
+  arrange(species, .by_group = TRUE) %>%
+  mutate(
+    duplicate_n = n(),
+    position = row_number()
+  ) %>%
+  ungroup()
 
 order_colors <- c(
   "Primates" = "#E69F00",
@@ -3899,17 +3902,34 @@ figure_diet <- ggplot(
     linewidth = 1
   ) +
   geom_point(
-    aes(
-      size = n
-    ),
+    data = subset(plot_data, n < 15),
+    aes(size = n),
     alpha = 0.70
   ) +
-  geom_text(
+  geom_point(
+    data = subset(plot_data, n >= 15),
+    aes(size = n),
+    shape = 1,
+    stroke = 1.1
+  ) +
+  ggrepel::geom_text_repel(
+    data = label_data,
     aes(
+      x = diet,
+      y = prevalence,
       label = species_initials
     ),
     size = 3.5,
-    vjust = -0.9,
+    direction = "both",
+    force = 2,
+    force_pull = 0.5,
+    box.padding = 0.8,
+    point.padding = 0.5,
+    min.segment.length = 0,
+    segment.size = 0.3,
+    segment.alpha = 0.5,
+    max.overlaps = Inf,
+    seed = 123,
     show.legend = FALSE
   ) +
   facet_wrap(
@@ -3938,32 +3958,25 @@ figure_diet <- ggplot(
     strip.placement = "outside",
     strip.text = element_text(
       size = 11,
-      face = "bold",
-      family = "Calibri"
+      face = "bold"
     ),
     axis.text.x = element_text(
-      size = 10,
-      family = "Calibri"
+      size = 10
     ),
     axis.text.y = element_text(
-      size = 10,
-      family = "Calibri"
+      size = 10
     ),
     axis.title.x = element_text(
-      size = 11,
-      family = "Calibri"
+      size = 11
     ),
     axis.title.y = element_text(
-      size = 11,
-      family = "Calibri"
+      size = 11
     ),
     legend.title = element_text(
-      size = 9,
-      family = "Calibri"
+      size = 9
     ),
     legend.text = element_text(
-      size = 8,
-      family = "Calibri"
+      size = 8
     ),
     panel.border = element_rect(
       colour = "black",
@@ -3981,6 +3994,8 @@ ggsave(
   height = 4.8,
   dpi = 300
 )
+```
+
 ```
 ### Variation in `hemoplasma` infection prevalence according to the host’s foraging `strata` (complete dataset, 44 `species`) 
 ```
@@ -4326,7 +4341,8 @@ species_data_activity <- data_hemoplasma_stat %>%
         1,
         1
       )
-    )
+    ),
+    n15 = n >= 15
   )
 activity_plot_data <- bind_rows(
   species_data_activity %>%
@@ -4352,10 +4368,7 @@ activity_plot_data <- bind_rows(
     activity_label = factor(
       activity,
       levels = c(0, 1),
-      labels = c(
-        "No",
-        "Yes"
-      )
+      labels = c("No", "Yes")
     ),
     variable = factor(
       variable,
@@ -4366,6 +4379,8 @@ activity_plot_data <- bind_rows(
       )
     )
   )
+activity_labels <- activity_plot_data %>%
+  filter(n15)
 figure_activity <- ggplot(
   activity_plot_data,
   aes(
@@ -4375,24 +4390,52 @@ figure_activity <- ggplot(
 ) +
   geom_boxplot(
     width = 0.55,
-    outlier.shape = NA
+    outlier.shape = NA,
+    fill = NA
   ) +
   geom_jitter(
+    data = activity_plot_data %>%
+      filter(!n15),
     aes(
-      colour = order
+      colour = order,
+      size = n
     ),
     width = 0.12,
     height = 0,
-    size = 2.8,
     alpha = 0.80
   ) +
-  geom_text(
+  geom_jitter(
+    data = activity_plot_data %>%
+      filter(n15),
+    aes(
+      colour = order,
+      size = n
+    ),
+    width = 0.12,
+    height = 0,
+    shape = 1,
+    stroke = 1.1,
+    alpha = 1
+  ) +
+  geom_text_repel(
+    data = activity_labels,
     aes(
       label = species_initials,
       colour = order
     ),
     size = 3.2,
-    vjust = -0.8,
+    direction = "both",
+    nudge_x = 0.20,
+    nudge_y = 0.02,
+    force = 1.5,
+    force_pull = 0.4,
+    box.padding = 0.40,
+    point.padding = 0.25,
+    segment.size = 0.35,
+    segment.alpha = 0.7,
+    min.segment.length = 0,
+    max.overlaps = Inf,
+    seed = 123,
     show.legend = FALSE
   ) +
   facet_wrap(
@@ -4403,11 +4446,22 @@ figure_activity <- ggplot(
   scale_colour_manual(
     values = order_colors
   ) +
+  scale_size_continuous(
+    name = "Number tested",
+    range = c(2.5, 7)
+  ) +
   scale_y_continuous(
-    limits = c(0, 1),
+    breaks = seq(0, 1, 0.2),
     labels = scales::percent_format(
       accuracy = 1
+    ),
+    expand = expansion(
+      mult = c(0.02, 0.10)
     )
+  ) +
+  coord_cartesian(
+    ylim = c(0, 1),
+    clip = "off"
   ) +
   labs(
     x = "Activity pattern",
@@ -4420,37 +4474,33 @@ figure_activity <- ggplot(
     strip.placement = "outside",
     strip.text = element_text(
       size = 11,
-      face = "bold",
-      family = "Calibri"
+      face = "bold"
     ),
     axis.text.x = element_text(
-      size = 10,
-      family = "Calibri"
+      size = 10
     ),
     axis.text.y = element_text(
-      size = 10,
-      family = "Calibri"
+      size = 10
     ),
     axis.title.x = element_text(
-      size = 11,
-      family = "Calibri"
+      size = 11
     ),
     axis.title.y = element_text(
-      size = 11,
-      family = "Calibri"
+      size = 11
     ),
     legend.title = element_text(
-      size = 9,
-      family = "Calibri"
+      size = 9
     ),
     legend.text = element_text(
-      size = 8,
-      family = "Calibri"
+      size = 8
     ),
     panel.border = element_rect(
       colour = "black",
       fill = NA,
       linewidth = 0.8
+    ),
+    plot.margin = margin(
+      10, 25, 10, 10
     )
   )
 print(figure_activity)
@@ -4958,133 +5008,114 @@ print(
 
 ### Visualization of association between `hemoplasma` prevalence and nocturnal / crepuscular / diurnal activity (complete database, 44 `species`)
 ```
-plot_data_activity <- bind_rows(
-  species_data_activity %>%
-    filter(activitynocturnal == 1) %>%
-    transmute(
-      species,
-      prevalence,
-      activity = "Nocturnal"
-    ),
-  species_data_activity %>%
-    filter(activitycrepuscular == 1) %>%
-    transmute(
-      species,
-      prevalence,
-      activity = "Crepuscular"
-    ),
-  species_data_activity %>%
-    filter(activitydiurnal == 1) %>%
-    transmute(
-      species,
-      prevalence,
-      activity = "Diurnal"
-    )
-) %>%
-  left_join(
-    species_order,
-    by = "species"
-  ) %>%
+label_data <- activity_plot_data %>%
+  filter(n15) %>%
+  group_by(activity) %>%
+  arrange(prevalence) %>%
   mutate(
-    species_initials = paste0(
-      substr(species, 1, 1),
-      substr(
-        sub("^[^_]+_", "", species),
-        1,
-        1
-      )
-    )
-  )
-
-plot_data_activity$activity <- factor(
-  plot_data_activity$activity,
-  levels = c(
-    "Nocturnal",
-    "Crepuscular",
-    "Diurnal"
-  )
-)
-
-order_colors <- c(
-  "Primates" = "#E69F00",
-  "Rodentia" = "#56B4E9",
-  "Pilosa" = "#009E73",
-  "Didelphimorphia" = "#CC79A7",
-  "Carnivora" = "#D55E00",
-  "Cingulata" = "#0072B2"
-)
+    direction = if_else(row_number() %% 2 == 0, 1, -1),
+    label_x = as.numeric(activity) + direction * 0.16
+  ) %>%
+  ungroup()
 
 figure_activity <- ggplot(
-  plot_data_activity,
+  activity_plot_data,
   aes(
     x = activity,
-    y = prevalence
+    y = prevalence,
+    colour = order
   )
 ) +
   geom_boxplot(
-    width = 0.55,
-    outlier.shape = NA
+    width = 0.50,
+    outlier.shape = NA,
+    colour = "black",
+    fill = NA
   ) +
-  geom_jitter(
+  geom_point(
+    data = activity_plot_data %>%
+      filter(!n15),
+    aes(size = n),
+    alpha = 0.75
+  ) +
+  geom_point(
+    data = activity_plot_data %>%
+      filter(n15),
+    aes(size = n),
+    shape = 1,
+    stroke = 1.1
+  ) +
+  geom_segment(
+    data = label_data,
     aes(
+      x = as.numeric(activity),
+      xend = label_x,
+      y = prevalence,
+      yend = prevalence,
       colour = order
     ),
-    width = 0.12,
-    height = 0,
-    size = 2.8,
-    alpha = 0.80
+    linewidth = 0.45,
+    show.legend = FALSE
   ) +
   geom_text(
+    data = label_data,
     aes(
+      x = label_x,
+      y = prevalence,
       label = species_initials,
-      colour = order
+      colour = order,
+      hjust = ifelse(direction > 0, 0, 1)
     ),
-    size = 3.2,
-    vjust = -0.8,
+    size = 3.5,
+    family = "sans",
     show.legend = FALSE
   ) +
   scale_colour_manual(
-    values = order_colors,
-    name = "Mammalian order"
+    values = order_colors
+  ) +
+  scale_size_continuous(
+    name = "Number tested",
+    range = c(2.5, 8)
   ) +
   scale_y_continuous(
     limits = c(0, 1),
     labels = scales::percent_format(
       accuracy = 1
+    ),
+    expand = expansion(
+      mult = c(0.02, 0.08)
     )
   ) +
   labs(
-    x = "Activity patterns",
-    y = "Hemoplasma prevalence"
+    x = "Activity pattern",
+    y = "Hemoplasma prevalence",
+    colour = "Mammalian order"
   ) +
   theme_classic() +
   theme(
-    text = element_text(
-      family = "Calibri"
-    ),
     axis.text.x = element_text(
       size = 10,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.text.y = element_text(
       size = 10,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.title.x = element_text(
       size = 11,
-      family = "Calibri"
+      family = "sans"
     ),
     axis.title.y = element_text(
       size = 11,
-      family = "Calibri"
+      family = "sans"
     ),
     legend.title = element_text(
       size = 9,
-      family = "Calibri"
+      family = "sans"
     ),
     legend.text = element_text(
       size = 8,
-      family = "Calibri"
+      family = "sans"
     ),
     panel.border = element_rect(
       colour = "black",
@@ -5098,8 +5129,8 @@ print(figure_activity)
 ggsave(
   "Hemoplasma_prevalence_activity.png",
   figure_activity,
-  width = 6,
-  height = 5,
+  width = 7,
+  height = 4.8,
   dpi = 300
 )
 ```
