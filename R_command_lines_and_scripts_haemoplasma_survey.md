@@ -3476,7 +3476,9 @@ clade_results %>%
   ) %>%
   print(n = 20)
 ```
+
 -> Results : For the complete dataset, phylogenetically defined clades showed strong heterogeneity in Hemoplasma prevalence. After Benjamini–Hochberg correction, 22 of 42 tested clades were significantly associated with prevalence differences (padj < 0.05). The strongest association involved a primate clade of four species, with 93.8% prevalence versus 24.2% outside the clade (OR = 47.7, χ² = 128, p < 0.001, padj = 4.1 × 10⁻²⁸). Conversely, several rodent clades showed markedly lower prevalence than species outside the clade (e.g. 5.5% vs. 43.8%, OR = 0.075, χ² = 111, p < 0.001, padj < 10⁻²⁴). For the conservative dataset, the same overall pattern was observed. Thirteen of 24 tested clades remained significant after correction. The strongest association involved *Saguinus midas* + *Alouatta macconnelli*, with 96.8% prevalence versus 27.3% outside the clade (OR = 81.3, χ² = 124, p < 0.001, padj = 8.3 × 10⁻²⁸). Several rodent clades also showed substantially lower prevalence, including a seven-species clade with 4.4% prevalence versus 47.0% outside (OR = 0.051, χ² = 100, p < 0.001, padj = 8.6 × 10⁻²³).
+
 -> Interpretation : These analyses provide strong evidence for phylogenetically structured variation in Hemoplasma prevalence, and the pattern is not driven solely by species with small sample sizes, as most major associations persisted in the conservative dataset. The recurrent contrast between high-prevalence primate lineages and low-prevalence rodent lineages suggests that host evolutionary history may contribute substantially to variation in infection probability. However, because many clade tests are overlapping and therefore non-independent, these results should be interpreted as evidence of phylogenetic clustering rather than as independent effects of each individual clade.
 
 ## Step 7. `hemoplasma` infection prevalence and mammal trait-based analyses
