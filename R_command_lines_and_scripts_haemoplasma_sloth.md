@@ -36,14 +36,14 @@ Details about all the experimental methods and measures are available in the rel
 
 ## Step 1. Retrieving the data
 
-All veterinary clinical data for the two sloth species are available [here](data_haemoplasma_sloth.csv).
+All veterinary clinical data for the two sloth species are available [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_hemoplasma_sloth.csv).
 
 This database will be referred to as `data_hemoplasma` throughout the R command lines and scripts provided below. It corresponds to the dataset provided in Table S1 of the related manuscript.
 
 Load the dataset directly from the GitHub repository to R:
 ```
 data_hemoplasma <- read.csv(
-  "https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/refs/heads/main/data_haemoplasma_sloth.csv",
+  "https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_hemoplasma_sloth.csv",
   sep = "\t"
 )
 data_hemoplasma
