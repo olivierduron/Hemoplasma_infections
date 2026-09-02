@@ -23,7 +23,7 @@ We analyzed data from 175 wild sloths captured between 1994 and 1995 during the 
 Details about all the experimental methods and measures are available in the related manuscript.
 
 
-## Table of contents 
+## Table of contents A CORRIGER!
 - [Step 1. Retrieving the data](#step-1-retrieving-the-data)
 - [Step 2. Prepare the data for analysis](#step-2-prepare-the-data-for-analysis)
 - [Step 3. Calculate *Anaplasma* infection prevalence](#step-3-calculate-anaplasma-infection-prevalence)
