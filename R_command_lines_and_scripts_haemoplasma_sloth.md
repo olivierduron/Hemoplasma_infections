@@ -25,13 +25,13 @@ Details about all the experimental methods and measures are available in the rel
 - [Step 2. Prepare the data for analysis](#step-2-prepare-the-data-for-analysis)
 - [Step 3. Calculate hemoplasma infection prevalence](#step-3-calculate-hemoplasma-infection-prevalence)
 - [Step 4. Create the pathogens variable and sloth species subset](#step-4-create-the-pathogens-variable-and-sloth-species-subset)
-- [Step 5. Impact of hemoplasma infections on Scale Mass Index (SMI) in adult Bd](#step-5-impact-of-hemoplasma-infections-on-scale-mass-index-smi-in-adult-bd)
+- [Step 5. Impact of hemoplasma infections on Scale Mass Index (SMI) in adult Bt](#step-5-impact-of-hemoplasma-infections-on-scale-mass-index-smi-in-adult-bt)
 - [Step 6. Impact of hemoplasma infections on Scale Mass Index (SMI) in adult Cd](#step-6-impact-of-hemoplasma-infections-on-scale-mass-index-smi-in-adult-cd)
 - [Step 7. Impact of hemoplasma infections on neck circumference](#step-7-impact-of-hemoplasma-infections-on-neck-circumference)
 - [Step 8. Impact of hemoplasma infections on hematocrit levels](#step-8-impact-of-hemoplasma-infections-on-hematocrit-levels)
 - [Step 9. Impact of hemoplasma infections on body temperature](#step-9-impact-of-hemoplasma-infections-on-body-temperature)
-- [Step 10. Impact of hemoplasma infections on general health condition](#step-10-impact-of-hemoplasma-infections-on-general-health-condition)
-- [Step 11. Impact of hemoplasma infections on female reproductive status](#step-11-impact-of-hemoplasma-infections-on-female-reproductive-status)
+- [Step 10. Impact of hemoplasma infections on general health_condition](#step-10-impact-of-hemoplasma-infections-on-general-health-condition)
+- [Step 11. Impact of hemoplasma infections on female_reproductive_status](#step-11-impact-of-hemoplasma-infections-on-female-reproductive-status)
 
 ## Step 1. Retrieving the data
 
