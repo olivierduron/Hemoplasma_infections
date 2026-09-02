@@ -20,19 +20,18 @@ We analyzed data from 175 wild sloths captured between 1994 and 1995 during the 
 Details about all the experimental methods and measures are available in the related manuscript.
 
 
-## Table of contents A CORRIGER!
+## Table of contents
 - [Step 1. Retrieving the data](#step-1-retrieving-the-data)
 - [Step 2. Prepare the data for analysis](#step-2-prepare-the-data-for-analysis)
-- [Step 3. Calculate *Anaplasma* infection prevalence](#step-3-calculate-anaplasma-infection-prevalence)
-- [Step 4. Test whether _Anaplasma_ infection prevalence in _Bradypus tridactylus_ (Bt) is influenced by sex, age, season, ticks and blood parasites (GLM model 1)](#step-4-test-whether-anaplasma-infection-prevalence-in-bradypus-tridactylus-bt-is-influenced-by-sex-age-season-ticks-and-blood-parasites-glm-model-1)
-- [Step 5. Test whether _Anaplasma_ infection prevalence in _Choloepus didactylus_ (Cd) is influenced by sex, age, season, ticks and blood parasites (GLM model 2)](#step-5-test-whether-anaplasma-infection-prevalence-in-choloepus-didactylus-cd-is-influenced-by-sex-age-season-ticks-and-blood-parasites-glm-model-2)
-- [Step 6. Test whether the proportion of sloths carrying ticks and blood parasites vary between seasons](#step-6-test-whether-the-proportion-of-sloths-carrying-ticks-and-blood-parasites-vary-between-seasons)
-- [Step 7. Impact of _Anaplasma_ infections on Scale Mass Index (SMI) (GLM models 3 and 4)](#step-7-impact-of-anaplasma-infections-on-scale-mass-index-smi-glm-models-3-and-4)
-- [Step 8. Impact of _Anaplasma_ infections on neck circumference (GLM models 5 and 6)](#step-8-impact-of-anaplasma-infections-on-neck-circumference-glm-models-5-and-6)
-- [Step 9. Impact of _Anaplasma_ infections on hematocrit levels (GLM models 7, 8 and 9)](#step-9-impact-of-anaplasma-infections-on-hematocrit-levels-glm-models-7-8-and-9)
-- [Step 10. Impact of _Anaplasma_ infections on body temperature (CLRM models 10 and 11)](#step-10-impact-of-anaplasma-infections-on-body-temperature-clrm-models-10-and-11)
-- [Step 11. Impact of _Anaplasma_ infections on general health condition](#step-11-impact-of-anaplasma-infections-on-general-health-condition)
-- [Step 12. Impact of _Anaplasma_ infections on female reproductive status](#step-12-impact-of-anaplasma-infections-on-female-reproductive-status)
+- [Step 3. Calculate hemoplasma infection prevalence](#step-3-calculate-hemoplasma-infection-prevalence)
+- [Step 4. Create the pathogens variable and sloth species subset](#step-4-create-the-pathogens-variable-and-sloth-species-subset)
+- [Step 5. Impact of hemoplasma infections on Scale Mass Index (SMI) in adult Bd](#step-5-impact-of-hemoplasma-infections-on-scale-mass-index-smi-in-adult-bd)
+- [Step 6. Impact of hemoplasma infections on Scale Mass Index (SMI) in adult Cd](#step-6-impact-of-hemoplasma-infections-on-scale-mass-index-smi-in-adult-cd)
+- [Step 7. Impact of hemoplasma infections on neck circumference](#step-7-impact-of-hemoplasma-infections-on-neck-circumference)
+- [Step 8. Impact of hemoplasma infections on hematocrit levels](#step-8-impact-of-hemoplasma-infections-on-hematocrit-levels)
+- [Step 9. Impact of hemoplasma infections on body temperature](#step-9-impact-of-hemoplasma-infections-on-body-temperature)
+- [Step 10. Impact of hemoplasma infections on general health condition](#step-10-impact-of-hemoplasma-infections-on-general-health-condition)
+- [Step 11. Impact of hemoplasma infections on female reproductive status](#step-11-impact-of-hemoplasma-infections-on-female-reproductive-status)
 
 ## Step 1. Retrieving the data
 
@@ -1058,7 +1057,7 @@ AIC(
 
 -> Interpretation : Body `temperature` showed no detectable association with `hemoplasma` infection, other blood-borne `pathogens`, `season`, or `sex` in adult *Choloepus didactylus*.
 
-## Step 11. Impact of `hemoplasma` infections on general `health_condition` 
+## Step 10. Impact of `hemoplasma` infections on general `health_condition` 
 ### Test the association between `hemoplasma` and `health_condition` in Bt
 ```
 table_health_condition_hemoplasma_Bt <- table(data_Bt$hemoplasma, data_Bt$health_condition)
