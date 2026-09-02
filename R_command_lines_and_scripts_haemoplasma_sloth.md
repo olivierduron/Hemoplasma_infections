@@ -45,7 +45,11 @@ This database will be referred to as `data_hemoplasma` throughout the R command 
 
 Load the dataset directly from the GitHub repository to R:
 ```
-data_hemoplasma <- read.csv ("https://raw.githubusercontent.com/olivierduron/Hemoplasma_sloth_infections/main/data_hemoplasma_sloth.csv", sep = "\t")
+data_hemoplasma <- read.csv(
+  "https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/refs/heads/main/data_haemoplasma_sloth.csv",
+  sep = "\t"
+)
+data_hemoplasma
 ```
 
 
