@@ -14,6 +14,6 @@ We used data from two main sources:
 
 (2) Veterinary evaluations conducted on wild pale-throated three-toed sloth (*Bradypus tridactylus*) and Linnaeus’s two-toed sloths (*Choloepus didactylus*) to investigate the effects of hemoplasma infection.
 
--> The veterinary evaluation dataset is available [here](https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/refs/heads/main/data_hemoplasma_sloth.csv).
+-> The veterinary evaluation dataset is available [here](https://github.com/olivierduron/Hemoplasma_infections/blob/main/data_hemoplasma_sloth.csv).
 
 -> The veterinary evaluation R command lines and scripts are available [here](R_command_lines_and_scripts_haemoplasma_sloth.md).
