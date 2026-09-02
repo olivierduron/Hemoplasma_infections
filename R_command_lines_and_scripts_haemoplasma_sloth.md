@@ -40,7 +40,7 @@ All veterinary clinical data for the two sloth species are available [here](http
 
 This database will be referred to as `data_hemoplasma` throughout the R command lines and scripts provided below. It corresponds to the dataset provided in Table S1 of the related manuscript.
 
-Load the dataset directly from the GitHub repository to R:
+Load the dataset directly from the GitHub repository to R
 ```
 data_hemoplasma <- read.csv2(
   "https://raw.githubusercontent.com/olivierduron/Hemoplasma_infections/main/data_hemoplasma_sloth.csv",
@@ -52,7 +52,7 @@ data_hemoplasma
 
 ## Step 2. Prepare the data for analysis
 
-Convert categorical variables into factors:
+Convert categorical variables into factors
 ```
 data_hemoplasma$species        <- as.factor(data_hemoplasma$species)
 data_hemoplasma$season         <- as.factor(data_hemoplasma$season)
@@ -63,7 +63,7 @@ data_hemoplasma$anaplasmataceae      <- as.factor(data_hemoplasma$anaplasmatacea
 data_hemoplasma$apicomplexa       <- as.factor(data_hemoplasma$apicomplexa)
 ```
 
-Load libraries for analysis: 
+Load libraries for analysis
 ```
 library(binom)
 library(dplyr)
@@ -116,6 +116,16 @@ data_hemoplasma <- data_hemoplasma %>%
 data_hemoplasma$pathogens <- as.factor(data_hemoplasma$pathogens)
 ```
 
+Convert variables:
+```
+data_hemoplasma$weight <- as.numeric(data_hemoplasma$weight)
+data_hemoplasma$total_length <- as.numeric(data_hemoplasma$total_length)
+data_hemoplasma$wither_height <- as.numeric(data_hemoplasma$wither_height)
+data_hemoplasma$neck_size <- as.numeric(data_hemoplasma$neck_size)
+data_hemoplasma$temperature <- as.numeric(data_hemoplasma$temperature)
+data_hemoplasma$hematocrit <- as.numeric(data_hemoplasma$hematocrit)
+```
+
 Create a subset `data_Bt` containing only records for _Bradypus tridactylus_ (Bt)
 ```
 data_Bt <- subset(data_hemoplasma, species == "Bt")
@@ -128,7 +138,7 @@ data_Cd <- subset(data_hemoplasma, species == "Cd")
 table(data_Cd$hemoplasma)
 ```
 
-## Step 5. Impact of `hemaplasma` infections on Scale Mass Index (SMI) in Bt
+## Step 5. Impact of `hemoplasma` infections on Scale Mass Index (SMI) in adult Bt
 The Scaled Mass Index (SMI) was used as a body condition indicator that standardizes individual `weight` to `body_length`, using an allometric scaling relationship. SMI was calculated following Peig & Green (2009) (https://doi.org/10.1111/j.1600-0706.2009.17643.x).
 
 Function to calculate SMI for adult Bt
@@ -142,257 +152,107 @@ data_adult_Bt$SMI <- data_adult_Bt$weight * (L0 / data_adult_Bt$total_length)^b
 
 Fit a GLM to test whether SMI is influenced by interactions among `hemoplasma`, `pathogens`, `sex` and `season` in Bt
 ```
-model_SMIBt <- glm(SMI ~ hemoplasma * pathogens * season * sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+model_SMIBt_full <- glm(
+  SMI ~ hemoplasma * pathogens * season * sex,
+  data = data_adult_Bt,
+  family = gaussian(link = "identity")
+)
+
+summary(model_SMIBt_full)
+
+model_SMIBt_3way <- glm(
+  SMI ~ (hemoplasma + pathogens + season + sex)^3,
+  data = data_adult_Bt,
+  family = gaussian(link = "identity")
+)
+
+anova(model_SMIBt_3way, model_SMIBt_full, test = "Chisq")
+
+AIC(model_SMIBt_full, model_SMIBt_3way)
+
+model_SMIBt_2way <- glm(
+  SMI ~ (hemoplasma + pathogens + season + sex)^2,
+  data = data_adult_Bt,
+  family = gaussian(link = "identity")
+)
+
+anova(model_SMIBt_2way, model_SMIBt_3way, test = "Chisq")
+
+AIC(model_SMIBt_3way, model_SMIBt_2way)
+
+model_SMIBt_add <- glm(
+  SMI ~ hemoplasma + pathogens + season + sex,
+  data = data_adult_Bt,
+  family = gaussian(link = "identity")
+)
+
+anova(model_SMIBt_add, model_SMIBt_2way, test = "Chisq")
+
+AIC(model_SMIBt_2way, model_SMIBt_add)
+
+model_SMIBt_null <- glm(
+  SMI ~ 1,
+  data = data_adult_Bt,
+  family = gaussian(link = "identity")
+)
+
+anova(model_SMIBt_null, model_SMIBt_add, test = "Chisq")
+
+AIC(model_SMIBt_null, model_SMIBt_add)
+
+AIC_models_SMIBt <- AIC(
+  model_SMIBt_full,
+  model_SMIBt_3way,
+  model_SMIBt_2way,
+  model_SMIBt_add,
+  model_SMIBt_null
+)
+
+AIC_models_SMIBt$delta_AIC <- 
+  AIC_models_SMIBt$AIC - min(AIC_models_SMIBt$AIC)
+
+AIC_models_SMIBt
 ```
 
-Fit a GLM to test whether SMI is influenced by additive effects of `hemoplasma`, `bloodparasite`, `sex` and `season` in Bt:
+-> Results and interpretation : Several interaction terms were not estimable because some combinations of predictors were absent from the dataset. The model was therefore simplified hierarchically by removing higher-order interaction terms. Removing three-way interactions did not significantly reduce model fit (LRT: χ²₁ = 0.31, *p* = 0.305), and removing all two-way interactions likewise resulted in no significant loss of fit (LRT: χ²₄ = 1.12, *p* = 0.437). The additive model had the lowest AIC (141.18) and was strongly supported over the null model (LRT: χ²₄ = 7.80, *p* < 0.001; ΔAIC = 16.19). We therefore retained the additive model for further analyses.
+
+Fit a GLM to test whether SMI is influenced by additive effets of `hemoplasma`, `pathogens`, `sex` and `season` in Bt
 ```
-model_3a <- glm(SMI ~ hemoplasma + bloodparasite + season + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+model_SMIBt_add <- glm(SMI ~ hemoplasma + pathogens + season + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+model_no_season <- update(model_SMIBt_add, . ~ . - season)
+anova(model_no_season, model_SMIBt_add, test = "Chisq")
+AIC(model_SMIBt_add, model_no_season)
+model_SMIBt_reduced1 <- glm(SMI ~ hemoplasma + pathogens + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+model_no_pathogens <- update(model_SMIBt_reduced1, . ~ . - pathogens)
+anova(model_no_pathogens, model_SMIBt_reduced1, test = "Chisq")
+AIC(model_SMIBt_reduced1, model_no_pathogens)
+model_SMIBt_reduced2 <- glm(SMI ~ hemoplasma + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
+model_no_hemoplasma <- update(model_SMIBt_reduced2, . ~ . - hemoplasma)
+anova(model_no_hemoplasma, model_SMIBt_reduced2, test = "Chisq")
+AIC(model_SMIBt_reduced2, model_no_hemoplasma)
+model_no_sex <- update(model_SMIBt_reduced2, . ~ . - sex)
+anova(model_no_sex, model_SMIBt_reduced2, test = "Chisq")
+AIC(model_SMIBt_reduced2, model_no_sex)
+model_SMIBt_final <- model_SMIBt_reduced2
+summary(model_SMIBt_final)
+AIC(model_SMIBt_add, model_SMIBt_reduced1, model_SMIBt_reduced2, model_no_hemoplasma, model_no_sex)
+```
+-> Results : `season` and other blood-borne `pathogens` were excluded from the final model because their removal did not affect model fit (LRT: χ²₁ = 0.02, *p* = 0.804 and χ²₁ = 0.60, *p* = 0.153, respectively). The final model retained `hemoplasma` and `sex` (AIC = 139.36). SMI was lower in `hemoplasma`-positive individuals (β = −0.92 ± 0.28 SE, *p* = 0.0014) and higher in males (β = 0.44 ± 0.12 SE, *p* < 0.001).
+
+-> Interpretation : `hemoplasma` infection was negatively associated with body condition in adult *B. tridactylus*, independently of `sex`, whereas `season` and other blood-borne `pathogens` showed no detectable effect.
+
+Model diagnostics (diagnostic plots, Shapiro–Wilk test, and Breusch–Pagan test)
+```
+par(mfrow = c(2, 2))
+plot(model_SMIBt_final)
+par(mfrow = c(1, 1))
+shapiro.test(residuals(model_SMIBt_final))
+library(lmtest)
+bptest(model_SMIBt_final)
 ```
 
-Compare the additive model (model_3a) to the interaction model (model_3) using a likelihood ratio test:
-```
-anova(model_3a, model_3, test = "Chisq")
-```
+-> Results and interpretation :Residuals showed no evidence of departure from normality (Shapiro–Wilk: W = 0.988, p = 0.661) or heteroscedasticity (Breusch–Pagan: BP = 4.10, p = 0.129), supporting the use of the Gaussian model.
 
-Results are:
-```
-Analysis of Deviance Table
-Model 1: SMI ~ hemoplasma + bloodparasite + season + sex
-Model 2: SMI ~ hemoplasma * bloodparasite * season * sex
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        78     23.641                     
-2        73     22.818  5  0.82298   0.7564
-```
-
-Compute AIC for both models to evaluate model fit:
-```
-AIC(model_3, model_3a)
-```
-
-Results are:
-```
-         df      AIC
-model_3  11 150.3660
-model_3a  6 143.3069
-```
-
-Perform drop-one-term analysis on the additive model:
-```
-res <- drop1(model_3a, test = "Chisq")
-```
-
-Results are:
-```
-Single term deletions
-Model:
-SMI ~ hemoplasma + bloodparasite + season + sex
-              Df Deviance    AIC scaled dev.  Pr(>Chi)    
-<none>             23.641 143.31                          
-hemoplasma    1   26.804 151.73     10.4232 0.0012444 ** 
-bloodparasite  1   23.642 141.31      0.0045 0.9463824    
-season         1   23.655 141.36      0.0515 0.8205475    
-sex            1   27.489 153.82     12.5176 0.0004031 ***
-```
-
-Calculate delta AIC for each term to assess its contribution to model fit:
-```
-aic_full <- AIC(model_3a)
-res$delta_AIC <- res$AIC - aic_full
-print(res[, c("AIC", "delta_AIC")])
-```
-
-Results are:
-```
-                 AIC delta_AIC
-<none>        143.31    0.0000
-hemoplasma   151.73    8.4232
-bloodparasite 141.31   -1.9955
-season        141.36   -1.9485
-sex           153.82   10.5176
-```
-
-Compare the null model (model_null) to univariate models using likelihood ratio tests and AIC:
-```
-model3_null <- glm(SMI ~ 1, data = data_adult_Bt, family = gaussian(link = "identity"))
-model3_hemoplasma <- glm(SMI ~ hemoplasma, data = data_adult_Bt, family = gaussian(link = "identity"))
-model3_bloodparasite <- glm(SMI ~ bloodparasite, data = data_adult_Bt, family = gaussian(link = "identity"))
-model3_season <- glm(SMI ~ season, data = data_adult_Bt, family = gaussian(link = "identity"))
-model3_sex <- glm(SMI ~ sex, data = data_adult_Bt, family = gaussian(link = "identity"))
-anova(model3_null, model3_hemoplasma, test="Chisq")
-anova(model3_null, model3_bloodparasite, test="Chisq")
-anova(model3_null, model3_season, test="Chisq")
-anova(model3_null, model3_sex, test="Chisq")
-aics <- AIC(model3_null, model3_hemoplasma, model3_bloodparasite, model3_season, model3_sex)
-aic_null <- aics["model3_null", "AIC"]
-aics$delta_AIC_vs_null <- aics$AIC - aic_null
-print(aics[, c("AIC", "delta_AIC_vs_null")])
-```
-
-Results are:
-```
-Analysis of Deviance Table
-Model 1: SMI ~ 1
-Model 2: SMI ~ hemoplasma
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)   
-1        82     30.838                        
-2        81     27.594  1   3.2438 0.002031 **
----
-Analysis of Deviance Table
-Model 1: SMI ~ 1
-Model 2: SMI ~ bloodparasite
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        82     30.838                     
-2        81     30.564  1  0.27455   0.3937
----
-Analysis of Deviance Table
-Model 1: SMI ~ 1
-Model 2: SMI ~ season
-  Resid. Df Resid. Dev Df  Deviance Pr(>Chi)
-1        82     30.838                      
-2        81     30.829  1 0.0087678   0.8794
----
-Analysis of Deviance Table
-Model 1: SMI ~ 1
-Model 2: SMI ~ sex
-  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
-1        82     30.838                          
-2        81     26.881  1   3.9571 0.0005542 ***
----
-                          AIC delta_AIC_vs_null
-model3_null          157.3666          0.000000
-model3_hemoplasma   150.1419         -7.224666
-model3_bloodparasite 158.6243          1.257743
-model3_season        159.3430          1.976398
-model3_sex           147.9681         -9.398467
-```
-
-Fit a GLM to test whether SMI is influenced by additive effects of `hemoplasma` and `sex` in Bt:
-```
-model_3b <- glm(SMI ~ hemoplasma + sex, data = data_adult_Bt, family = gaussian(link = "identity"))
-```
-
-Compare the additive model (model_3b) to the full additive model (model_3a) using a likelihood ratio test:
-```
-anova(model_3b, model_3a, test = "Chisq")
-```
-
-Results are:
-```
-Analysis of Deviance Table
-Model 1: SMI ~ hemoplasma + sex
-Model 2: SMI ~ hemoplasma + bloodparasite + season + sex
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        80     23.657                     
-2        78     23.641  2 0.015892   0.9741
-```
-
-Compute AIC for both models to evaluate model fit:
-```
-AIC(model_3a, model_3b)
-```
-
-Results are:
-```
-         df      AIC
-model_3a  6 143.3069
-model_3b  4 139.3626
-```
-
-Compare the the model3_hemoplasma univariate model (SMI ~ hemoplasma) to the the 'hemoplasma' + 'sex' additive model (model_3b) using likelihood ratio tests and AIC:
-```
-anova(model_3b, model3_hemoplasma, test="Chisq")
-aics <- AIC(model_3b, model3_hemoplasma)
-aic_hemoplasma <- aics["model3_hemoplasma", "AIC"]
-aics$delta_AIC_vs_hemoplasma <- aics$AIC - aic_hemoplasma
-print(aics[, c("AIC", "delta_AIC_vs_hemoplasma")])
-```
-
-Results are:
-```
-Analysis of Deviance Table
-Model 1: SMI ~ hemoplasma + sex
-Model 2: SMI ~ hemoplasma
-  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
-1        80     23.657                          
-2        81     27.594 -1  -3.9377 0.0002631 ***
----
-                        AIC delta_AIC_vs_hemoplasma
-model_3b           139.3626                -10.77931
-model3_hemoplasma 150.1419                  0.00000
-```
-
-Compare the the model3_sex univariate model (SMI ~ sex) to the 'hemoplasma' + 'sex' additive model (model_3b) using likelihood ratio tests and AIC:
-```
-anova(model_3b, model3_sex, test="Chisq")
-aics <- AIC(model_3b, model3_sex)
-aic_sex <- aics["model3_sex", "AIC"]
-aics$delta_AIC_vs_sex <- aics$AIC - aic_sex
-print(aics[, c("AIC", "delta_AIC_vs_sex")])
-```
-
-Results are:
-```
-Analysis of Deviance Table
-Model 1: SMI ~ hemoplasma + sex
-Model 2: SMI ~ sex
-  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    
-1        80     23.657                          
-2        81     26.881 -1  -3.2244 0.0009596 ***
----
-                AIC delta_AIC_vs_sex
-model_3b   139.3626        -8.605512
-model3_sex 147.9681         0.000000
-```
-
-Fit a GLM to test whether SMI is influenced by interaction effect of `hemoplasma` and `sex` in Bt:
-```
-model_3c <- glm(SMI ~ hemoplasma * sex, data = data_adult_Bt, family = gaussian(link = "identity"))
-```
-
-Compare the additive model (model_3b) to the interactive model (model_3c) using a likelihood ratio test:
-```
-anova(model_3c, model_3b, test = "Chisq")
-```
-
-Results are:
-```
-Analysis of Deviance Table
-Model 1: SMI ~ hemoplasma * sex
-Model 2: SMI ~ hemoplasma + sex
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
-1        79     23.647                     
-2        80     23.657 -1 -0.00961   0.8578
-```
-
-Compute AIC for both models to evaluate model fit:
-```
-AIC(model_3b, model_3c)
-```
-
-Results are:
-```
-         df      AIC
-model_3b  4 139.3626
-model_3c  5 141.3289
-```
-
-Assess residual normality and heteroscedasticity of the 'hemoplasma' + 'sex' additive model (model_3b):
-```
-shapiro.test(model_3b$residuals)
-bptest(model_3b)
-```
-
-Results are:
-```
-Shapiro-Wilk normality test
-data:  model_3b$residuals
-W = 0.9883, p-value = 0.6612
----
-studentized Breusch-Pagan test
-data:  model_3b
-BP = 4.0982, df = 2, p-value = 0.1288
-```
 
 Calculation of mean and standard error of SMI by `hemoplasma` infection status and `sex` for Bt:
 ```
@@ -407,15 +267,14 @@ data_adult_Bt %>%
   mutate(SMI = sprintf("%.2f ± %.2f", mean, se))
 ```
 
-Results are:
-```
-  sex   hemoplasma     n  mean     se SMI        
-  <fct> <fct>       <int> <dbl>  <dbl> <chr>      
-1 F     0              39  4.43 0.0749 4.43 ± 0.07
-2 F     1               2  3.56 0.0284 3.56 ± 0.03
-3 M     0              40  4.88 0.0985 4.88 ± 0.10
-4 M     1               2  3.90 0.298  3.90 ± 0.30
-```
+Results :
+| sex | hemoplasma | n | mean | se | SMI |
+|:----|:-----------|--:|-----:|----:|:----|
+| F | 0 | 39 | 4.43 | 0.0749 | 4.43 ± 0.07 |
+| F | 1 | 2 | 3.56 | 0.0284 | 3.56 ± 0.03 |
+| M | 0 | 40 | 4.88 | 0.0985 | 4.88 ± 0.10 |
+| M | 1 | 2 | 3.90 | 0.298 | 3.90 ± 0.30 |
+
 
 Generate SMI chart for Bt:
 ```
@@ -433,15 +292,23 @@ clean_data <- data_adult_Bt %>%
       TRUE ~ NA_character_
     )
   )
-levels_order <- c("Male, uninfected", "Male, infected", "Female, uninfected", "Female, infected")
+
+levels_order <- c(
+  "Male, uninfected",
+  "Male, infected",
+  "Female, uninfected",
+  "Female, infected"
+)
+
 clean_data <- clean_data %>%
   mutate(
     sex_infect = factor(sex_infect, levels = levels_order),
     point_size = case_when(
       sex_infect %in% c("Male, uninfected", "Male, infected") ~ 3.25,
-      TRUE ~ 4  # taille normale pour les cercles
+      TRUE ~ 4
     )
   )
+
 interp_data <- with(clean_data, akima::interp(
   x = weight,
   y = total_length,
@@ -449,14 +316,21 @@ interp_data <- with(clean_data, akima::interp(
   duplicate = "mean",
   extrap = FALSE
 ))
+
 interp_df <- expand.grid(
   x = interp_data$x,
   y = interp_data$y
 )
+
 interp_df$z <- as.vector(interp_data$z)
+
 legend_point_sizes <- c(3.25, 3.25, 4, 4) / 2
-ggplot() +
-  geom_contour_filled(data = interp_df, aes(x = x, y = y, z = z)) +
+
+p_SMI_Bt <- ggplot() +
+  geom_contour_filled(
+    data = interp_df,
+    aes(x = x, y = y, z = z)
+  ) +
   geom_point(
     data = clean_data,
     aes(
@@ -468,7 +342,10 @@ ggplot() +
     color = "black",
     stroke = 1
   ) +
-  scale_fill_brewer(palette = "Green", name = "SMI level") +
+  scale_fill_brewer(
+    palette = "Oranges",
+    name = "SMI level"
+  ) +
   scale_shape_manual(
     name = expression(paste("Hemoplasma", " infection status")),
     values = c(
@@ -478,26 +355,48 @@ ggplot() +
       "Female, infected" = 10
     )
   ) +
-  scale_size_identity(guide = "none") + 
+  scale_size_identity(guide = "none") +
   guides(
-    shape = guide_legend(override.aes = list(size = legend_point_sizes))
+    shape = guide_legend(
+      override.aes = list(size = legend_point_sizes)
+    )
   ) +
   labs(
     x = "Body mass (kg)",
     y = "Total Length (cm)",
-    title = expression(paste("Scale Mass Index (SMI) of ", italic("Bradypus tridactylus")))
+    title = expression(
+      paste(
+        "Scale Mass Index (SMI) of ",
+        italic("Bradypus tridactylus")
+      )
+    )
   ) +
   theme_minimal(base_size = 14) +
   theme(
     legend.position = "right",
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.border = element_rect(
+      color = "black",
+      fill = NA,
+      linewidth = 1
+    ),
     panel.background = element_blank(),
     axis.title = element_text(size = 16),
     axis.text = element_text(size = 14)
   )
+
+p_SMI_Bt
+
+ggsave(
+  filename = "SMI_Bradypus_tridactylus.png",
+  plot = p_SMI_Bt,
+  width = 9,
+  height = 7,
+  units = "in",
+  dpi = 300
+)
 ```
 
-## Step 7. Impact of haemaplasma infections on Scale Mass Index (SMI) (GLM models 4) in Cd
+## Step 7. Impact of `hemoplasma` infections on Scale Mass Index (SMI) in adult Cd
 Function to calculate SMI for adult Cd:
 ```
 data_adult_Cd <- subset(data_Cd, age == "A")
