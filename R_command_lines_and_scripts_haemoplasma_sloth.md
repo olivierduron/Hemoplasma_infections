@@ -2,23 +2,20 @@
 
 We analyzed data from 175 wild sloths captured between 1994 and 1995 during the flooding of the Petit Saut Dam (5°03′43″ N, 53°03′00″ O) on the Sinnamary River (French Guiana, South America). The clinical data include the following variables for each examined sloth: 
 - `species` : Sloth species (Bt: *Bradypus tridactylus*; Cd: *Choloepus didactylus*)
-- `sex` : Sex of the sloth (F: Female; M: Male)
-- `age_class` : Age category (A: Adult; J: Juvenile)
-- `season` : Season of capture (W: Wet; D: Dry)
+- `sex` : Sex of the sloth (F: female; M: male)
+- `age_class` : Age category (A: adult; J: juvenile)
+- `season` : Season of capture (W: wet; D: dry)
 - `weight` : Body weight (quantitative variable, in kg)
 - `total_length` : Total body length (quantitative variable, in cm)
 - `wither_height` : Height at the withers (quantitative variable, in cm)
 - `neck_size` : Neck circumference (quantitative variable, in cm)
 - `temperature` : Body temperature (quantitative variable, in °C)
 - `hematocrit` : Hematocrit level (quantitative variable, in %)
-- `health_condition` : Overall health status (G: Good; D: Deteriorated)
-- `hemoplasma` : Infection status with hemotropic mycoplasmas (0: Uninfected; 1: Infected)
-- `anaplasma` : Infection status with *Anaplasma* (0: Uninfected; 1: Infected)
-- `tick` : Presence of ticks in the fur (0: Absent; 1: Present)
-- `microfilaria` : Infection status with microfilariae (0: Uninfected; 1: Infected)
-- `trypanosome` : Infection status with trypanosomes (0: Uninfected; 1: Infected)
-- `babesia` : Infection status with _Babesia_ (0: Uninfected; 1: Infected)
-- `bloodparasite` : Combined infection status for blood parasites/pathogens (_Anaplasma_ + microfilariae + trypanosome + _Babesia_, but excluding haemotropic mycoplasmas; 0: Uninfected; 1: Infected)
+- `health_condition` : Overall health status (G: good; D: deteriorated)
+- `female_reproductive_status` : Reproductive state of female individuals, indicating whether they were reproductively active or inactive at the time of sampling (Female non pregnant non lactating / Pregnant female / Female lactating with a young)
+- `hemoplasma` : Infection status with hemotropic mycoplasmas (0 = uninfected; 1 = infected)
+- `anaplasmataceae` : Infection status with bacteria of the Anaplasmataceae family (here, *Anaplasma amazonensis*) (0 = uninfected; 1 = infected)
+- `apicomplexa` : Infection status with piroplasmids (here, *Babesia* sp.) (0 = uninfected; 1 = infected)
   
 Details about all the experimental methods and measures are available in the related manuscript.
 
@@ -86,37 +83,44 @@ library(RColorBrewer)
 ```
 
 ## Step 3. Calculate hemoplasma infection prevalence
-Calculate hemoplasma infection prevalence and 95% confidence interval for _Bradypus tridactylus_ (Bt) and _Choloepus didactylus_ (Cd):
+Calculate hemoplasma infection prevalence and 95% confidence interval for _Bradypus tridactylus_ (Bt) and _Choloepus didactylus_ (Cd)
 
 ```
 prevalence_results <- data_hemoplasma %>% group_by(species) %>% summarise(n = n(), positives = sum(hemoplasma == 1), prevalence = positives / n, conf_low = binom.confint(positives, n, conf.level = 0.95, methods = "exact")$lower, conf_high = binom.confint(positives, n, conf.level = 0.95, methods = "exact")$upper)
 print(prevalence_results)
 ```
 
-Results are:
-```
-A tibble: 2 × 6
-species     n positives prevalence conf_low conf_high
-  <fct>   <int>     <int>      <dbl>    <dbl>     <dbl>
-1 Bt         92         4     0.0435   0.0120     0.108
-2 Cd         83        68     0.819    0.720      0.895
-```
+Results :
+| species | n | positives | prevalence | conf_low | conf_high |
+|:--------|--:|----------:|-----------:|---------:|----------:|
+| Bt      | 92 | 4  | 0.0435 | 0.0120 | 0.108 |
+| Cd      | 83 | 68 | 0.8190 | 0.7200 | 0.895 |
 
 Test if `hemoplasma` is influenced by sloth `species`:
 ```
 chisq.test(table(data_hemoplasma$hemoplasma, data_hemoplasma$species))
 ```
 
-Results are:
+-> Results : `hemoplasma` prevalence differed strongly between the two sloth species, from 4.3% (4/92; 95% CI: 1.2–10.8%) in *Bradypus tridactylus* to 81.9% (68/83; 95% CI: 72.0–89.5%) in *Choloepus didactylus* (χ²₁ = 105.27, p < 2.2 × 10⁻¹⁶).
+
+-> Interpretation : This strong interspecific difference suggests that host species and associated ecological or evolutionary traits may constrain `hemoplasma` infection.
+
+## Step 4. Test whether `hemoplasma` infection prevalence in _Bradypus tridactylus_ (Bt) is influenced by `sex`, `age`, `season`, other blood-borne `pathogens` (`anaplasmataceae` and `apicomplexa`) (GLM model 1)
+
+Create the pathogens variable by merging `anaplasmataceae` and `apicomplexa` (0 = uninfected ; 1 = infected by `anaplasmataceae` and/or `apicomplexa`)
 ```
-Pearson's Chi-squared test with Yates' continuity correction
-data:  table(data_hemoplasma$hemoplasma, data_hemoplasma$species)
-X-squared = 105.27, df = 1, p-value < 2.2e-16
+data_hemoplasma <- data_hemoplasma %>%
+  mutate(
+    pathogens = ifelse(
+      anaplasmataceae == 1 | apicomplexa == 1,
+      1, 0
+    ),
+    species = factor(species)
+  )
+data_hemoplasma$pathogens <- as.factor(data_hemoplasma$pathogens)
 ```
 
-## Step 4. Test whether hemoplasma infection prevalence in _Bradypus tridactylus_ (Bt) is influenced by sex, age, season, ticks and other blood parasites (GLM model 1)
 Create a subset `data_Bt` containing only records for _Bradypus tridactylus_ (Bt):
-
 ```
 data_Bt <- subset(data_hemoplasma, species == "Bt")
 ```
