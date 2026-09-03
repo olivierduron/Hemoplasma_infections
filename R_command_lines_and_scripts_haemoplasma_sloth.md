@@ -75,6 +75,7 @@ library(akima)
 library(pwr)
 library(survival)
 library(RColorBrewer)
+library(emmeans)
 ```
 
 ## Step 3. Calculate `hemoplasma` infection prevalence
@@ -207,10 +208,19 @@ AIC_models_SMIBt <- AIC(
   model_SMIBt_null
 )
 
+model_SMIBt_final <- glm(SMI ~ hemoplasma + pathogens + sex + season, data = data_adult_Bt, family = gaussian(link = "identity"))
+model_Bt_no_season <- update(model_SMIBt_final, . ~ . - season)
+model_Bt_no_pathogens <- update(model_SMIBt_final, . ~ . - pathogens)
+anova(model_Bt_no_season, model_SMIBt_final, test = "Chisq")
+anova(model_Bt_no_pathogens, model_SMIBt_final, test = "Chisq")
+AIC(model_SMIBt_final, model_Bt_no_season)
+AIC(model_SMIBt_final, model_Bt_no_pathogens)
 AIC_models_SMIBt$delta_AIC <- 
   AIC_models_SMIBt$AIC - min(AIC_models_SMIBt$AIC)
 
 AIC_models_SMIBt
+AIC(model_Bt_no_season, model_SMIBt_final)
+AIC(model_Bt_no_pathogens, model_SMIBt_final)
 ```
 
 -> Results and interpretation : Several interaction terms were not estimable because some combinations of predictors were absent from the dataset. The model was therefore simplified hierarchically by removing higher-order interaction terms. Removing three-way interactions did not significantly reduce model fit (LRT: χ²₁ = 0.31, *p* = 0.305), and removing all two-way interactions likewise resulted in no significant loss of fit (LRT: χ²₄ = 1.12, *p* = 0.437). The additive model had the lowest AIC (141.18) and was strongly supported over the null model (LRT: χ²₄ = 7.80, *p* < 0.001; ΔAIC = 16.19). We therefore retained the additive model for further analyses.
@@ -255,6 +265,20 @@ bptest(model_SMIBt_final)
 
 ### Calculation of mean and standard error of SMI by `hemoplasma` infection status and `sex` for Bt
 ```
+emmeans_hemoplasma <- emmeans(model_SMIBt_final, ~ hemoplasma)
+emmeans_sex <- emmeans(model_SMIBt_final, ~ sex)
+emmeans_sex_hemoplasma <- emmeans(model_SMIBt_final, ~ hemoplasma * sex)
+summary(emmeans_hemoplasma, infer = c(TRUE, TRUE))
+summary(emmeans_sex, infer = c(TRUE, TRUE))
+summary(emmeans_sex_hemoplasma, infer = c(TRUE, TRUE))
+pairs(emmeans_hemoplasma)
+pairs(emmeans_sex)
+emmeans_hemoplasma_df <- as.data.frame(summary(emmeans_hemoplasma, infer = c(TRUE, TRUE)))
+emmeans_sex_df <- as.data.frame(summary(emmeans_sex, infer = c(TRUE, TRUE)))
+emmeans_sex_hemoplasma_df <- as.data.frame(summary(emmeans_sex_hemoplasma, infer = c(TRUE, TRUE)))
+emmeans_hemoplasma_df
+emmeans_sex_df
+emmeans_sex_hemoplasma_df
 data_adult_Bt %>% 
   group_by(sex, hemoplasma) %>% 
   summarise(
@@ -276,122 +300,7 @@ Results :
 
 ### Generate SMI chart for Bt
 ```
-clean_data <- data_adult_Bt %>%
-  filter(
-    !is.na(weight), !is.na(total_length), !is.na(SMI),
-    is.finite(weight), is.finite(total_length), is.finite(SMI)
-  ) %>%
-  mutate(
-    sex_infect = case_when(
-      sex == "M" & hemoplasma == 0 ~ "Male, uninfected",
-      sex == "M" & hemoplasma == 1 ~ "Male, infected",
-      sex == "F" & hemoplasma == 0 ~ "Female, uninfected",
-      sex == "F" & hemoplasma == 1 ~ "Female, infected",
-      TRUE ~ NA_character_
-    )
-  )
 
-levels_order <- c(
-  "Male, uninfected",
-  "Male, infected",
-  "Female, uninfected",
-  "Female, infected"
-)
-
-clean_data <- clean_data %>%
-  mutate(
-    sex_infect = factor(sex_infect, levels = levels_order),
-    point_size = case_when(
-      sex_infect %in% c("Male, uninfected", "Male, infected") ~ 3.25,
-      TRUE ~ 4
-    )
-  )
-
-interp_data <- with(clean_data, akima::interp(
-  x = weight,
-  y = total_length,
-  z = SMI,
-  duplicate = "mean",
-  extrap = FALSE
-))
-
-interp_df <- expand.grid(
-  x = interp_data$x,
-  y = interp_data$y
-)
-
-interp_df$z <- as.vector(interp_data$z)
-
-legend_point_sizes <- c(3.25, 3.25, 4, 4) / 2
-
-p_SMI_Bt <- ggplot() +
-  geom_contour_filled(
-    data = interp_df,
-    aes(x = x, y = y, z = z)
-  ) +
-  geom_point(
-    data = clean_data,
-    aes(
-      x = weight,
-      y = total_length,
-      shape = sex_infect,
-      size = point_size
-    ),
-    color = "black",
-    stroke = 1
-  ) +
-  scale_fill_brewer(
-    palette = "Oranges",
-    name = "SMI level"
-  ) +
-  scale_shape_manual(
-    name = expression(paste("Hemoplasma", " infection status")),
-    values = c(
-      "Male, uninfected" = 0,
-      "Male, infected" = 12,
-      "Female, uninfected" = 1,
-      "Female, infected" = 10
-    )
-  ) +
-  scale_size_identity(guide = "none") +
-  guides(
-    shape = guide_legend(
-      override.aes = list(size = legend_point_sizes)
-    )
-  ) +
-  labs(
-    x = "Body mass (kg)",
-    y = "Total Length (cm)",
-    title = expression(
-      paste(
-        "Scale Mass Index (SMI) of ",
-        italic("Bradypus tridactylus")
-      )
-    )
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    legend.position = "right",
-    panel.border = element_rect(
-      color = "black",
-      fill = NA,
-      linewidth = 1
-    ),
-    panel.background = element_blank(),
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14)
-  )
-
-p_SMI_Bt
-
-ggsave(
-  filename = "SMI_Bradypus_tridactylus.png",
-  plot = p_SMI_Bt,
-  width = 9,
-  height = 7,
-  units = "in",
-  dpi = 300
-)
 ```
 
 ## Step 6. Impact of `hemoplasma` infections on Scale Mass Index (SMI) in adult Cd
@@ -466,6 +375,19 @@ AIC_models_SMICd$delta_AIC <-
   AIC_models_SMICd$AIC - min(AIC_models_SMICd$AIC)
 
 AIC_models_SMICd
+model_SMICd_final <- glm(SMI ~ hemoplasma + pathogens + season + sex, data = data_adult_Cd, family = gaussian(link = "identity"))
+model_Cd_no_hemoplasma <- update(model_SMICd_final, . ~ . - hemoplasma)
+model_Cd_no_sex <- update(model_SMICd_final, . ~ . - sex)
+model_Cd_no_season <- update(model_SMICd_final, . ~ . - season)
+model_Cd_no_pathogens <- update(model_SMICd_final, . ~ . - pathogens)
+anova(model_Cd_no_hemoplasma, model_SMICd_final, test = "Chisq")
+anova(model_Cd_no_sex, model_SMICd_final, test = "Chisq")
+anova(model_Cd_no_season, model_SMICd_final, test = "Chisq")
+anova(model_Cd_no_pathogens, model_SMICd_final, test = "Chisq")
+AIC(model_SMICd_final, model_Cd_no_hemoplasma)
+AIC(model_SMICd_final, model_Cd_no_sex)
+AIC(model_SMICd_final, model_Cd_no_season)
+AIC(model_SMICd_final, model_Cd_no_pathogens)
 ```
 
 -> Results: For adult *Choloepus didactylus*, neither the interaction models nor the additive model improved model fit. Higher-order interactions were not supported (LRT: χ²₂ = 2.81, *p* = 0.087), and removing all two-way interactions did not reduce model fit (LRT: χ²₆ = 1.37, *p* = 0.896). The additive model also did not improve on the null model (LRT: χ²₄ = 1.02, *p* = 0.774) and had a higher AIC (136.32 vs. 130.25). The null model was therefore retained.
@@ -495,7 +417,12 @@ clean_data <- data_adult_Cd %>%
     )
   )
 
-levels_order <- c("Male, uninfected", "Male, infected", "Female, uninfected", "Female, infected")
+levels_order <- c(
+  "Male, uninfected",
+  "Male, infected",
+  "Female, uninfected",
+  "Female, infected"
+)
 
 clean_data <- clean_data %>%
   mutate(
@@ -524,7 +451,10 @@ interp_df$z <- as.vector(interp_data$z)
 legend_point_sizes <- c(3.25, 3.25, 4, 4) / 2
 
 p_SMI_Cd <- ggplot() +
-  geom_contour_filled(data = interp_df, aes(x = x, y = y, z = z)) +
+  geom_contour_filled(
+    data = interp_df,
+    aes(x = x, y = y, z = z)
+  ) +
   geom_point(
     data = clean_data,
     aes(
@@ -536,7 +466,10 @@ p_SMI_Cd <- ggplot() +
     color = "black",
     stroke = 1
   ) +
-  scale_fill_brewer(palette = "YlOrBr", name = "SMI level") +
+  scale_fill_brewer(
+    palette = "YlOrBr",
+    name = "SMI level"
+  ) +
   scale_shape_manual(
     name = expression(paste("Hemoplasma", " infection status")),
     values = c(
@@ -548,17 +481,28 @@ p_SMI_Cd <- ggplot() +
   ) +
   scale_size_identity(guide = "none") +
   guides(
-    shape = guide_legend(override.aes = list(size = legend_point_sizes))
+    shape = guide_legend(
+      override.aes = list(size = legend_point_sizes)
+    )
   ) +
   labs(
     x = "Body mass (kg)",
     y = "Total Length (cm)",
-    title = expression(paste("Scale Mass Index (SMI) of ", italic("Choloepus didactylus")))
+    title = expression(
+      paste(
+        "Scale Mass Index (SMI) of ",
+        italic("Choloepus didactylus")
+      )
+    )
   ) +
   theme_minimal(base_size = 14) +
   theme(
     legend.position = "right",
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    panel.border = element_rect(
+      color = "black",
+      fill = NA,
+      linewidth = 1
+    ),
     panel.background = element_blank(),
     axis.title = element_text(size = 16),
     axis.text = element_text(size = 14)
@@ -569,7 +513,7 @@ p_SMI_Cd
 ggsave(
   filename = "SMI_Choloepus_didactylus.png",
   plot = p_SMI_Cd,
-  width = 9,
+  width = 22.5,
   height = 7,
   units = "in",
   dpi = 300
