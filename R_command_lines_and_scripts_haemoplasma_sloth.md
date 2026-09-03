@@ -94,10 +94,10 @@ Results :
 
 ### Test if `hemoplasma` is influenced by sloth `species`:
 ```
-chisq.test(table(data_hemoplasma$hemoplasma, data_hemoplasma$species))
+fisher.test(table(data_hemoplasma$hemoplasma, data_hemoplasma$species))
 ```
 
--> Results : `hemoplasma` prevalence differed strongly between the two sloth species, from 4.3% (4/92; 95% CI: 1.2–10.8%) in *Bradypus tridactylus* to 81.9% (68/83; 95% CI: 72.0–89.5%) in *Choloepus didactylus* (χ²₁ = 105.27, p < 2.2 × 10⁻¹⁶).
+-> Results : `hemoplasma` prevalence differed strongly between the two sloth `species`, from 4.3% (4/92; 95% CI: 1.2–10.8%) in *Bradypus tridactylus* to 81.9% (68/83; 95% CI: 72.0–89.5%) in *Choloepus didactylus* (χ²₁ = 105.27, p < 2.2 × 10⁻¹⁶).
 
 -> Interpretation : This strong interspecific difference suggests that host species and associated ecological or evolutionary traits may constrain `hemoplasma` infection.
 
