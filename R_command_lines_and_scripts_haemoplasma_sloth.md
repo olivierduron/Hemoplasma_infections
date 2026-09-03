@@ -122,7 +122,6 @@ data_hemoplasma$weight <- as.numeric(data_hemoplasma$weight)
 data_hemoplasma$total_length <- as.numeric(data_hemoplasma$total_length)
 data_hemoplasma$wither_height <- as.numeric(data_hemoplasma$wither_height)
 data_hemoplasma$neck_size <- as.numeric(data_hemoplasma$neck_size)
-data_hemoplasma$temperature <- as.numeric(data_hemoplasma$temperature)
 data_hemoplasma$hematocrit <- as.numeric(data_hemoplasma$hematocrit)
 ```
 
@@ -560,6 +559,26 @@ anova(model_5_add, model_5_2way, test = "Chisq")
 anova(model_5_null, model_5_add, test = "Chisq")
 
 AIC(model_5, model_5_3way, model_5_2way, model_5_add, model_5_null)
+model_5_add <- glm(
+  log(neck_size) ~ hemoplasma + pathogens + season + sex,
+  data = data_adult_Bt,
+  family = gaussian(link = "identity")
+)
+
+model_5_no_hemoplasma <- update(model_5_add, . ~ . - hemoplasma)
+model_5_no_pathogens <- update(model_5_add, . ~ . - pathogens)
+model_5_no_season <- update(model_5_add, . ~ . - season)
+model_5_no_sex <- update(model_5_add, . ~ . - sex)
+
+anova(model_5_no_hemoplasma, model_5_add, test = "Chisq")
+anova(model_5_no_pathogens, model_5_add, test = "Chisq")
+anova(model_5_no_season, model_5_add, test = "Chisq")
+anova(model_5_no_sex, model_5_add, test = "Chisq")
+
+AIC(model_5_add, model_5_no_hemoplasma)
+AIC(model_5_add, model_5_no_pathogens)
+AIC(model_5_add, model_5_no_season)
+AIC(model_5_add, model_5_no_sex)
 ```
 
 -> Results: For adult *Bradypus tridactylus*, none of the interaction models improved model fit (three-way vs. two-way interactions: LRT, χ²₁ = 0.003, *p* = 0.554; two-way vs. additive model: χ²₃ = 0.010, *p* = 0.765). The additive model also did not improve on the null model (χ²₄ = 0.042, *p* = 0.298), and the null model had the lowest AIC (−112.64 vs. −109.75 for the additive model). The null model was therefore retained.
@@ -616,6 +635,20 @@ AIC(
   model_6_add,
   model_6_null
 )
+model_6_no_hemoplasma <- update(model_6_add, . ~ . - hemoplasma)
+model_6_no_pathogens <- update(model_6_add, . ~ . - pathogens)
+model_6_no_season <- update(model_6_add, . ~ . - season)
+model_6_no_sex <- update(model_6_add, . ~ . - sex)
+
+anova(model_6_no_hemoplasma, model_6_add, test = "Chisq")
+anova(model_6_no_pathogens, model_6_add, test = "Chisq")
+anova(model_6_no_season, model_6_add, test = "Chisq")
+anova(model_6_no_sex, model_6_add, test = "Chisq")
+
+AIC(model_6_add, model_6_no_hemoplasma)
+AIC(model_6_add, model_6_no_pathogens)
+AIC(model_6_add, model_6_no_season)
+AIC(model_6_add, model_6_no_sex)
 ```
 
 -> Results : For adult *Choloepus didactylus*, the four-way interaction model and the three-way interaction model were identical in fit (Δdeviance = 0, df = 0). Adding three-way interactions to the two-way model resulted in a small improvement in fit (LRT: χ²₂ = 0.093, *p* = 0.026), whereas adding two-way interactions to the additive model did not improve fit (χ²₆ = 0.012, *p* = 0.992). The additive model also did not improve on the null model (χ²₄ = 0.055, *p* = 0.370), and the null model had the lowest AIC (−69.52 vs. −66.07 for the additive model). The null model was therefore retained.
@@ -665,6 +698,21 @@ anova(model_7_2way, model_7_3way, test = "Chisq")
 anova(model_7_add, model_7_2way, test = "Chisq")
 anova(model_7_null, model_7_add, test = "Chisq")
 AIC(model_7, model_7_3way, model_7_2way, model_7_add, model_7_null)
+
+model_7_no_hemoplasma <- update(model_7_add, . ~ . - hemoplasma)
+model_7_no_pathogens <- update(model_7_add, . ~ . - pathogens)
+model_7_no_season <- update(model_7_add, . ~ . - season)
+model_7_no_sex <- update(model_7_add, . ~ . - sex)
+
+anova(model_7_no_hemoplasma, model_7_add, test = "Chisq")
+anova(model_7_no_pathogens, model_7_add, test = "Chisq")
+anova(model_7_no_season, model_7_add, test = "Chisq")
+anova(model_7_no_sex, model_7_add, test = "Chisq")
+
+AIC(model_7_add, model_7_no_hemoplasma)
+AIC(model_7_add, model_7_no_pathogens)
+AIC(model_7_add, model_7_no_season)
+AIC(model_7_add, model_7_no_sex)
 ```
 -> Results : For adult *Bradypus tridactylus*, adding three-way interactions did not improve model fit over the two-way interaction model (LRT: χ²₁ = 0.0001, *p* = 0.928), and the two-way interaction model did not improve fit over the additive model (χ²₄ = 0.099, *p* = 0.193). The additive model also did not improve on the null model (χ²₄ = 0.079, *p* = 0.321), and the null model had the lowest AIC (513.01 vs. 516.14 for the additive model). The null model was therefore retained.
 
@@ -733,6 +781,20 @@ AIC(model_8, model_8_3way, model_8_2way, model_8_add, model_8_null)
 model_8_final <- model_8_add
 summary(model_8_final)
 AIC(model_8_final)
+model_8_no_hemoplasma <- update(model_8_add, . ~ . - hemoplasma)
+model_8_no_pathogens <- update(model_8_add, . ~ . - pathogens)
+model_8_no_season <- update(model_8_add, . ~ . - season)
+model_8_no_sex <- update(model_8_add, . ~ . - sex)
+
+anova(model_8_no_hemoplasma, model_8_add, test = "Chisq")
+anova(model_8_no_pathogens, model_8_add, test = "Chisq")
+anova(model_8_no_season, model_8_add, test = "Chisq")
+anova(model_8_no_sex, model_8_add, test = "Chisq")
+
+AIC(model_8_add, model_8_no_hemoplasma)
+AIC(model_8_add, model_8_no_pathogens)
+AIC(model_8_add, model_8_no_season)
+AIC(model_8_add, model_8_no_sex)
 ```
 -> Results : For adult *Choloepus didactylus*, the additive model was retained (AIC = 383.99; ΔAIC = 1.82 relative to the null model). `hematocrit` was higher during the wet `season` (β = 0.116 ± 0.041 SE, *p* = 0.006), but was not significantly associated with `hemoplasma` infection, other blood-borne `pathogens`, or `sex` (*p* > 0.11).
 
@@ -773,87 +835,140 @@ Results :
 
 Create violin plots for `hematocrit`
 ```
+library(ggplot2)
+library(patchwork)
+
 label_style <- element_text(size = 28, face = "bold")
 
-pA <- ggplot(data_adult_Bt, aes(x = factor(hemoplasma, levels = c(0, 1),
-                                labels = c("Uninfected", "Infected")),
-                                y = hematocrit)) +
+panel_theme <- theme_minimal() +
+  theme(
+    plot.title = label_style,
+    plot.title.position = "plot",
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    panel.grid = element_blank(),
+    axis.text = element_text(size = 18, color = "black"),
+    axis.title = element_text(size = 20, color = "black"),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+
+pA <- ggplot(data_adult_Bt, aes(
+  x = factor(hemoplasma, levels = c(0, 1),
+             labels = c("Uninfected", "Infected")),
+  y = hematocrit
+)) +
   geom_violin(fill = "darkorange2", color = "black", alpha = 0.7, trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
-  geom_jitter(width = 0.15, size = 1.5, alpha = 0.5) +
+  geom_jitter(width = 0.15, size = 2, shape = 21, fill = NA, color = "black", stroke = 0.7) +
   labs(x = NULL, y = "Hematocrit (%)", title = "A") +
   scale_y_continuous(limits = c(20, 60)) +
   scale_x_discrete(labels = NULL) +
-  theme_minimal() +
-  theme(plot.title = label_style)
+  panel_theme
 
-pB <- ggplot(data_adult_Bt, aes(x = factor(season, levels = c("D", "W"),
-                                labels = c("Dry", "Wet")),
-                                y = hematocrit)) +
+pB <- ggplot(data_adult_Bt, aes(
+  x = factor(season, levels = c("D", "W"),
+             labels = c("Dry", "Wet")),
+  y = hematocrit
+)) +
   geom_violin(fill = "darkorange2", color = "black", alpha = 0.7, trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
-  geom_jitter(width = 0.15, size = 1.5, alpha = 0.5) +
+  geom_jitter(width = 0.15, size = 2, shape = 21, fill = NA, color = "black", stroke = 0.7) +
   labs(x = NULL, y = NULL, title = "B") +
   scale_y_continuous(limits = c(20, 60)) +
   scale_x_discrete(labels = NULL) +
-  theme_minimal() +
-  theme(plot.title = label_style)
+  panel_theme
 
-pC <- ggplot(data_adult_Bt, aes(x = factor(sex, levels = c("M", "F"),
-                                labels = c("Male", "Female")),
-                                y = hematocrit)) +
+pC <- ggplot(data_adult_Bt, aes(
+  x = factor(sex, levels = c("M", "F"),
+             labels = c("Male", "Female")),
+  y = hematocrit
+)) +
   geom_violin(fill = "darkorange2", color = "black", alpha = 0.7, trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
-  geom_jitter(width = 0.15, size = 1.5, alpha = 0.5) +
+  geom_jitter(width = 0.15, size = 2, shape = 21, fill = NA, color = "black", stroke = 0.7) +
   labs(x = NULL, y = NULL, title = "C") +
   scale_y_continuous(limits = c(20, 60)) +
   scale_x_discrete(labels = NULL) +
-  theme_minimal() +
-  theme(plot.title = label_style)
+  panel_theme
 
-pD <- ggplot(data_adult_Cd, aes(x = factor(hemoplasma, levels = c(0, 1),
-                                labels = c("Uninfected", "Infected")),
-                                y = hematocrit)) +
+pD <- ggplot(data_adult_Cd, aes(
+  x = factor(hemoplasma, levels = c(0, 1),
+             labels = c("Uninfected", "Infected")),
+  y = hematocrit
+)) +
   geom_violin(fill = "darkorange2", color = "black", alpha = 0.7, trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
-  geom_jitter(width = 0.15, size = 1.5, alpha = 0.5) +
-  labs(x = expression(paste("Hemoplasma", " infection status")),
+  geom_jitter(width = 0.15, size = 2, shape = 21, fill = NA, color = "black", stroke = 0.7) +
+  labs(x = "Hemoplasma infection status",
        y = "Hematocrit (%)",
        title = "D") +
   scale_y_continuous(limits = c(10, 60)) +
-  theme_minimal() +
-  theme(plot.title = label_style)
+  panel_theme
 
-pE <- ggplot(data_adult_Cd, aes(x = factor(season, levels = c("D", "W"),
-                                labels = c("Dry", "Wet")),
-                                y = hematocrit)) +
+pE <- ggplot(data_adult_Cd, aes(
+  x = factor(season, levels = c("D", "W"),
+             labels = c("Dry", "Wet")),
+  y = hematocrit
+)) +
   geom_violin(fill = "darkorange2", color = "black", alpha = 0.7, trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
-  geom_jitter(width = 0.15, size = 1.5, alpha = 0.5) +
+  geom_jitter(width = 0.15, size = 2, shape = 21, fill = NA, color = "black", stroke = 0.7) +
   labs(x = "Season", y = NULL, title = "E") +
   scale_y_continuous(limits = c(10, 60)) +
-  theme_minimal() +
-  theme(plot.title = label_style)
+  panel_theme
 
-pF <- ggplot(data_adult_Cd, aes(x = factor(sex, levels = c("M", "F"),
-                                labels = c("Male", "Female")),
-                                y = hematocrit)) +
+pF <- ggplot(data_adult_Cd, aes(
+  x = factor(sex, levels = c("M", "F"),
+             labels = c("Male", "Female")),
+  y = hematocrit
+)) +
   geom_violin(fill = "darkorange2", color = "black", alpha = 0.7, trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
-  geom_jitter(width = 0.15, size = 1.5, alpha = 0.5) +
+  geom_jitter(width = 0.15, size = 2, shape = 21, fill = NA, color = "black", stroke = 0.7) +
   labs(x = "Sex", y = NULL, title = "F") +
   scale_y_continuous(limits = c(10, 60)) +
-  theme_minimal() +
-  theme(plot.title = label_style)
+  panel_theme
 
-final_plot <- (pA | pB | pC) / (pD | pE | pF)
+species_Bt <- ggplot() +
+  annotate(
+    "text",
+    x = 0.5, y = 0.5,
+    label = "Bradypus tridactylus",
+    fontface = "italic",
+    angle = 90,
+    size = 7
+  ) +
+  theme_void() +
+  theme(
+    plot.margin = margin(10, 0, 10, 0)
+  )
+
+species_Cd <- ggplot() +
+  annotate(
+    "text",
+    x = 0.5, y = 0.5,
+    label = "Choloepus didactylus",
+    fontface = "italic",
+    angle = 90,
+    size = 7
+  ) +
+  theme_void() +
+  theme(
+    plot.margin = margin(10, 0, 10, 0)
+  )
+
+final_plot <- (
+  species_Bt | pA | pB | pC
+) / (
+  species_Cd | pD | pE | pF
+) +
+  plot_layout(widths = c(0.4, 1, 1, 1))
 
 print(final_plot)
 
 ggsave(
   "hematocrit_by_species_and_predictors.png",
   plot = final_plot,
-  width = 14,
+  width = 16,
   height = 12,
   units = "in",
   dpi = 300
@@ -861,66 +976,54 @@ ggsave(
 ```
 
 ## Step 9. Impact of `hemoplasma` infections on body `temperature`
-### Convert `temperature` to numeric, handle left-censored values (<32°C) for analysis in Bt
+### Convert `temperature` to numeric, handle left-censored values (<32°C) for analysis, and create a left-censored Surv object (temp) for `temperature` in Bt and Cd
 ```
 data_adult_Bt <- data_adult_Bt %>%
   mutate(
     temperature_numeric = as.numeric(ifelse(temperature == "< 32.00", 32, temperature)),
-    censored = ifelse(temperature == "< 32.00", TRUE, FALSE)
+    censored = temperature == "< 32.00",
+    temp_surv = Surv(temperature_numeric, event = !censored, type = "left")
   )
-```
 
-### Create a left-censored Surv object (temp) for `temperature` in Bt
-```
-temp <- Surv(data_adult_Bt$temperature_numeric,
-                  event = !data_adult_Bt$censored,
-                  type = "left")
-```
-
-### Convert `temperature` to numeric, handle left-censored values (<32°C) for analysis in Cd
-```
 data_adult_Cd <- data_adult_Cd %>%
   mutate(
     temperature_numeric = as.numeric(ifelse(temperature == "< 32.00", 32, temperature)),
-    censored = ifelse(temperature == "< 32.00", TRUE, FALSE)
+    censored = temperature == "< 32.00",
+    temp_surv = Surv(temperature_numeric, event = !censored, type = "left")
   )
-```
 
-### Create a left-censored Surv object (temp) for `temperature` in Cd
-```
-temp <- Surv(data_adult_Cd$temperature_numeric,
-                  event = !data_adult_Cd$censored,
-                  type = "left")
+table(data_adult_Bt$censored, useNA = "ifany")
+table(data_adult_Cd$censored, useNA = "ifany")
 ```
 
 ### Fit Gaussian survival regression models to test the interaction effects among `hemoplasma`, `pathogens`, `season`, `sex` on `temperature` in Bt
 ```
 model_10 <- survreg(
-  temp ~ hemoplasma * pathogens * season * sex,
+  temp_surv ~ hemoplasma * pathogens * season * sex,
   data = data_adult_Bt,
   dist = "gaussian"
 )
 
 model_10_3way <- survreg(
-  temp ~ (hemoplasma + pathogens + season + sex)^3,
+  temp_surv ~ (hemoplasma + pathogens + season + sex)^3,
   data = data_adult_Bt,
   dist = "gaussian"
 )
 
 model_10_2way <- survreg(
-  temp ~ (hemoplasma + pathogens + season + sex)^2,
+  temp_surv ~ (hemoplasma + pathogens + season + sex)^2,
   data = data_adult_Bt,
   dist = "gaussian"
 )
 
 model_10_add <- survreg(
-  temp ~ hemoplasma + pathogens + season + sex,
+  temp_surv ~ hemoplasma + pathogens + season + sex,
   data = data_adult_Bt,
   dist = "gaussian"
 )
 
 model_10_null <- survreg(
-  temp ~ 1,
+  temp_surv ~ 1,
   data = data_adult_Bt,
   dist = "gaussian"
 )
@@ -937,6 +1040,52 @@ AIC(
   model_10_add,
   model_10_null
 )
+
+model_11 <- survreg(
+  temp_surv ~ hemoplasma * pathogens * season * sex,
+  data = data_adult_Cd,
+  dist = "gaussian"
+)
+
+model_11_3way <- survreg(
+  temp_surv ~ (hemoplasma + pathogens + season + sex)^3,
+  data = data_adult_Cd,
+  dist = "gaussian"
+)
+
+model_11_2way <- survreg(
+  temp_surv ~ (hemoplasma + pathogens + season + sex)^2,
+  data = data_adult_Cd,
+  dist = "gaussian"
+)
+
+model_11_add <- survreg(
+  temp_surv ~ hemoplasma + pathogens + season + sex,
+  data = data_adult_Cd,
+  dist = "gaussian"
+)
+
+model_11_null <- survreg(
+  temp_surv ~ 1,
+  data = data_adult_Cd,
+  dist = "gaussian"
+)
+
+anova(model_11_3way, model_11)
+anova(model_11_2way, model_11_3way)
+anova(model_11_add, model_11_2way)
+anova(model_11_null, model_11_add)
+
+AIC(
+  model_11,
+  model_11_3way,
+  model_11_2way,
+  model_11_add,
+  model_11_null
+)
+
+summary(model_10_add)
+summary(model_11_add)
 ```
 
 -> Results : For adult *Bradypus tridactylus*, the four-way and three-way interaction models did not differ in fit (LRT: χ²₁ = 0, *p* = 1.00). Adding three-way interactions to the two-way model did not improve fit (χ²₄ = 0.20, *p* = 0.995), nor did adding two-way interactions to the additive model (χ²₆ = 11.14, *p* = 0.084). However, the additive model improved fit relative to the null model (χ²₄ = 11.61, *p* = 0.020) and had the lowest AIC (43.40). The additive model was therefore retained.
@@ -945,6 +1094,20 @@ AIC(
 ```
 model_10_final <- model_10_add
 summary(model_10_final)
+model_10_no_hemoplasma <- update(model_10_final, . ~ . - hemoplasma)
+model_10_no_pathogens <- update(model_10_final, . ~ . - pathogens)
+model_10_no_season <- update(model_10_final, . ~ . - season)
+model_10_no_sex <- update(model_10_final, . ~ . - sex)
+
+anova(model_10_no_hemoplasma, model_10_final)
+anova(model_10_no_pathogens, model_10_final)
+anova(model_10_no_season, model_10_final)
+anova(model_10_no_sex, model_10_final)
+
+AIC(model_10_final, model_10_no_hemoplasma)
+AIC(model_10_final, model_10_no_pathogens)
+AIC(model_10_final, model_10_no_season)
+AIC(model_10_final, model_10_no_sex)
 ```
 
 -> Results : For adult *Bradypus tridactylus*, the additive model was retained (AIC = 43.40) and was significantly better than the null model (LRT: χ²₄ = 11.61, *p* = 0.020). Body `temperature` was higher during the wet `season` (β = 0.97 ± 0.40 SE, *p* = 0.016) and lower in `males` (β = −0.87 ± 0.39 SE, *p* = 0.025). `hemoplasma` infection was not associated with body `temperature` (β = −0.40 ± 0.78 SE, *p* = 0.612), nor were other blood-borne `pathogens` (β = 0.59 ± 0.39 SE, *p* = 0.128).
@@ -995,6 +1158,26 @@ AIC(
   model_11_add,
   model_11_null
 )
+
+model_11_no_hemoplasma <- update(model_11_add, . ~ . - hemoplasma)
+model_11_no_pathogens <- update(model_11_add, . ~ . - pathogens)
+model_11_no_season <- update(model_11_add, . ~ . - season)
+model_11_no_sex <- update(model_11_add, . ~ . - sex)
+
+anova(model_11_no_hemoplasma, model_11_add)
+anova(model_11_no_pathogens, model_11_add)
+anova(model_11_no_season, model_11_add)
+anova(model_11_no_sex, model_11_add)
+
+AIC(
+  model_11_add,
+  model_11_no_hemoplasma,
+  model_11_no_pathogens,
+  model_11_no_season,
+  model_11_no_sex
+)
+
+summary(model_11_add)
 ```
 
 -> Results : For adult *Choloepus didactylus*, none of the interaction models improved model fit (three-way vs. two-way: LRT, χ²₄ = 0, *p* = 1.00; two-way vs. additive: χ²₆ = 3.55, *p* = 0.737). The additive model also did not improve on the null model (χ²₄ = 0.56, *p* = 0.967), and the null model had the lowest AIC (62.74 vs. 70.17 for the additive model). The null model was therefore retained.
