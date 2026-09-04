@@ -25,7 +25,7 @@ We analyzed data from 626 individuals belonging to 44 species of wild mammals sa
 -  `femalematurity` : Mean age at maturity for females (days)
 -  `littersize` : Mean litter size (number of offspring per litter)
    
-## Table of contents A UPDATER !!!
+## Table of contents
 - [Step 1. Data retrieval and preparation](#step-1-data-retrieval-and-preparation)
 - [Step 2. Species-level summary for hemoplasma](#step-2-species-level-summary-for-hemoplasma)
 - [Step 3. Variation in hemoplasma infection status according to the host sex](#step-3-variation-in-hemoplasma-infection-status-according-to-the-host-sex)
